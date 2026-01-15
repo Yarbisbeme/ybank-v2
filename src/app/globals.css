@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* --- 1. VARIABLES DE TEMA (Tu identidad visual) --- */
+@theme {
+  /* Fuentes */
+  --font-inter: var(--font-inter);
+  --font-ibm-plex-serif: var(--font-ibm-plex-serif);
+
+  /* Colores */
+  --color-bankGradient: #0179FE;
+  --color-fill-1: rgba(255, 255, 255, 0.10);
+
+  /* Paleta Sobrescrita */
+  --color-indigo-500: #6172F3;
+  --color-indigo-700: #3538CD;
+  --color-success-25: #F6FEF9;
+  --color-success-50: #ECFDF3;
+  --color-success-100: #D1FADF;
+  --color-success-600: #039855;
+  --color-success-700: #027A48;
+  --color-success-900: #054F31;
+  --color-pink-25: #FEF6FB;
+  --color-pink-100: #FCE7F6;
+  --color-pink-500: #EE46BC;
+  --color-pink-600: #DD2590;
+  --color-pink-700: #C11574;
+  --color-pink-900: #851651;
+  --color-blue-25: #F5FAFF;
+  --color-blue-100: #D1E9FF;
+  --color-blue-500: #2E90FA;
+  --color-blue-600: #1570EF;
+  --color-blue-700: #175CD3;
+  --color-blue-900: #194185;
+  --color-sky-1: #F3F9FF;
+  --color-black-1: #00214F;
+  --color-black-2: #344054;
+  --color-gray-25: #FCFCFD;
+  --color-gray-200: #EAECF0;
+  --color-gray-300: #D0D5DD;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #344054;
+  --color-gray-900: #101828;
+
+  /* Imágenes y Gradientes */
+  --image-bank-gradient: linear-gradient(90deg, #0179FE 0%, #4893FF 100%);
+  --image-gradient-mesh: url('/icons/gradient-mesh.svg');
+  --image-bank-green-gradient: linear-gradient(90deg, #01797A 0%, #489399 100%);
+
+  /* Sombras */
+  --shadow-form: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  --shadow-chart: 0px 1px 3px 0px rgba(16, 24, 40, 0.10), 0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+  --shadow-profile: 0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --shadow-creditCard: 8px 10px 16px 0px rgba(0, 0, 0, 0.05);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- 2. CLASES DE UTILIDAD MANUALES (Sin @apply para evitar errores) --- */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* --- 3. ESTILOS BASE --- */
+@layer base {
+  * {
+    box-sizing: border-box; 
+    min-width: 0;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    font-family: var(--font-inter);
+    background-color: white;
+    color: var(--color-gray-900);
+  }
 }
