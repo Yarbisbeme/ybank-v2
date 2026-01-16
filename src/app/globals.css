@@ -1,83 +1,152 @@
 @import "tailwindcss";
 
-/* --- 1. VARIABLES DE TEMA (Tu identidad visual) --- */
+/* --------------------------------------------------
+   1. VARIABLES DE TEMA – FINTECH 2026
+-------------------------------------------------- */
 @theme {
-  /* Fuentes */
+  /* Tipografías */
   --font-inter: var(--font-inter);
   --font-ibm-plex-serif: var(--font-ibm-plex-serif);
 
-  /* Colores */
-  --color-bankGradient: #0179FE;
-  --color-fill-1: rgba(255, 255, 255, 0.10);
+  /* Colores base semánticos */
+  --color-primary-500: #2563EB;
+  --color-primary-600: #1D4ED8;
+  --color-primary-700: #1E40AF;
 
-  /* Paleta Sobrescrita */
-  --color-indigo-500: #6172F3;
-  --color-indigo-700: #3538CD;
-  --color-success-25: #F6FEF9;
-  --color-success-50: #ECFDF3;
-  --color-success-100: #D1FADF;
+  --color-surface-0: #FFFFFF;
+  --color-surface-1: #F9FAFB;
+  --color-surface-2: #F2F4F7;
+
+  --color-border-soft: rgba(16, 24, 40, 0.08);
+  --color-border-strong: rgba(16, 24, 40, 0.16);
+
+  /* Texto */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475467;
+  --color-text-muted: #667085;
+
+  /* Estados */
   --color-success-600: #039855;
-  --color-success-700: #027A48;
-  --color-success-900: #054F31;
-  --color-pink-25: #FEF6FB;
-  --color-pink-100: #FCE7F6;
-  --color-pink-500: #EE46BC;
-  --color-pink-600: #DD2590;
-  --color-pink-700: #C11574;
-  --color-pink-900: #851651;
-  --color-blue-25: #F5FAFF;
-  --color-blue-100: #D1E9FF;
-  --color-blue-500: #2E90FA;
-  --color-blue-600: #1570EF;
-  --color-blue-700: #175CD3;
-  --color-blue-900: #194185;
-  --color-sky-1: #F3F9FF;
-  --color-black-1: #00214F;
-  --color-black-2: #344054;
-  --color-gray-25: #FCFCFD;
-  --color-gray-200: #EAECF0;
-  --color-gray-300: #D0D5DD;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-900: #101828;
+  --color-danger-600: #D92D20;
+  --color-warning-600: #DC6803;
 
-  /* Imágenes y Gradientes */
-  --image-bank-gradient: linear-gradient(90deg, #0179FE 0%, #4893FF 100%);
-  --image-gradient-mesh: url('/icons/gradient-mesh.svg');
-  --image-bank-green-gradient: linear-gradient(90deg, #01797A 0%, #489399 100%);
+  /* Gradientes refinados */
+  --image-bank-gradient: linear-gradient(
+    135deg,
+    #2563EB 0%,
+    #3B82F6 50%,
+    #60A5FA 100%
+  );
 
-  /* Sombras */
-  --shadow-form: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
-  --shadow-chart: 0px 1px 3px 0px rgba(16, 24, 40, 0.10), 0px 1px 2px 0px rgba(16, 24, 40, 0.06);
-  --shadow-profile: 0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03);
-  --shadow-creditCard: 8px 10px 16px 0px rgba(0, 0, 0, 0.05);
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.35);
+
+  /* Sombras modernas */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 2px 6px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 8px 20px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.12);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Transiciones */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
 }
 
-/* --- 2. CLASES DE UTILIDAD MANUALES (Sin @apply para evitar errores) --- */
+/* --------------------------------------------------
+   2. UTILIDADES AVANZADAS
+-------------------------------------------------- */
+
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
+/* Glass moderno (usable en cards, modals, headers) */
 .glassmorphism {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
 }
 
-/* --- 3. ESTILOS BASE --- */
+/* Card base bancaria */
+.bank-card {
+  background: var(--color-surface-0);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-soft);
+  transition: box-shadow var(--transition-base),
+              transform var(--transition-base);
+}
+.bank-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Botón primario */
+.btn-primary {
+  background: var(--image-bank-gradient);
+  color: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast),
+              box-shadow var(--transition-fast),
+              opacity var(--transition-fast);
+}
+.btn-primary:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  opacity: 0.95;
+}
+
+/* --------------------------------------------------
+   3. BASE GLOBAL
+-------------------------------------------------- */
 @layer base {
   * {
-    box-sizing: border-box; 
+    box-sizing: border-box;
     min-width: 0;
   }
+
   body {
     font-family: var(--font-inter);
-    background-color: white;
-    color: var(--color-gray-900);
+    background-color: var(--color-surface-1);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+
+  input, select, textarea {
+    background-color: var(--color-surface-0);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
   }
 }
