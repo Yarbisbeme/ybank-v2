@@ -1,0 +1,7 @@
+<svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="120" fill="black" />
+  <path
+    d="M0,40 Q300,90 600,40 T1200,40 V120 H0 Z"
+    fill="white"
+  />
+</svg>

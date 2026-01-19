@@ -10,7 +10,7 @@ export function AuthHeader() {
         height={28}
         alt="Ybank"
       />
-      <span className="text-2xl font-semibold tracking-tight text-[var(--color-text-main)]">
+      <span className="text-2xl font-semibold tracking-tight text-(--color-text-main)">
         Ybank
       </span>
     </Link>

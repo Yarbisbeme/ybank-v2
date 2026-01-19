@@ -9,7 +9,7 @@ export default function OnlinePaymentAnimation() {
       animationData={animationData}
       loop
       autoplay
-      className="w-[360px] h-[360px]"
+      className="w-90 h-90"
     />
   );
 }

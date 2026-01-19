@@ -10,11 +10,11 @@ const CARD_STYLES: Record<CardType, string> = {
 
 export function AuthCard(  ) {
   return (
-    <div className="relative aspect-[1.586/1] w-full overflow-hidden rounded-2xl border border-white/40 bg-gradient-to-br from-gray-900 to-blue-800 shadow-2xl transition-transform duration-500 hover:scale-105 hover:rotate-1">
+    <div className="relative aspect-[1.586/1] w-full overflow-hidden rounded-2xl border border-white/40 bg-linear-to-br from-gray-900 to-blue-800 shadow-2xl transition-transform duration-500 hover:scale-105 hover:rotate-1">
         
         {/* Brillo decorativo */}
         <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-blue-800/30 blur-2xl"></div>
-        <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-purple-500/30 blur-2xl"></div>
+        <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-blue-500/30 blur-2xl"></div>
 
         {/* Contenido Tarjeta */}
         <div className="relative flex h-full flex-col justify-between p-6">

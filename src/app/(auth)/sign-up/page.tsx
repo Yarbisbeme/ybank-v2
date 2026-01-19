@@ -42,7 +42,7 @@ export default function SignUp() {
 
 
       {/* --- COLUMNA DERECHA --- */}
-      <div className="hidden lg:flex w-1/2 items-center justify-center bg-gradient-to-br from-sky-50 via-white to-sky-100">
+      <div className="hidden lg:flex w-1/2 items-center justify-center bg-linear-to-br from-sky-50 via-white to-sky-100">
         <div className="flex flex-col items-center gap-6 text-center">
 
 
