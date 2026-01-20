@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, CreditCard, LayoutGrid } from "lucide-react";
 import { ButtonOla } from "@/components/ui/ButtonOla";
+import { Logo } from "@/components/ui/Logo";
 
 export default function Home() {
   return (
@@ -8,18 +9,15 @@ export default function Home() {
 
       {/* --- NAVBAR: Simple, pegado arriba, sin transparencia rara --- */}
       <nav className="flex w-full items-center justify-between border-b border-neutral-200 bg-white px-6 py-4">
-        <div className="flex items-center">
-          {/* Logo Sólido */}
-          <img src="/icons/logoy.svg" width={30} height={24} alt="Bank Logo" />
-          <span className="text-2xl font-bold tracking-tight">Bank</span>
-        </div>
+
+        {/* Componente del logo */}
+        <Logo />
         
         <div className="flex items-center gap-4 text-sm font-medium">
           <Link href="/sign-up" className="hidden text-neutral-600 hover:text-black sm:block">
             Crear
           </Link>
           <ButtonOla href="sign-in" label={'Log In'} />
-
         </div>
       </nav>
 
