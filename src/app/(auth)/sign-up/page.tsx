@@ -5,6 +5,7 @@ import { Fingerprint, ArrowRight, ShieldCheck, CreditCard } from "lucide-react";
 import { AuthCard } from "@/components/ui/AuthCard"; 
 import TextReveal from "@/components/ui/TextReveal";
 import { Logo } from "@/components/ui/Logo";
+import { signInWithGoogle } from "../../../../actions/auth";
 
 export default function SignUp() {
   return (
@@ -48,25 +49,26 @@ export default function SignUp() {
             </p>
 
             <div className="mt-10">
-              
+
+              <form action={signInWithGoogle}>
+                <button
+                  className="group relative flex w-full items-center justify-center gap-3 rounded-full border border-neutral-200 bg-white px-4 py-4 font-medium text-neutral-700 transition-all duration-300 hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm active:scale-[0.98]"
+                >
+                  <Image 
+                      src="/icons/google.svg" 
+                      width={20} 
+                      height={20} 
+                      alt="G" 
+                      className="opacity-80 transition-opacity group-hover:opacity-100"
+                  />
+                  <span className="tracking-wide">Registrarse con Google</span>
+                </button>
+              </form> 
               {/* Botón Google (Estilo Industrial) */}
-              <button
-                className="group relative flex w-full items-center justify-center gap-3 rounded-full border border-neutral-200 bg-white px-4 py-4 font-medium text-neutral-700 transition-all duration-300 hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm active:scale-[0.98]"
-              >
-                 <Image 
-                    src="/icons/google.svg" 
-                    width={20} 
-                    height={20} 
-                    alt="G" 
-                    className="opacity-80 transition-opacity group-hover:opacity-100"
-                 />
-                 <span className="tracking-wide">Registrarse con Google</span>
-              </button>
 
               <p className="mt-6 text-center text-xs text-neutral-400">
                 Al registrarte, aceptas nuestros <Link href="#" className="underline hover:text-neutral-600">Términos</Link> y <Link href="#" className="underline hover:text-neutral-600">Privacidad</Link>.
               </p>
-
             
             </div>
         </div>

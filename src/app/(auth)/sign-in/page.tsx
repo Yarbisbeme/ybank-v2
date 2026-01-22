@@ -5,34 +5,23 @@ import { Fingerprint, ArrowRight, ShieldCheck, CreditCard } from "lucide-react";
 import { AuthCard } from "@/components/ui/AuthCard"; 
 import TextReveal from "@/components/ui/TextReveal";
 import { Logo } from "@/components/ui/Logo";
+import { signInWithGoogle } from "../../../../actions/auth";
 
 export default function SignIn() {
   return (
     <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-white font-inter selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
-      {/* === CONTENEDOR PRINCIPAL === 
-         Aquí está el cambio clave:
-         - w-[90vw]: 90% del ancho de la ventana.
-         - h-[90vh]: 90% del alto de la ventana.
-         - max-w-none: Quitamos límites de ancho máximo.
-      */}
+      {/* === CONTENEDOR PRINCIPAL === */}
       <div className="h-full w-full overflow-hidden flex">
         
         {/* === COLUMNA IZQUIERDA: AUTH === */}
-        {/* Agregamos 'overflow-y-auto' por si la pantalla es muy bajita y el contenido no cabe */}
         <div className="flex w-full lg:w-1/2 flex-col justify-between bg-white overflow-y-auto h-full min-h-svh p-8 sm:px-10 sm:py-8">
-        {/* 1. min-h-screen: Asegura que la caja ocupe AL MENOS toda la altura del celular.
-            2. justify-between: Separa los elementos (Header arriba, Footer abajo).
-        */}
 
         {/* Header (shrink-0 para que no se aplaste) */}
         <div className="flex items-center justify-between shrink-0 ">
             <Logo />
         </div>
 
-        {/* Main Content 
-            - flex-1: Hace que este div ocupe todo el espacio sobrante.
-            - flex flex-col justify-center: Centra el contenido internamente.
-        */}
+        {/* Main Content */}
         <div className="flex flex-1 flex-col justify-center w-full lg:w-120 2xl:w-130 mx-auto py-10">
             
             <div className="mb-2">
@@ -64,10 +53,12 @@ export default function SignIn() {
             </div>
 
             {/* Opción 2: Google */}
-            <button className="group flex w-full items-center justify-center gap-3 border border-neutral-200 bg-white px-4 py-4 font-medium text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-50 active:bg-neutral-100">
-                <Image src="/icons/google.svg" width={20} height={20} alt="G" className="opacity-60 group-hover:opacity-100 transition-opacity"/>
-                <span>Google Account</span>
-            </button>
+            <form action={signInWithGoogle}>
+                <button className="group flex w-full items-center justify-center gap-3 border border-neutral-200 bg-white px-4 py-4 font-medium text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-50 active:bg-neutral-100">
+                    <Image src="/icons/google.svg" width={20} height={20} alt="G" className="opacity-60 group-hover:opacity-100 transition-opacity"/>
+                    <span>Google Account</span>
+                </button>
+            </form>
             </div>
         </div>
 
@@ -96,20 +87,9 @@ export default function SignIn() {
             <div className="relative z-10 w-full max-w-xs transition-transform duration-700 hover:rotate-y-12 hover:rotate-x-12 perspective-1000">
                               
                 {/* La Tarjeta Física **/}
- 
-
                 <AuthCard showTransaction={true} className="scale-120 2xl:scale-140"/>
                 <div className="h-18 2xl:h-30" /> {/* ← RESERVA ESPACIO */}
 
-                {/* Notificación Flotante (Consistente con tu diseño anterior) */}{/** 
-                <div className="absolute -right-12 z-40 top-10 flex animate-bounce items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3 shadow-xl [animation-duration:4s]">
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <div>
-                        <p className="text-xs font-bold text-neutral-900">Nómina Recibida</p>
-                        <p className="text-[10px] text-neutral-500">+$3,250.00</p>
-                    </div>
-                </div>
-                */}
             </div>
 
             <div className="mt-12 text-center relative z-10">
