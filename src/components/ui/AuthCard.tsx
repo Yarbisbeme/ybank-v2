@@ -55,7 +55,7 @@ export function AuthCard({
         <div className="relative z-10 flex justify-between items-start">
           {/* Logo  */}
           <div className="flex row items-center">
-            <Image src="/icons/logoy.svg" width={24} height={24} alt="Logo"/>
+            <Image src="/icons/logoY.svg" width={24} height={24} alt="Logo"/>
             <span className="text-lg tracking-widest text-white/80">Bank</span>
           </div>
 
