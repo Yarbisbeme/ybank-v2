@@ -6,7 +6,7 @@ import { AuthCard } from "@/components/ui/AuthCard";
 import TextReveal from "@/components/ui/TextReveal";
 import { Logo } from "@/components/ui/Logo";
 
-export default function SignUp() {
+export default function SignIn() {
   return (
     <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-white font-inter selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
       {/* === CONTENEDOR PRINCIPAL === 
@@ -25,7 +25,7 @@ export default function SignUp() {
         */}
 
         {/* Header (shrink-0 para que no se aplaste) */}
-        <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center justify-between shrink-0 ">
             <Logo />
         </div>
 
@@ -36,10 +36,10 @@ export default function SignUp() {
         <div className="flex flex-1 flex-col justify-center w-full lg:w-120 2xl:w-130 mx-auto py-10">
             
             <div className="mb-2">
-            <TextReveal baseColor="text-neutral-900" hoverColor="text-blue-600" tamano="text-6xl 2xl:text-8xl font-bold">
-                Crea
+            <TextReveal baseColor="text-neutral-900" hoverColor="text-blue-600" tamano="text-5xl lg:text-6xl xl:text-6xl 2xl:text-8xl font-bold">
+                Bienvenido
                 <br /> 
-                tu cuenta.
+                de nuevo.
             </TextReveal>
             </div>
             
@@ -47,41 +47,41 @@ export default function SignUp() {
             Gestión patrimonial inteligente, simplificada.
             </p>
 
-            <div className="mt-10">
-              
-              {/* Botón Google (Estilo Industrial) */}
-              <button
-                className="group relative flex w-full items-center justify-center gap-3 rounded-full border border-neutral-200 bg-white px-4 py-4 font-medium text-neutral-700 transition-all duration-300 hover:border-neutral-300 hover:bg-neutral-50 hover:shadow-sm active:scale-[0.98]"
-              >
-                 <Image 
-                    src="/icons/google.svg" 
-                    width={20} 
-                    height={20} 
-                    alt="G" 
-                    className="opacity-80 transition-opacity group-hover:opacity-100"
-                 />
-                 <span className="tracking-wide">Registrarse con Google</span>
-              </button>
+            <div className="mt-8 flex flex-col gap-4">
+            {/* Botón Passkey */}
+            <button className="group relative flex w-full items-center justify-center gap-3 bg-black px-4 py-4 text-white shadow-lg transition-all duration-300 hover:shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95">
+                <Fingerprint className="h-5 w-5 text-neutral-400 transition-colors group-hover:text-blue-400" />
+                <span className="font-semibold tracking-wide transition-colors group-hover:text-blue-400">Continuar con Passkey</span>
+                <div className="absolute right-6 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                <ArrowRight className="h-4 w-4 text-blue-400" />
+                </div>
+            </button>
 
-              <p className="mt-6 text-center text-xs text-neutral-400">
-                Al registrarte, aceptas nuestros <Link href="#" className="underline hover:text-neutral-600">Términos</Link> y <Link href="#" className="underline hover:text-neutral-600">Privacidad</Link>.
-              </p>
+            <div className="relative flex items-center py-4">
+                <div className="grow border-t border-neutral-100"></div>
+                <span className="mx-4 shrink-0 text-[10px] font-bold tracking-widest text-neutral-400 uppercase">O usa tu email</span>
+                <div className="grow border-t border-neutral-100"></div>
+            </div>
 
-            
+            {/* Opción 2: Google */}
+            <button className="group flex w-full items-center justify-center gap-3 border border-neutral-200 bg-white px-4 py-4 font-medium text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-50 active:bg-neutral-100">
+                <Image src="/icons/google.svg" width={20} height={20} alt="G" className="opacity-60 group-hover:opacity-100 transition-opacity"/>
+                <span>Google Account</span>
+            </button>
             </div>
         </div>
 
         {/* Footer (shrink-0 para asegurar que siempre se vea y no se colapse) */}
         <div className="flex shrink-0 flex-col items-center justify-between gap-4 text-xs text-neutral-500 sm:flex-row border-t border-neutral-100 pt-6 mt-auto">
             <p>
-              ¿Ya tienes cuenta?{" "}
-              <Link href="/sign-in" className="font-semibold text-black hover:text-blue-600 transition-colors hover:underline">
-                Inicia sesión
-              </Link>
+            ¿No tienes cuenta?{" "}
+            <Link href="/sign-up" className="font-semibold text-black hover:text-blue-600 transition-colors hover:underline">
+                Aplicar ahora
+            </Link>
             </p>
             <div className="flex items-center gap-1.5 text-neutral-400">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Datos Seguros</span>
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Encriptación E2E</span>
             </div>
         </div>
         </div>
