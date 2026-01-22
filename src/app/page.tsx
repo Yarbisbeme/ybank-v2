@@ -182,12 +182,12 @@ export default function Home() {
 
         {/* --- FOOTER SIMPLE --- */}
         <div className="mt-20 border-t border-neutral-200 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-neutral-500">
-            <p>© 2026 Ybank Inc. New York / London / Tokyo</p>
-            <div className="flex gap-4 mt-4 md:mt-0">
+            <p>© 2026 Ybank Inc. New York / London / Dominican Republic</p>
+            <div className="flex gap-4 mt-4 md:mt-0 group">
                 <Link href="#" className="hover:text-black">Privacidad</Link>
                 <Link href="#" className="hover:text-black">Términos</Link>
-                <div className="flex items-center gap-1 text-green-600">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-600"></div>
+                <div className="flex items-center gap-1 group-hover:text-black">
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-300 group-hover:bg-blue-600 transition-colors delay-100"></div>
                     Systems Normal
                 </div>
             </div>
