@@ -1,4 +1,4 @@
-import { Toaster as Sonner } from '@/components/ui/Notificacion';
+import { Toaster as Sonner } from '@/components/ui/sonner';
 import type { ReactNode } from 'react';
 
 interface DashboardLayoutProps {

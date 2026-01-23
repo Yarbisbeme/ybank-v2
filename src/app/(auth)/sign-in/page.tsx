@@ -52,7 +52,6 @@ export default function SignIn() {
                         handlerToast({
                             message: "Funcionalidad en desarrollo",
                             description: "El acceso biométrico (Passkey) estará disponible en la v1.0.",
-                            icon: <Fingerprint className="h-5 w-5 text-blue-600" />,
                             type: "error"
                         })}
                     } // <- Conectamos la función aquí
