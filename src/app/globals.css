@@ -113,6 +113,29 @@
   opacity: 0.95;
 }
 
+/* Base para todos los toasts */
+li[data-sonner-toast] {
+  border-left-width: 4px !important; /* Forzamos que tenga borde izquierdo */
+}
+
+/* Colores por Tipo */
+li[data-sonner-toast][data-type="success"] {
+  border-left-color: #2563eb !important; /* Azul (blue-600) */
+}
+
+li[data-sonner-toast][data-type="error"] {
+  border-left-color: #ef4444 !important; /* Rojo (red-500) */
+}
+
+li[data-sonner-toast][data-type="warning"] {
+  border-left-color: #fbbf24 !important; /* Ámbar (amber-400) */
+}
+
+li[data-sonner-toast][data-type="info"] {
+  border-left-color: #d4d4d4 !important; /* Gris (neutral-300) */
+
+}
+
 /* --------------------------------------------------
    3. BASE GLOBAL
 -------------------------------------------------- */

@@ -22,6 +22,8 @@ googleapis	Cliente oficial para conectar con Gmail API.	Adapter (Ingesta)
 openai (Futuro)	SDK para conectar con modelos GPT/Gemini.	Service (Parsing)
 clsx + tailwind-merge	Utilidad cn() para gestión condicional de clases CSS.	Utility
 lucide-react	Iconografía ligera y optimizada.	Component
+Sonner  Biblioteca popular de Notificaciones
+Lootie-react    Biblioteca para diseños animados tipo json
 date-fns	Manipulación de fechas (Timezones, formatos).	Utility
 ```
 

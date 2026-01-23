@@ -1,10 +1,4 @@
 
-export type Button = {
-  logo: string;
-  alt: string;
-  cls?: string;
-}
-
 export type CardBrand = "visa" | "mastercard" | "amex"
 export type CardType = "credit" | "debit" | "virtual"
 
