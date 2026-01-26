@@ -16,22 +16,35 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      position="bottom-center"
+      richColors
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon className="h-4 w-4" />,
+        info: <InfoIcon className="h-4 w-4" />,
+        warning: <TriangleAlertIcon className="h-4 w-4" />,
+        error: <OctagonXIcon className="h-4 w-4" />,
+        loading: <Loader2Icon className="h-4 w-4 animate-spin" />,
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
+      toastOptions={{
+        classNames: {
+          toast:
+            "group border px-4 py-3 text-sm shadow-lg backdrop-blur-md",
+          title: "font-semibold",
+          description: "text-muted-foreground",
+          actionButton:
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+          cancelButton:
+            "bg-muted text-muted-foreground hover:bg-muted/80",
+          success:
+            "border-emerald-500/30 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100",
+          error:
+            "border-red-500/30 bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-100",
+          warning:
+            "border-yellow-500/30 bg-yellow-50 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-100",
+          info:
+            "border-blue-500/30 bg-black text-blue-900 dark:bg-black dark:text-blue-100",
+        },
+      }}
       {...props}
     />
   )

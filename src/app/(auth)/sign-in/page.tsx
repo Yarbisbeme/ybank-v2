@@ -1,30 +1,17 @@
-'use client'; // <--- 1. IMPORTANTE: Esto convierte el componente en interactivo
-
 import Link from "next/link";
 import Image from "next/image";
-import { Fingerprint, ArrowRight, ShieldCheck } from "lucide-react"; 
+import { ShieldCheck } from "lucide-react"; 
 import { AuthCard } from "@/components/ui/AuthCard"; 
 import TextReveal from "@/components/ui/TextReveal";
 import { Logo } from "@/components/ui/Logo";
 import { signInWithGoogle } from "../../../../actions/auth"; // Asegúrate que la ruta sea correcta
-import { toast } from "sonner";
-import { handlerToast } from "@/lib/utils";
+import { PasskeyButton } from "@/components/ui/PassKeyButton";
+
 
 export default function SignIn() {
 
-  // 2. Función para manejar el clic del Passkey
-  const handlePasskey = () => {
-    toast("Funcionalidad en desarrollo", {
-      description: "El acceso biométrico (Passkey) estará disponible en la v1.0.",
-      icon: <Fingerprint className="h-5 w-5 text-blue-600" />, // Icono personalizado
-      duration: 4000,
-    });
-  };
-
   return (
     <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-white font-inter selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
-      {/* ... (Todo tu código anterior del layout se mantiene igual) ... */}
-      
       <div className="h-full w-full overflow-hidden flex">
         <div className="flex w-full lg:w-1/2 flex-col justify-between bg-white overflow-y-auto h-full min-h-svh p-8 sm:px-10 sm:py-8">
             {/* Header */}
@@ -47,27 +34,14 @@ export default function SignIn() {
                 <div className="mt-8 flex flex-col gap-4">
                 
                 {/* 3. Botón Passkey CONECTADO */}
-                <button 
-                    onClick={() => {
-                        handlerToast({
-                            message: "Funcionalidad en desarrollo",
-                            description: "El acceso biométrico (Passkey) estará disponible en la v1.0.",
-                            type: "error"
-                        })}
-                    } // <- Conectamos la función aquí
-                    type="button" // Importante: type="button" para que no intente enviar formulario
-                    className="group relative flex w-full items-center justify-center gap-3 bg-black px-4 py-4 text-white shadow-lg transition-all duration-300 hover:shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95"
-                >
-                    <Fingerprint className="h-5 w-5 text-neutral-400 transition-colors group-hover:text-blue-400" />
-                    <span className="font-semibold tracking-wide transition-colors group-hover:text-blue-400">Continuar con Passkey</span>
-                    <div className="absolute right-6 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                    <ArrowRight className="h-4 w-4 text-blue-400" />
-                    </div>
-                </button>
+                <PasskeyButton/>
 
+                {/* Separador */}
                 <div className="relative flex items-center py-4">
                     <div className="grow border-t border-neutral-100"></div>
-                    <span className="mx-4 shrink-0 text-[10px] font-bold tracking-widest text-neutral-400 uppercase">O usa tu email</span>
+                    <span className="mx-4 shrink-0 text-[10px] font-bold tracking-widest text-neutral-400 uppercase">
+                    O usa tu email
+                    </span>
                     <div className="grow border-t border-neutral-100"></div>
                 </div>
 
@@ -112,7 +86,7 @@ export default function SignIn() {
             </div>
         </div>
 
-      </div>
+        </div>
     </section>
   );
 }
