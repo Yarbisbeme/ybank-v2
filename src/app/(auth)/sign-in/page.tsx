@@ -4,7 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { AuthCard } from "@/components/ui/AuthCard"; 
 import TextReveal from "@/components/ui/TextReveal";
 import { Logo } from "@/components/ui/Logo";
-import { signInWithGoogle } from "../../../../actions/auth"; // Asegúrate que la ruta sea correcta
+import { signInWithGoogle } from "../../../actions/auth"; // Asegúrate que la ruta sea correcta
 import { PasskeyButton } from "@/components/ui/PassKeyButton";
 
 
