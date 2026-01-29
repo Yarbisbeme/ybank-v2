@@ -1,5 +1,4 @@
 import { getAccounts } from "@/actions/tables/accounts";
-import { CreditCardReal } from "@/components/ui/dashboard/credit-card-real";
 import { Plus } from "lucide-react";
 
 // 1. Función auxiliar para elegir el color de la tarjeta automáticamente
@@ -39,16 +38,7 @@ export default async function AccountsPage() {
       {/* Grid de Cuentas */}
       {success && accounts && accounts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {accounts.map((account) => {
-            
-            // Calculamos el color antes de renderizar
-            const variantColor = getCardVariant(account.type, account.currency);
-
-            return (
-              console.log(account),
-              <CreditCardReal key={account.id} account={account} />
-            );
-          })}
+          
         </div>
       ) : (
         // Estado Vacío

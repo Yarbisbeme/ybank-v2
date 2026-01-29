@@ -15,7 +15,6 @@ export type BankCardProps = {
 }
 
 // Archivo: types/index.ts (o donde tengas tus tipos)
-
 export interface Account {
   id: string;
   user_id: string;
@@ -30,6 +29,7 @@ export interface Account {
   currency: string;
   initial_balance: number;
   current_balance: number;
+
   
   // --- NUEVOS CAMPOS ---
   last_4_digits?: string | null;  // <--- Agrega esto
@@ -40,4 +40,17 @@ export interface Account {
 
   color?: string | null;
   created_at: string;
+}
+
+export interface IncomingTransactionJSON {
+  user_email: string;
+  bank_name: string;
+  transaction_type: 'credit_card_payment' | 'expense' | 'income';
+  source_currency: string;
+  target_currency: string;
+  amount_paid: number; // Monto en moneda origen (DOP)
+  source_last_4?: string;
+  target_last_4?: string;
+  date: string;
+  description?: string;
 }
