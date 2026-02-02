@@ -5,7 +5,7 @@ import { Fingerprint, ArrowRight, ShieldCheck, CreditCard } from "lucide-react";
 import { AuthCard } from "@/components/ui/AuthCard"; 
 import TextReveal from "@/components/ui/TextReveal";
 import { Logo } from "@/components/ui/Logo";
-import { signInWithGoogle } from "../../../../actions/auth";
+import { signInWithGoogle } from "../../../actions/auth";
 
 export default function SignUp() {
   return (
