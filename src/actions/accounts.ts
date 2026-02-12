@@ -177,3 +177,20 @@ export async function archiveAccount(accountId: string) {
     return { success: false, error: error.message }
   }
 }
+
+export async function getInstitutions() {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+  )
+
+  const { data, error } = await supabase
+    .from('institutions')
+    .select('id, name')
+    .order('name')
+
+  if (error) return []
+  return data
+}

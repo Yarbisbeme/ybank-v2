@@ -84,6 +84,28 @@ export interface Transaction {
   category?: Category;
   tags?: Tag[];
 }
+export interface GetTransactionsParams {
+  page?: number;     // Página 1, 2, 3...
+  pageSize?: number; // Cuántas por página (ej: 20)
+  accountId?: string; // Filtro opcional por cuenta
+}
+
+export interface CreateTransactionInput {
+  account_id: string;
+  category_id?: string; // Opcional para transferencias
+  
+  // Transferencias
+  transfer_to_account_id?: string;
+  
+  type: TransactionType;
+  description: string;
+  date: string; // ISO String o 'YYYY-MM-DD'
+  amount: number; // Siempre positivo
+  
+  // Multi-moneda (Solo para transferencias complejas)
+  target_amount?: number;
+  exchange_rate?: number;
+}
 
 export interface Tag {
   id: string;
