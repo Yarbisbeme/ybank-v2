@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createTransaction, getTransactions, deleteTransaction } from '@/actions/transactions'
 import { getAccounts } from '@/actions/accounts'
 import { getCategories } from '@/actions/categories'
-import { Account, Category, CreateTransactionInput } from '@/types'
+import { Account, Category } from '@/types'
 
 export default function TransactionLabPage() {
   const [logs, setLogs] = useState<string[]>([])
@@ -13,15 +13,31 @@ export default function TransactionLabPage() {
   const [loading, setLoading] = useState(false)
 
   // Carga inicial de datos
-  useEffect(() => {
-    async function init() {
-      const [accs, cats] = await Promise.all([getAccounts(), getCategories()])
-      setAccounts(accs)
-      setCategories(cats) // Flatten tree logic omitted for brevity, taking raw
-      addLog(`Datos cargados: ${accs.length} Cuentas, ${cats.length} Categorías.`)
+  // Dentro de useEffect
+useEffect(() => {
+  async function init() {
+    setLoading(true);
+    addLog("Iniciando carga de datos desde Supabase...");
+    
+    try {
+      const [accs, cats] = await Promise.all([getAccounts(), getCategories()]);
+      
+      setAccounts(accs);
+      setCategories(cats);
+      
+      // Log detallado para depuración
+      const hasDOP = accs.some(a => a.currency === 'DOP');
+      const hasUSD = accs.some(a => a.currency === 'USD');
+      
+      addLog(`📊 Estado: ${accs.length} cuentas. DOP: ${hasDOP ? '✅' : '❌'} | USD: ${hasUSD ? '✅' : '❌'}`);
+    } catch (error) {
+      addLog(`❌ Error fatal en carga: ${error}`);
+    } finally {
+      setLoading(false);
     }
-    init()
-  }, [])
+  }
+  init();
+}, []);
 
   const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev])
 
@@ -151,6 +167,44 @@ export default function TransactionLabPage() {
     else addLog(`❌ Falló: ${res.error}`)
   }
 
+  // ==========================================
+  // CASO 6: AUTO-CONVERSIÓN (PRUEBA FINAL) 🤖
+  // ==========================================
+  const testAutoConversion = async () => {
+    // 1. Buscar cuentas
+    const accUSD = accounts.find(a => a.currency === 'USD')
+    const accDOP = accounts.find(a => a.currency === 'DOP')
+
+    if (!accUSD || !accDOP) return addLog('❌ Faltan cuentas USD/DOP')
+
+    const montoUSD = 100;
+
+    addLog(`➡️ Test Auto-Cambio: Moviendo $${montoUSD} USD desde ${accUSD.name} a ${accDOP.name}...`)
+    addLog(`ℹ️ El sistema debería detectar monedas distintas y aplicar la tasa de COMPRA automáticamente.`)
+
+    const res = await createTransaction({
+      account_id: accUSD.id,
+      transfer_to_account_id: accDOP.id,
+      type: 'transfer',
+      description: 'Prueba Cambio Automático',
+      date: new Date().toISOString(),
+      amount: montoUSD, 
+      // NO enviamos exchange_rate ni target_amount. 
+      // ¡El Backend debe calcularlo solo!
+    })
+
+    if (res.success) {
+      addLog('✅ Transacción creada. Verifica los montos en la BD.')
+      
+      // Verificación rápida
+      const { transactions } = await getTransactions({ pageSize: 1 })
+      const last = transactions[0]
+      addLog(`💰 Resultado: Salieron $${last.amount} USD -> Entraron RD$ ${last.target_amount} (Tasa: ${last.exchange_rate})`)
+    } else {
+      addLog(`❌ Falló: ${res.error}`)
+    }
+  }
+
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6 bg-slate-50 min-h-screen">
       <h1 className="text-3xl font-bold text-slate-800">🧪 Laboratorio de Transacciones (YB-11)</h1>
@@ -181,6 +235,10 @@ export default function TransactionLabPage() {
               5. Borrar Última (Test Rollback) 🔙
             </button>
           </div>
+
+          <button onClick={testAutoConversion} className="w-full p-3 bg-purple-600 text-white rounded hover:bg-purple-700 text-left font-mono font-bold shadow-lg">
+            6. AUTO-CONVERSIÓN (USD ➡️ DOP) 🤖
+          </button>
         </div>
 
         {/* CONSOLA DE LOGS */}

@@ -3,6 +3,7 @@
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { revalidatePath } from 'next/cache'
 import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
+import { getSmartRate } from '@/services/currency'
 
 export async function getTransactions({ page = 1, pageSize = 20, accountId }: GetTransactionsParams) {
     const supabase = await createSupabaseClient()
@@ -64,40 +65,90 @@ export async function createTransaction(input: CreateTransactionInput) {
         // Si es transferencia, quitamos category_id
         delete cleanInput.category_id 
     }
+// =================================================================================
+  // ⚡️ AUTO-CÁLCULO DE DIVISAS (YB-13 Integration)
+  // =================================================================================
+  if (input.type === 'transfer' && input.transfer_to_account_id) {
+    
+    // A. Buscamos las monedas de ambas cuentas
+    const { data: accounts, error: accError } = await supabase
+      .from('accounts')
+      .select('id, currency, institution_id')
+      .in('id', [input.account_id, input.transfer_to_account_id])
 
-    const { data: newTx, error } = await supabase
-        .from('transactions')
-        .insert({
-        user_id: user.id,
-        ...cleanInput,
-        status: 'posted' // Por defecto, las transacciones se crean como 'posted'
-        })
-        .select('id') // Necesitamos el ID para insertar en transaction_tags
-        .single()
-
-    if (error) {
-        console.error('Error al crear transacción:', error)
-        return { success: false, error: error.message }
+    if (accError || !accounts || accounts.length !== 2) {
+      return { success: false, error: 'Error leyendo cuentas para conversión' }
     }
 
-    // 2. INSERTAMOS LOS TAGS (Tabla Intermedia)
-    if (tagsIds.length > 0 && newTx) {
-        // Preparamos el array para insertar de golpe
-        const tagInserts = tagsIds.map(tagId => ({
-            transaction_id: newTx.id,
-            tag_id: tagId
-        }))
+    const sourceAcc = accounts.find(a => a.id === input.account_id)
+    const targetAcc = accounts.find(a => a.id === input.transfer_to_account_id)
 
-        const { error: tagError } = await supabase
-            .from('transaction_tags')
-            .insert(tagInserts)
+    // B. Si las monedas son DIFERENTES, calculamos la tasa
+    if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
+      
+      let operation: 'buy' | 'sell' = 'sell'; // Valor por defecto
+      let calculatedTargetAmount = 0;
+
+      // CASO 1: USD -> DOP (El banco COMPRA tus dólares)
+      if (sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP') {
+        operation = 'buy';
+      } 
+      // CASO 2: DOP -> USD (El banco te VENDE dólares)
+      else if (sourceAcc.currency === 'DOP' && targetAcc.currency === 'USD') {
+        operation = 'sell';
+      }
+
+      // C. Llamamos al servicio de tasas (Smart Rate)
+      // Usamos la institución de la cuenta ORIGEN para buscar la tasa
+      const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation)
+
+      if (rateInfo) {
+        cleanInput.exchange_rate = rateInfo.rate; // Guardamos la tasa usada
+
+        // D. Calculamos el monto final
+        if (operation === 'buy') {
+           // 100 USD * 60.50 = 6050 DOP
+           calculatedTargetAmount = input.amount * rateInfo.rate;
+        } else {
+           // 6350 DOP / 63.50 = 100 USD
+           calculatedTargetAmount = input.amount / rateInfo.rate;
+        }
         
-        if (tagError) console.error('Error guardando tags:', tagError)
+        // Redondeamos a 2 decimales
+        cleanInput.target_amount = Number(calculatedTargetAmount.toFixed(2));
+      }
     }
+  }
+  // =================================================================================
 
-    revalidatePath('/dashboard') 
-    revalidatePath('/dashboard/transactions')
-    return { success: true }
+  // 2. INSERTAMOS LA TRANSACCIÓN
+  const { data: newTx, error } = await supabase
+    .from('transactions')
+    .insert({
+      user_id: user.id,
+      ...cleanInput,
+      status: 'posted'
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('Error al crear transacción:', error)
+    return { success: false, error: error.message }
+  }
+
+  // 3. VINCULAMOS LOS TAGS
+  if (tagsIds.length > 0 && newTx) {
+    const tagInserts = tagsIds.map(tagId => ({
+      transaction_id: newTx.id,
+      tag_id: tagId
+    }))
+    await supabase.from('transaction_tags').insert(tagInserts)
+  }
+
+  revalidatePath('/dashboard') 
+  revalidatePath('/dashboard/transactions')
+  return { success: true }
 }
 
 // ==========================================

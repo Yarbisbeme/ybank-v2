@@ -1,9 +1,8 @@
 'use server'
 
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { Category } from '@/types'
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 
 // =========================================================
 // 1. GET CATEGORIES (El Árbol 🌳)
