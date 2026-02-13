@@ -24,6 +24,7 @@ clsx + tailwind-merge	Utilidad cn() para gestión condicional de clases CSS.	Uti
 lucide-react	Iconografía ligera y optimizada.	Component
 Sonner  Biblioteca popular de Notificaciones
 Lootie-react    Biblioteca para diseños animados tipo json
+Iconify
 date-fns	Manipulación de fechas (Timezones, formatos).	Utility
 ```
 
