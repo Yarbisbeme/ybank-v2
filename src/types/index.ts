@@ -144,3 +144,11 @@ export type NotificationProps = {
     type?: "success" | "error" | "info" | "warning" | "default";
     duration?: number;
 }
+
+export type SmartRateResult = {
+  rate: number;
+  baseRate: number;
+  margin: number;
+  operation: 'buy' | 'sell';
+  institutionName: string;
+}
