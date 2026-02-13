@@ -4,15 +4,11 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { Tag } from '@/types'
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 
 // 1. GET TAGS
 export async function getTags() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { data, error } = await supabase
     .from('tags')
@@ -25,12 +21,7 @@ export async function getTags() {
 
 // 2. CREATE TAG
 export async function createTag(name: string) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Auth required' }
@@ -48,12 +39,7 @@ export async function createTag(name: string) {
 
 // 3. DELETE TAG
 export async function deleteTag(id: string) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { error } = await supabase.from('tags').delete().eq('id', id)
   

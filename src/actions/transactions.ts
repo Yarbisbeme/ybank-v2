@@ -1,38 +1,29 @@
 'use server'
 
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { revalidatePath } from 'next/cache'
 import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
 
-// ==========================================
-// 1. GET TRANSACTIONS (Corregido)
-// ==========================================
 export async function getTransactions({ page = 1, pageSize = 20, accountId }: GetTransactionsParams) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-    )
+    const supabase = await createSupabaseClient()
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    // Construimos la consulta
     let query = supabase
         .from('transactions')
         .select(`
             *,
             category:categories(name, icon, color),
             account:accounts!account_id(name, currency), 
-            transfer_to_account:accounts!transfer_to_account_id(name, currency)
-        `, { count: 'exact' })
+            transfer_to_account:accounts!transfer_to_account_id(name, currency),
+            tags ( id, name ) 
+            
+        `, { count: 'exact' }) // <--- OJO: Solo 'tags ( id, name )' una vez.
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
         .range(from, to)
     
-    // Filtro por cuenta (Origen O Destino)
     if (accountId) {
         query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
     }
@@ -51,12 +42,7 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId }: Ge
 // 2. CREATE TRANSACTION (Corregido)
 // ==========================================
 export async function createTransaction(input: CreateTransactionInput) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-    )
+    const supabase = await createSupabaseClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Usuario no autenticado' }
@@ -118,12 +104,7 @@ export async function createTransaction(input: CreateTransactionInput) {
 // 3. UPDATE TRANSACTION
 // ==========================================
 export async function updateTransaction(id: string, input: Partial<CreateTransactionInput>) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-    )
+    const supabase = await createSupabaseClient()
     
     const { error } = await supabase
         .from('transactions')
@@ -141,12 +122,7 @@ export async function updateTransaction(id: string, input: Partial<CreateTransac
 // 4. DELETE TRANSACTION (Corregido)
 // ==========================================
 export async function deleteTransaction(id: string) {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-    )
+    const supabase = await createSupabaseClient()
 
     // ⚠️ CORRECCIÓN: Usamos DELETE físico.
     // Esto dispara el Trigger 'trg_update_balances' (TG_OP = 'DELETE')

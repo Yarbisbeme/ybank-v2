@@ -9,12 +9,7 @@ import { Category } from '@/types'
 // 1. GET CATEGORIES (El Árbol 🌳)
 // =========================================================
 export async function getCategories() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   // Traemos TODO (Tus categorías + Las del sistema)
   const { data, error } = await supabase
@@ -53,12 +48,7 @@ export async function createCategory(
   icon?: string,
   color?: string
 ) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Usuario no autenticado' }
@@ -82,12 +72,7 @@ export async function createCategory(
 // 3. DELETE CATEGORY (Limpieza)
 // =========================================================
 export async function deleteCategory(id: string) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   // OJO: Si borras un padre, Postgres podría borrar los hijos (CASCADE)
   // o dar error si hay transacciones (RESTRICT). 

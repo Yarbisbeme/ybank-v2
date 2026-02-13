@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { Account, AccountType, CurrencyCode } from '@/types'
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 
 // Definimos qué datos necesitamos para CREAR una cuenta (sin ID, sin fechas)
 interface CreateAccountInput {
@@ -31,12 +32,7 @@ interface UpdateAccountInput {
 // 1. GET (READ ALL) - Traer todas las cuentas activas
 // =========================================================
 export async function getAccounts() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   try {
     const { data, error } = await supabase
@@ -66,12 +62,7 @@ export async function getAccounts() {
 // 2. GET BY ID (READ ONE) - Para editar una cuenta específica
 // =========================================================
 export async function getAccountById(id: string) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { data, error } = await supabase
     .from('accounts')
@@ -87,12 +78,7 @@ export async function getAccountById(id: string) {
 // 3. CREATE (INSERT) - Crear nueva cuenta
 // =========================================================
 export async function createAccount(input: CreateAccountInput) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   // 1. Validar usuario
   const { data: { user } } = await supabase.auth.getUser()
@@ -127,12 +113,7 @@ export async function createAccount(input: CreateAccountInput) {
 // 4. UPDATE (PATCH) - Modificar datos de una cuenta
 // =========================================================
 export async function updateAccount(accountId: string, input: UpdateAccountInput) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { error } = await supabase
     .from('accounts')
@@ -155,12 +136,7 @@ export async function updateAccount(accountId: string, input: UpdateAccountInput
 // 5. ARCHIVE (DELETE LOGICO) - Eliminar cuenta (Ocultar)
 // =========================================================
 export async function archiveAccount(accountId: string) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   try {
     const { error } = await supabase
@@ -179,12 +155,7 @@ export async function archiveAccount(accountId: string) {
 }
 
 export async function getInstitutions() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
+  const supabase = await createSupabaseClient()
 
   const { data, error } = await supabase
     .from('institutions')
