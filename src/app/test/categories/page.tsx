@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getCategories, createCategory, deleteCategory } from '@/actions/categories'
 import { Category } from '@/types'
+import { CategoryIcon } from '@/components/ui/Category-icon'
 
 export default function CategoriesLab() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -90,7 +91,7 @@ export default function CategoriesLab() {
             {/* PADRE */}
             <div className="bg-slate-100 p-3 flex justify-between items-center">
               <span className="font-bold text-slate-700 flex items-center gap-2">
-                {parent.icon} {parent.name}
+                <CategoryIcon iconName={parent.icon} /> {parent.name}
                 {parent.user_id === null && <span className="text-[10px] bg-blue-100 text-blue-600 px-1 rounded">SISTEMA</span>}
               </span>
               
@@ -108,7 +109,7 @@ export default function CategoriesLab() {
               
               {parent.subcategories?.map(child => (
                 <div key={child.id} className="flex justify-between items-center text-sm border-b last:border-0 pb-1">
-                  <span className="text-gray-600">{child.icon} {child.name}</span>
+                  <span className="text-gray-600"><CategoryIcon iconName={child.icon} /> {child.name}</span>
                   {child.user_id && (
                     <button onClick={() => handleDelete(child.id)} className="text-red-400 text-xs hover:text-red-600">
                       x
