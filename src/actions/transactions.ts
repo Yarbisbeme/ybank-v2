@@ -1,29 +1,38 @@
 'use server'
 
-import { TransactionType, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
-import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { de } from 'date-fns/locale'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { Transaction } from '@/types/index'
+import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
 
-export async function getTransactions( {page = 1, pageSize = 20, accountId} : GetTransactionsParams) {
-    const supabase = await createSupabaseClient()
+// ==========================================
+// 1. GET TRANSACTIONS (Corregido)
+// ==========================================
+export async function getTransactions({ page = 1, pageSize = 20, accountId }: GetTransactionsParams) {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+    )
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    //Consulta basica con paginación
+    // Construimos la consulta
     let query = supabase
         .from('transactions')
-        .select(`*,
+        .select(`
+            *,
             category:categories(name, icon, color),
-            account:accounts(name,currency),
-            transfer_to_account:accounts(name,currency)`, 
-            { count: 'exact' }) // Para obtener el total de registros
+            account:accounts!account_id(name, currency), 
+            transfer_to_account:accounts!transfer_to_account_id(name, currency)
+        `, { count: 'exact' })
         .order('date', { ascending: false })
-        .order('created_at', { ascending: false }) // Orden secundario para consistencia
+        .order('created_at', { ascending: false })
         .range(from, to)
     
+    // Filtro por cuenta (Origen O Destino)
     if (accountId) {
         query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
     }
@@ -38,24 +47,39 @@ export async function getTransactions( {page = 1, pageSize = 20, accountId} : Ge
     return { transactions: data as unknown as Transaction[], total: count || 0 }
 }
 
+// ==========================================
+// 2. CREATE TRANSACTION (Corregido)
+// ==========================================
 export async function createTransaction(input: CreateTransactionInput) {
-    const supabase = await createSupabaseClient()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+    )
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Usuario no autenticado' }
 
+    // ⚠️ CORRECCIÓN IMPORTANTE:
+    // No borramos target_amount ni exchange_rate si es transferencia.
+    // Asumimos que el Frontend (o quien llame a esta función) YA calculó los valores.
     const cleanInput = { ...input }
 
-    if (input.type === 'transfer') {
-        delete cleanInput.category_id // No se asigna categoría a transferencias
-        delete cleanInput.exchange_rate // Se calcula en backend
-        delete cleanInput.target_amount // Se calcula en backend
+    // Solo limpiamos si NO es transferencia, para no ensuciar la BD
+    if (input.type !== 'transfer') {
+        delete cleanInput.transfer_to_account_id
+        delete cleanInput.target_amount
+        delete cleanInput.exchange_rate
+    } else {
+        // Si es transferencia, quitamos category_id
+        delete cleanInput.category_id 
     }
 
     const { error } = await supabase.from('transactions').insert({
         user_id: user.id,
         ...cleanInput,
-        status: 'posted' // Por ahora, todas se crean como "posted". En el futuro podríamos permitir "pending" para transacciones futuras.
+        status: 'posted' 
     })
 
     if (error) {
@@ -63,18 +87,26 @@ export async function createTransaction(input: CreateTransactionInput) {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('dashboard') 
-    revalidatePath('dashboard/transactions') // Revalida la página de transacciones para mostrar la nueva entrada
+    revalidatePath('/dashboard') 
+    revalidatePath('/dashboard/transactions')
     return { success: true }
 }
 
+// ==========================================
+// 3. UPDATE TRANSACTION
+// ==========================================
 export async function updateTransaction(id: string, input: Partial<CreateTransactionInput>) {
-    const supabase = await createSupabaseClient()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+    )
     
     const { error } = await supabase
-    .from('transactions')
-    .update(input)
-    .eq('id', id)
+        .from('transactions')
+        .update(input)
+        .eq('id', id)
 
     if (error) return { success: false, error: error.message }
 
@@ -83,13 +115,24 @@ export async function updateTransaction(id: string, input: Partial<CreateTransac
     return { success: true }
 }
 
+// ==========================================
+// 4. DELETE TRANSACTION (Corregido)
+// ==========================================
 export async function deleteTransaction(id: string) {
-    const supabase = await createSupabaseClient()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+    )
 
+    // ⚠️ CORRECCIÓN: Usamos DELETE físico.
+    // Esto dispara el Trigger 'trg_update_balances' (TG_OP = 'DELETE')
+    // el cual se encarga de DEVOLVER el dinero a las cuentas.
     const { error } = await supabase
-    .from('transactions')
-    .update({ status: 'deleted' })
-    .eq('id', id)
+        .from('transactions')
+        .delete()
+        .eq('id', id)
 
     if (error) return { success: false, error: error.message }
 

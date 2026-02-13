@@ -1,66 +1,199 @@
 'use client'
-import { useState } from 'react'
+
+import { useState, useEffect } from 'react'
 import { createTransaction, getTransactions, deleteTransaction } from '@/actions/transactions'
 import { getAccounts } from '@/actions/accounts'
 import { getCategories } from '@/actions/categories'
+import { Account, Category, CreateTransactionInput } from '@/types'
 
-export default function transactions() {
+export default function TransactionLabPage() {
   const [logs, setLogs] = useState<string[]>([])
-  
-  const addLog = (msg: string) => setLogs(p => [`> ${msg}`, ...p])
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const runTest = async () => {
-    addLog('--- INICIANDO PRUEBA DE TRANSACCIONES ---')
+  // Carga inicial de datos
+  useEffect(() => {
+    async function init() {
+      const [accs, cats] = await Promise.all([getAccounts(), getCategories()])
+      setAccounts(accs)
+      setCategories(cats) // Flatten tree logic omitted for brevity, taking raw
+      addLog(`Datos cargados: ${accs.length} Cuentas, ${cats.length} Categorías.`)
+    }
+    init()
+  }, [])
+
+  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev])
+
+  // ==========================================
+  // UTILIDADES
+  // ==========================================
+  const getAccountByCurrency = (currency: 'DOP' | 'USD') => accounts.find(a => a.currency === currency)
+
+  // ==========================================
+  // CASO 1: GASTO EN PESOS (Simple)
+  // ==========================================
+  const testExpenseDOP = async () => {
+    const acc = getAccountByCurrency('DOP')
+    if (!acc) return addLog('❌ Error: No tienes cuenta en DOP')
+
+    addLog(`➡️ Test 1: Creando Gasto de RD$ 500 en ${acc.name}...`)
     
-    // 1. Necesitamos datos reales (Cuentas y Categorías)
-    const [accounts, categoriesRes] = await Promise.all([getAccounts(), getCategories()])
-    
-    if (accounts.length === 0) return addLog('❌ ERROR: Crea una cuenta primero en /test-crud')
-     
-    const account = accounts[0] // Usamos la primera cuenta que encontremos
-    const category = categoriesRes[0] // Usamos una categoría cualquiera (si existe)
-
-    addLog(`Usando Cuenta: ${account.name} (${account.currency})`)
-
-    // 2. CREAR GASTO
-    addLog('1. Creando Gasto de prueba...')
-    const resCreate = await createTransaction({
-      account_id: account.id,
-      category_id: category?.id, // Puede ser null si no hay categorias
+    const res = await createTransaction({
+      account_id: acc.id,
+      category_id: categories[0]?.id, // Usamos la primera categoría
       type: 'expense',
-      description: 'Gasto Test desde Next.js',
+      description: 'Gasto de Prueba DOP (Cena)',
       date: new Date().toISOString(),
-      amount: 150.00
+      amount: 500
     })
 
-    if (!resCreate.success) return addLog(`❌ Falló crear: ${resCreate.error}`)
-    addLog('✅ Gasto creado exitosamente')
+    if (res.success) addLog('✅ Éxito: Gasto creado. Revisa si el saldo bajó 500.')
+    else addLog(`❌ Falló: ${res.error}`)
+  }
 
-    // 3. LEER (Verificar que aparece)
-    addLog('2. Leyendo transacciones...')
-    const { transactions } = await getTransactions({ pageSize: 5 })
-    const myTx = transactions.find(t => t.description === 'Gasto Test desde Next.js')
+  // ==========================================
+  // CASO 2: INGRESO EN DÓLARES (Freelance)
+  // ==========================================
+  const testIncomeUSD = async () => {
+    const acc = getAccountByCurrency('USD')
+    if (!acc) return addLog('❌ Error: No tienes cuenta en USD')
 
-    if (myTx) {
-      addLog(`✅ Transacción encontrada: ID ${myTx.id} - Monto: ${myTx.amount}`)
-      
-      // 4. BORRAR (Limpieza)
-      addLog('3. Borrando transacción...')
-      await deleteTransaction(myTx.id)
-      addLog('✅ Transacción borrada y saldo revertido (Gracias al Trigger)')
-    } else {
-      addLog('❌ No encontré la transacción recién creada')
-    }
+    addLog(`➡️ Test 2: Recibiendo Pago de US$ 100 en ${acc.name}...`)
+
+    const res = await createTransaction({
+      account_id: acc.id,
+      category_id: categories[0]?.id,
+      type: 'income',
+      description: 'Ingreso Projecto Freelance',
+      date: new Date().toISOString(),
+      amount: 100
+    })
+
+    if (res.success) addLog('✅ Éxito: Ingreso creado. Revisa si el saldo subió 100 USD.')
+    else addLog(`❌ Falló: ${res.error}`)
+  }
+
+  // ==========================================
+  // CASO 3: TRANSFERENCIA SIMPLE (DOP -> DOP)
+  // ==========================================
+  const testTransferSimple = async () => {
+    // Buscamos 2 cuentas en pesos
+    const source = accounts.find(a => a.currency === 'DOP')
+    const target = accounts.find(a => a.currency === 'DOP' && a.id !== source?.id)
+
+    if (!source || !target) return addLog('❌ Error: Necesitas 2 cuentas en DOP para este test.')
+
+    addLog(`➡️ Test 3: Moviendo RD$ 1,000 de ${source.name} a ${target.name}...`)
+
+    const res = await createTransaction({
+      account_id: source.id,
+      transfer_to_account_id: target.id,
+      type: 'transfer',
+      description: 'Transferencia Ahorro Local',
+      date: new Date().toISOString(),
+      amount: 1000
+    })
+
+    if (res.success) addLog('✅ Éxito: Transferencia simple completada.')
+    else addLog(`❌ Falló: ${res.error}`)
+  }
+
+  // ==========================================
+  // CASO 4: TRANSFERENCIA MULTI-MONEDA (DOP -> USD) 🔥
+  // ==========================================
+  const testTransferMulti = async () => {
+    const source = getAccountByCurrency('DOP')
+    const target = getAccountByCurrency('USD')
+
+    if (!source || !target) return addLog('❌ Error: Faltan cuentas DOP/USD')
+
+    // Simulamos que el Frontend calculó la tasa
+    const amountDOP = 2000
+    const rate = 60.50
+    const targetUSD = parseFloat((amountDOP / rate).toFixed(2)) // 33.06 USD
+
+    addLog(`➡️ Test 4: Pagando Tarjeta. Salen RD$ ${amountDOP} -> Entran US$ ${targetUSD}...`)
+
+    const res = await createTransaction({
+      account_id: source.id,
+      transfer_to_account_id: target.id,
+      type: 'transfer',
+      description: 'Pago Tarjeta USD desde Pesos',
+      date: new Date().toISOString(),
+      amount: amountDOP,      // Salen Pesos
+      target_amount: targetUSD, // Entran Dólares (Calculado)
+      exchange_rate: rate       // Tasa Informativa
+    })
+
+    if (res.success) addLog('✅ Éxito: Transferencia Multi-moneda creada.')
+    else addLog(`❌ Falló: ${res.error}`)
+  }
+
+  // ==========================================
+  // CASO 5: LISTAR Y BORRAR (Rollback)
+  // ==========================================
+  const testDeleteLast = async () => {
+    addLog('➡️ Test 5: Buscando última transacción para borrarla...')
+    
+    // 1. Buscamos la última
+    const { transactions } = await getTransactions({ pageSize: 1 })
+    
+    if (transactions.length === 0) return addLog('⚠️ No hay transacciones para borrar.')
+
+    const lastTx = transactions[0]
+    addLog(`🗑️ Borrando transacción ID: ${lastTx.id} (${lastTx.description})...`)
+
+    // 2. Borramos
+    const res = await deleteTransaction(lastTx.id)
+
+    if (res.success) addLog('✅ Éxito: Transacción eliminada. El dinero debió volver a la cuenta.')
+    else addLog(`❌ Falló: ${res.error}`)
   }
 
   return (
-    <div className="p-10 space-y-4">
-      <h1 className="text-2xl font-bold">Laboratorio YB-11 🦁</h1>
-      <button onClick={runTest} className="bg-blue-600 text-white px-4 py-2 rounded">
-        Ejecutar Test Automático
-      </button>
-      <div className="bg-black text-green-400 p-4 rounded h-64 overflow-auto font-mono text-sm">
-        {logs.map((l, i) => <div key={i}>{l}</div>)}
+    <div className="p-8 max-w-4xl mx-auto space-y-6 bg-slate-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-slate-800">🧪 Laboratorio de Transacciones (YB-11)</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* PANEL DE CONTROL */}
+        <div className="space-y-3">
+          <h2 className="font-semibold text-slate-600">Escenarios de Prueba</h2>
+          
+          <button onClick={testExpenseDOP} className="w-full p-3 bg-red-100 text-red-700 rounded hover:bg-red-200 text-left font-mono">
+            1. Crear Gasto (DOP) 💸
+          </button>
+
+          <button onClick={testIncomeUSD} className="w-full p-3 bg-green-100 text-green-700 rounded hover:bg-green-200 text-left font-mono">
+            2. Crear Ingreso (USD) 💵
+          </button>
+
+          <button onClick={testTransferSimple} className="w-full p-3 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-left font-mono">
+            3. Transferencia (DOP - DOP) ↔️
+          </button>
+
+          <button onClick={testTransferMulti} className="w-full p-3 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-left font-mono">
+            4. Transferencia (DOP - USD) 🌎
+          </button>
+
+          <div className="border-t pt-2 mt-4">
+            <button onClick={testDeleteLast} className="w-full p-3 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 text-left font-mono">
+              5. Borrar Última (Test Rollback) 🔙
+            </button>
+          </div>
+        </div>
+
+        {/* CONSOLA DE LOGS */}
+        <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-xs h-[400px] overflow-auto shadow-inner">
+          <div className="flex justify-between border-b border-green-800 pb-2 mb-2">
+            <span className="font-bold">TERMINAL DE SALIDA</span>
+            <button onClick={() => setLogs([])} className="text-gray-500 hover:text-white">Limpiar</button>
+          </div>
+          {logs.length === 0 && <span className="text-gray-600">Esperando comandos...</span>}
+          {logs.map((log, i) => (
+            <div key={i} className="mb-1 border-b border-green-900/30 pb-1">{log}</div>
+          ))}
+        </div>
       </div>
     </div>
   )
