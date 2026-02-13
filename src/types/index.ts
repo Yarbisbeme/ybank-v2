@@ -105,6 +105,8 @@ export interface CreateTransactionInput {
   // Multi-moneda (Solo para transferencias complejas)
   target_amount?: number;
   exchange_rate?: number;
+
+  tags?: string[]; // Array de nombres de tags
 }
 
 export interface Tag {

@@ -66,6 +66,9 @@ export async function createTransaction(input: CreateTransactionInput) {
     // Asumimos que el Frontend (o quien llame a esta función) YA calculó los valores.
     const cleanInput = { ...input }
 
+    const tagsIds = input.tags || []
+    delete (cleanInput as any).tags // Eliminamos tags del input principal
+
     // Solo limpiamos si NO es transferencia, para no ensuciar la BD
     if (input.type !== 'transfer') {
         delete cleanInput.transfer_to_account_id
@@ -76,15 +79,34 @@ export async function createTransaction(input: CreateTransactionInput) {
         delete cleanInput.category_id 
     }
 
-    const { error } = await supabase.from('transactions').insert({
+    const { data: newTx, error } = await supabase
+        .from('transactions')
+        .insert({
         user_id: user.id,
         ...cleanInput,
-        status: 'posted' 
-    })
+        status: 'posted' // Por defecto, las transacciones se crean como 'posted'
+        })
+        .select('id') // Necesitamos el ID para insertar en transaction_tags
+        .single()
 
     if (error) {
         console.error('Error al crear transacción:', error)
         return { success: false, error: error.message }
+    }
+
+    // 2. INSERTAMOS LOS TAGS (Tabla Intermedia)
+    if (tagsIds.length > 0 && newTx) {
+        // Preparamos el array para insertar de golpe
+        const tagInserts = tagsIds.map(tagId => ({
+            transaction_id: newTx.id,
+            tag_id: tagId
+        }))
+
+        const { error: tagError } = await supabase
+            .from('transaction_tags')
+            .insert(tagInserts)
+        
+        if (tagError) console.error('Error guardando tags:', tagError)
     }
 
     revalidatePath('/dashboard') 
