@@ -126,3 +126,7 @@ src/
 - [ ] Implementación de Autenticación con Google.
 - [ ] Creación de Servicio de Adaptador de Gmail.
 - [ ] Lógica de "Auto-Discovery" de bancos.
+
+## HomePage
+
+<img width="1887" height="910" alt="image" src="https://github.com/user-attachments/assets/4a910fa9-194f-4912-8993-3bbf1a9a19fc" />
