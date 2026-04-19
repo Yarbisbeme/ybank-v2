@@ -23,11 +23,11 @@ const BankLogo = ({
     const initial = bankName ? bankName.charAt(0).toUpperCase() : 'B';
 
     return (
-      // 💡 Añadimos lg:gap-3 para desktop
-      <div className="flex items-center gap-[clamp(6px,2cqw,12px)] lg:gap-3 max-w-full">
+      // 💡 Aumentado el gap mínimo en móvil a 8px
+      <div className="flex items-center gap-[clamp(8px,2cqw,12px)] lg:gap-3 max-w-full">
         <div 
-          // 💡 Tamaños fijos grandes para desktop: lg:w-10 lg:h-10 lg:text-base lg:rounded-xl
-          className={`flex-shrink-0 flex items-center justify-center w-[clamp(24px,8cqw,36px)] h-[clamp(24px,8cqw,36px)] lg:w-10 lg:h-10 rounded-[clamp(6px,2cqw,12px)] lg:rounded-xl font-bold text-[clamp(12px,4cqw,16px)] lg:text-base backdrop-blur-sm border shadow-sm ${
+          // 💡 Tamaño del logo en móvil MUCHO más grande: mínimo 32px
+          className={`flex-shrink-0 flex items-center justify-center w-[clamp(32px,8cqw,36px)] h-[clamp(32px,8cqw,36px)] lg:w-10 lg:h-10 rounded-[clamp(8px,2cqw,12px)] lg:rounded-xl font-bold text-[clamp(14px,4cqw,16px)] lg:text-base backdrop-blur-sm border shadow-sm ${
             isDarkText 
               ? 'bg-slate-900/5 border-slate-900/10 text-slate-800' 
               : 'bg-white/10 border-white/20 text-white shadow-white/5'
@@ -37,8 +37,8 @@ const BankLogo = ({
         </div>
         
         <span 
-          // 💡 Tamaño fijo de texto para desktop: lg:text-xs
-          className={`text-[clamp(9px,2.5cqw,12px)] lg:text-xs font-bold uppercase tracking-[0.25em] leading-tight line-clamp-2 ${
+          // 💡 Texto del banco en móvil más grande: mínimo 11px
+          className={`text-[clamp(11px,2.5cqw,12px)] lg:text-xs font-bold uppercase tracking-[0.25em] leading-tight line-clamp-2 ${
             isDarkText ? 'text-slate-800' : 'text-white/90'
           }`}
         >
@@ -50,8 +50,8 @@ const BankLogo = ({
 
   const getLogoScale = () => {
     const name = bankName?.toLowerCase() || '';
-    // 💡 Ajustamos la escala específica en Desktop (lg:) para que no desborde
-    if (name.includes('banreservas')) return 'scale-[1.8] @[300px]:scale-[2.2] lg:scale-[1.7] -ml-[clamp(12px,4cqw,24px)] lg:-ml-5';
+    // 💡 Ajustamos los márgenes negativos para que no se peguen tanto
+    if (name.includes('banreservas')) return 'scale-[1.8] @[300px]:scale-[2.2] lg:scale-[1.7] -ml-[clamp(16px,4cqw,24px)] lg:-ml-5';
     if (name.includes('scotiabank')) return 'scale-[1.8] @[300px]:scale-[1.6] lg:scale-[1.3]';
     return 'scale-100'; 
   };
@@ -87,11 +87,12 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
 
   return (
     <div 
-      // 💡 Aseguramos el radio de borde en desktop lg:rounded-[28px]
-      className={`@container relative w-full h-full rounded-[clamp(16px,5cqw,28px)] lg:rounded-[28px] overflow-hidden shadow-xl transition-all duration-500 group ${textColor}`}
+      // 💡 Radio de borde en móvil subido a mínimo 20px
+      className={`@container relative w-full h-full rounded-[clamp(20px,5cqw,28px)] lg:rounded-[28px] overflow-hidden shadow-xl transition-all duration-500 group ${textColor}`}
       style={{ backgroundColor: finalColor }}
     >
       <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden">
+        {/* ... (Tus patrones se mantienen igual, no afectan la legibilidad) ... */}
         {finalPattern === 'waves' && (
           <>
             <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] rounded-full border border-white/10" />
@@ -140,12 +141,12 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
         <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
       </div>
 
-      {/* 💡 PADDING DE DESKTOP: Fijado en lg:p-7 para garantizar márgenes amplios */}
-      <div className="relative z-10 h-full p-[clamp(16px,5cqw,28px)] lg:p-7 flex flex-col justify-between">
+      {/* 💡 PADDING INTERNO: Subido a mínimo 20px en móvil para que no se pegue a los bordes */}
+      <div className="relative z-10 h-full p-[clamp(20px,5cqw,28px)] lg:p-7 flex flex-col justify-between">
         
         <div className="flex justify-between items-start relative z-50">
-          {/* 💡 ESPACIO PARA LOGO: Fijado en desktop a un tamaño estándar */}
-          <div className="w-[clamp(60px,25cqw,128px)] h-[clamp(24px,8cqw,48px)] lg:w-32 lg:h-12 flex items-center justify-start">
+          {/* 💡 CONTENEDOR LOGO: Subido a mínimo 80px de ancho y 32px de alto en móvil */}
+          <div className="w-[clamp(80px,25cqw,128px)] h-[clamp(32px,8cqw,48px)] lg:w-32 lg:h-12 flex items-center justify-start">
             <BankLogo 
               logoUrl={institution?.logo_url} 
               bankName={institution?.name || 'Bank'} 
@@ -154,8 +155,9 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
 
           <div className="relative group/tooltip">
-            <div className="p-[clamp(6px,2cqw,10px)] lg:p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 cursor-help hover:bg-white/20 transition-colors">
-              <TypeIcon size={20} className={`${secondaryOpacity} w-[clamp(14px,4cqw,18px)] h-[clamp(14px,4cqw,18px)] lg:w-[22px] lg:h-[22px]`} strokeWidth={2.5} />
+            {/* 💡 ICONO TIPO CUENTA: Ligeramente más grande en móvil */}
+            <div className="p-[clamp(8px,2cqw,10px)] lg:p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 cursor-help hover:bg-white/20 transition-colors">
+              <TypeIcon size={20} className={`${secondaryOpacity} w-[clamp(16px,4cqw,18px)] h-[clamp(16px,4cqw,18px)] lg:w-[22px] lg:h-[22px]`} strokeWidth={2.5} />
             </div>
             <div className="absolute top-full mt-2 right-0 bg-slate-900/95 backdrop-blur-xl text-white text-[10px] font-bold px-3 py-1.5 rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all whitespace-nowrap shadow-2xl">
               {typeLabel}
@@ -163,15 +165,17 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
         </div>
 
-        {/* 💡 CONTENEDOR BALANCE: Margen inferior fijo lg:mb-6 */}
-        <div className="mt-auto mb-[clamp(12px,4cqw,24px)] lg:mb-6">
-          <p className={`text-[clamp(8px,2cqw,12px)] lg:text-[11px] font-bold uppercase tracking-[0.2em] mb-1 lg:mb-1.5 ${secondaryOpacity}`}>
+        {/* 💡 CONTENEDOR BALANCE */}
+        <div className="mt-auto mb-[clamp(16px,4cqw,24px)] lg:mb-6">
+          {/* 💡 "BALANCE TOTAL": Mínimo 10px en móvil */}
+          <p className={`text-[clamp(10px,2cqw,12px)] lg:text-[11px] font-bold uppercase tracking-[0.2em] mb-1.5 lg:mb-1.5 ${secondaryOpacity}`}>
             {account?.name || 'Balance Total'}
           </p>
-          <div className="flex items-baseline gap-[clamp(4px,1cqw,8px)] lg:gap-2">
-            <span className="text-[clamp(12px,3cqw,18px)] lg:text-base font-medium opacity-80">{account?.currency}</span>
-            {/* 💡 BALANCE: Tamaño super imponente en desktop (lg:text-[40px]) */}
-            <p className="text-[clamp(20px,6cqw,36px)] lg:text-[40px] lg:leading-none font-bold tracking-tight truncate drop-shadow-sm">
+          <div className="flex items-baseline gap-[clamp(6px,1cqw,8px)] lg:gap-2">
+            {/* 💡 SÍMBOLO MONEDA: Mínimo 14px en móvil */}
+            <span className="text-[clamp(14px,3cqw,18px)] lg:text-base font-medium opacity-80">{account?.currency}</span>
+            {/* 💡 MONTO: Mínimo 28px en móvil (¡Esto es enorme y muy visible!) */}
+            <p className="text-[clamp(28px,6cqw,36px)] lg:text-[40px] lg:leading-none font-bold tracking-tight truncate drop-shadow-sm">
               {account?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -179,16 +183,16 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
 
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
-            {/* 💡 TARJETA NUM: Tamaño definido en desktop (lg:text-[13px]) */}
-            <p className={`text-[clamp(10px,2.5cqw,14px)] lg:text-[13px] font-mono tracking-[0.25em] ${secondaryOpacity}`}>
+            {/* 💡 TARJETA NUM: Mínimo 12px en móvil */}
+            <p className={`text-[clamp(12px,2.5cqw,14px)] lg:text-[13px] font-mono tracking-[0.25em] ${secondaryOpacity}`}>
               •••• {account?.last_4_digits || '0000'}
             </p>
           </div>
           <div className="flex flex-col items-end">
-             {/* 💡 VISA: Tamaño definido en desktop (lg:text-3xl) */}
-             <span className="text-[clamp(18px,5cqw,30px)] lg:text-3xl font-black italic tracking-tighter leading-none opacity-90">VISA</span>
+             {/* 💡 VISA: Mínimo 24px en móvil */}
+             <span className="text-[clamp(24px,5cqw,30px)] lg:text-3xl font-black italic tracking-tighter leading-none opacity-90">VISA</span>
              {account?.type === 'credit' && (
-               <span className="text-[clamp(7px,1.5cqw,10px)] lg:text-[10px] font-bold uppercase tracking-widest opacity-60 mt-0.5 lg:mt-1">Platinum</span>
+               <span className="text-[clamp(8px,1.5cqw,10px)] lg:text-[10px] font-bold uppercase tracking-widest opacity-60 mt-0.5 lg:mt-1">Platinum</span>
              )}
           </div>
         </div>
