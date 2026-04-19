@@ -34,18 +34,6 @@ export default function TransactionTable({ transactions }: TransactionTableProps
 
   return (
     <div className="w-full">
-      {/* ENCABEZADO SUPERIOR CON BOTONES */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-slate-900 tracking-tight">Recent Activity</h3>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200">
-            <Filter size={18} strokeWidth={2.5} />
-          </button>
-          <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200">
-            <Download size={18} strokeWidth={2.5} />
-          </button>
-        </div>
-      </div>
       
       {/* CONTENEDOR DE LA TABLA */}
       <div className="bg-white rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
