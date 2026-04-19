@@ -37,7 +37,7 @@ export default function Sidebar() {
       </div>
 
       {/* NAVIGATION */}
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-2 mt-8">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -57,20 +57,12 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ACTION BUTTON */}
-      <div className="mt-6 mb-10">
-        <button className="w-full bg-[#0052FF] text-white p-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
-          <Plus size={20} />
-          New Transaction
-        </button>
-      </div>
-
+      <button className="w-full bg-[#0052FF] text-white p-4 rounded-md font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
+        <Plus size={20} />
+        New Transaction
+      </button>
       {/* BOTTOM NAV */}
       <div className="pt-6 border-t border-slate-100 space-y-2">
-        <button className="flex items-center gap-4 px-4 py-3 w-full text-[#9A9FA5] font-bold text-sm hover:text-[#1A1D1F] transition-colors">
-          <HelpCircle size={20} />
-          Support
-        </button>
         <button className="flex items-center gap-4 px-4 py-3 w-full text-[#9A9FA5] font-bold text-sm hover:text-red-500 transition-colors">
           <LogOut size={20} />
           Logout
