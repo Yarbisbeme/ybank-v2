@@ -26,10 +26,7 @@ export default async function DashboardPage() {
     <AccountCarousel accounts={accounts} />
 
     {/* Transacciones */}
-    <section className="mt-10">
-      <h2 className="text-xl font-bold text-slate-900 mb-6">Recent Activity</h2>
-      <RecentActivityTable transactions={transactions} />
-    </section>
+    <RecentActivityTable transactions={transactions} />
 
     </div>
   );

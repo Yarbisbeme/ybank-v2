@@ -1,19 +1,21 @@
+// @/app/actions/categories.ts (o donde tengas tus actions)
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import { Category } from '@/types'
+import { Category, CategoryTree } from '@/types'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 
 // =========================================================
-// 1. GET CATEGORIES (El Árbol 🌳)
+// 1. GET CATEGORIES (El Árbol Fijo 🌳)
 // =========================================================
-export async function getCategories() {
+export async function getCategories(): Promise<CategoryTree[]> {
   const supabase = await createSupabaseClient()
 
-  // Traemos TODO (Tus categorías + Las del sistema)
+  // Traemos el catálogo de categorías fijas del sistema
   const { data, error } = await supabase
     .from('categories')
     .select('*')
+    // Opcional: podrías filtrar aquí por un "is_system = true" 
+    // si en algún momento decides soportar ambas cosas.
     .order('name', { ascending: true })
 
   if (error) {
@@ -28,61 +30,10 @@ export async function getCategories() {
   const parents = allCategories.filter(c => !c.parent_id)
   
   // 2. A cada Padre, le buscamos sus Hijos
-  const tree = parents.map(parent => ({
+  const tree: CategoryTree[] = parents.map(parent => ({
     ...parent,
-    // Buscamos en el array original quienes dicen ser hijos de este padre
     subcategories: allCategories.filter(child => child.parent_id === parent.id)
   }))
 
   return tree
-}
-
-// =========================================================
-// 2. CREATE CATEGORY (Padres e Hijos)
-// =========================================================
-export async function createCategory(
-  name: string, 
-  type: 'income' | 'expense', 
-  parentId?: string, 
-  icon?: string,
-  color?: string
-) {
-  const supabase = await createSupabaseClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Usuario no autenticado' }
-
-  const { error } = await supabase.from('categories').insert({
-    user_id: user.id, // Se marca como TUYA
-    name,
-    type,
-    parent_id: parentId || null, // Si tiene ID, es subcategoría
-    icon: icon || 'mdi-tag',
-    color: color || '#64748b' // Slate-500 por defecto
-  })
-
-  if (error) return { success: false, error: error.message }
-
-  revalidatePath('/dashboard')
-  return { success: true }
-}
-
-// =========================================================
-// 3. DELETE CATEGORY (Limpieza)
-// =========================================================
-export async function deleteCategory(id: string) {
-  const supabase = await createSupabaseClient()
-
-  // OJO: Si borras un padre, Postgres podría borrar los hijos (CASCADE)
-  // o dar error si hay transacciones (RESTRICT). 
-  // Por ahora asumimos que RLS te deja borrar si es tuya.
-  const { error } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', id)
-
-  if (error) return { success: false, error: error.message }
-
-  revalidatePath('/dashboard')
-  return { success: true }
 }

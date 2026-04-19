@@ -76,14 +76,31 @@ export interface UpdateAccountInput {
   custom_text_theme?: 'light' | 'dark';
 }
 
+// En tu archivo types.ts
+export interface Category {
+  id: string;
+  user_id: string | null;
+  parent_id: string | null;
+  name: string;
+  icon: string;
+  color: string;
+  type: 'income' | 'expense';
+  created_at: string;
+}
+
+// 💡 El tipo que realmente devuelve tu Server Action
+export interface CategoryTree extends Category {
+  subcategories: Category[];
+}
+
 export interface Category {
   id: string;
   user_id: string | null; // Null = Categoría del sistema
   parent_id: string | null;
   name: string;
   type: 'income' | 'expense';
-  icon: string | null;
-  color: string | null;
+  icon: string;
+  color: string;
   
   // Relaciones
   subcategories?: Category[];
