@@ -1,35 +1,11 @@
 'use server'
 
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { Account, AccountType, CurrencyCode } from '@/types'
+import { Account, CreateAccountInput, UpdateAccountInput } from '@/types'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 
-// Definimos qué datos necesitamos para CREAR una cuenta (sin ID, sin fechas)
-interface CreateAccountInput {
-  name: string;
-  institution_id: string; // El ID del Banco seleccionado
-  type: AccountType;
-  currency: CurrencyCode;
-  initial_balance: number;
-  last_4_digits?: string; // Opcional
-  credit_limit?: number;  // Opcional
-}
-
-// Definimos qué datos podemos ACTUALIZAR (Partial permite que no sean todos obligatorios)
-interface UpdateAccountInput {
-  name?: string;
-  type?: AccountType;
-  last_4_digits?: string;
-  credit_limit?: number;
-  is_active?: boolean;
-  // NOTA: No incluimos balance aquí para evitar romper la contabilidad.
-  // El balance se debe modificar solo a través de Transacciones.
-}
-
 // =========================================================
-// 1. GET (READ ALL) - Traer todas las cuentas activas
+// 1. GET ALL - Con Metadatos de Diseño
 // =========================================================
 export async function getAccounts() {
   const supabase = await createSupabaseClient()
@@ -40,10 +16,17 @@ export async function getAccounts() {
       .select(`
         *,
         institution:institutions (
-          id, name, logo_url, exchange_rate_adjustment
+          id, 
+          name, 
+          logo_url, 
+          brand_color_primary,
+          brand_color_secondary,
+          card_pattern,
+          text_theme,
+          exchange_rate_adjustment
         )
       `)
-      .eq('is_active', true) // Solo cuentas activas
+      .eq('is_active', true)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -51,6 +34,8 @@ export async function getAccounts() {
       return []
     }
 
+    // Retornamos los datos. El alias 'institution' asegura que 
+    // acc.institution contenga el objeto del banco.
     return data as unknown as Account[]
   } catch (error) {
     console.error('Error inesperado:', error)
@@ -59,14 +44,20 @@ export async function getAccounts() {
 }
 
 // =========================================================
-// 2. GET BY ID (READ ONE) - Para editar una cuenta específica
+// 2. GET BY ID - Con Metadatos de Diseño
 // =========================================================
 export async function getAccountById(id: string) {
   const supabase = await createSupabaseClient()
 
   const { data, error } = await supabase
     .from('accounts')
-    .select(`*, institution:institutions(*)`)
+    .select(`
+      *, 
+      institution:institutions (
+        id, name, logo_url, brand_color_primary, 
+        card_pattern, text_theme, exchange_rate_adjustment
+      )
+    `)
     .eq('id', id)
     .single()
 
@@ -75,16 +66,14 @@ export async function getAccountById(id: string) {
 }
 
 // =========================================================
-// 3. CREATE (INSERT) - Crear nueva cuenta
+// 3. CREATE - Crear nueva cuenta
 // =========================================================
 export async function createAccount(input: CreateAccountInput) {
   const supabase = await createSupabaseClient()
 
-  // 1. Validar usuario
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Usuario no autenticado' }
 
-  // 2. Insertar
   const { error } = await supabase.from('accounts').insert({
     user_id: user.id,
     name: input.name,
@@ -92,25 +81,20 @@ export async function createAccount(input: CreateAccountInput) {
     type: input.type,
     currency: input.currency,
     initial_balance: input.initial_balance,
-    current_balance: input.initial_balance, // Al inicio, el actual es igual al inicial
+    current_balance: input.initial_balance,
     last_4_digits: input.last_4_digits || null,
     credit_limit: input.credit_limit || null,
     is_active: true
   })
 
-  if (error) {
-    console.error('Error creando cuenta:', error)
-    return { success: false, error: error.message }
-  }
+  if (error) return { success: false, error: error.message }
 
-  // 3. Refrescar datos
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/accounts')
   return { success: true }
 }
 
 // =========================================================
-// 4. UPDATE (PATCH) - Modificar datos de una cuenta
+// 4. UPDATE - Incluye personalización (Color, Pattern, Theme)
 // =========================================================
 export async function updateAccount(accountId: string, input: UpdateAccountInput) {
   const supabase = await createSupabaseClient()
@@ -123,9 +107,7 @@ export async function updateAccount(accountId: string, input: UpdateAccountInput
     })
     .eq('id', accountId)
 
-  if (error) {
-    return { success: false, error: error.message }
-  }
+  if (error) return { success: false, error: error.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/accounts')
@@ -133,7 +115,7 @@ export async function updateAccount(accountId: string, input: UpdateAccountInput
 }
 
 // =========================================================
-// 5. ARCHIVE (DELETE LOGICO) - Eliminar cuenta (Ocultar)
+// 5. ARCHIVE - Soft Delete
 // =========================================================
 export async function archiveAccount(accountId: string) {
   const supabase = await createSupabaseClient()
@@ -141,25 +123,27 @@ export async function archiveAccount(accountId: string) {
   try {
     const { error } = await supabase
       .from('accounts')
-      .update({ is_active: false }) // Soft Delete
+      .update({ is_active: false })
       .eq('id', accountId)
 
     if (error) throw error
 
     revalidatePath('/dashboard')
-    revalidatePath('/dashboard/accounts')
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
 }
 
+// =========================================================
+// 6. GET INSTITUTIONS - Con colores para el selector
+// =========================================================
 export async function getInstitutions() {
   const supabase = await createSupabaseClient()
 
   const { data, error } = await supabase
     .from('institutions')
-    .select('id, name')
+    .select('id, name, logo_url, brand_color_primary')
     .order('name')
 
   if (error) return []

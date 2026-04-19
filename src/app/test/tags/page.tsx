@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createTag, getTags, deleteTag } from '@/actions/tags'
-import { createTransaction, getTransactions, deleteTransaction } from '@/actions/transactions'
-import { getAccounts } from '@/actions/accounts'
+import { createTag, getTags, deleteTag } from '@/lib/actions/tags'
+import { createTransaction, getTransactions, deleteTransaction } from '@/lib/actions/transactions'
+import { getAccounts } from '@/lib/actions/accounts'
 import { Account, Tag } from '@/types'
 
 export default function TagsLabPage() {

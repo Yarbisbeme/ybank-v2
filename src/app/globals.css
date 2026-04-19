@@ -74,6 +74,12 @@
   display: none;
 }
 
+/* Oculta la barra de desplazamiento para IE, Edge y Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 /* Glass moderno (usable en cards, modals, headers) */
 .glassmorphism {
   background: var(--glass-bg);

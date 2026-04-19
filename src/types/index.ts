@@ -14,6 +14,11 @@ export interface Institution {
   exchange_rate_adjustment: number;     // Margen Venta (+)
   exchange_rate_buy_adjustment: number; // Margen Compra (-)
   created_at: string;
+
+  brand_color_primary:string,
+  brand_color_secondary?: string;
+  card_pattern?: 'solid' | 'waves' | 'geometric';
+  text_theme?: 'light' | 'dark';
 }
 
 export interface Account {
@@ -24,6 +29,10 @@ export interface Account {
   name: string;
   type: AccountType;
   currency: CurrencyCode;
+
+  color: string,
+  custom_pattern: string,
+  custom_text_theme: string,
   
   // Datos Financieros
   current_balance: number;
@@ -42,6 +51,29 @@ export interface Account {
 
   // Relaciones (Opcionales, se llenan al hacer joins)
   institution?: Institution; 
+}
+
+
+export interface CreateAccountInput {
+  name: string;
+  institution_id: string;
+  type: AccountType;
+  currency: CurrencyCode;
+  initial_balance: number;
+  last_4_digits?: string;
+  credit_limit?: number;
+}
+
+export interface UpdateAccountInput {
+  name?: string;
+  type?: AccountType;
+  last_4_digits?: string;
+  credit_limit?: number;
+  is_active?: boolean;
+  // Campos de personalización de la tarjeta (NUEVOS)
+  color?: string;
+  custom_pattern?: string;
+  custom_text_theme?: 'light' | 'dark';
 }
 
 export interface Category {

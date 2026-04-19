@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getInstitutions } from "@/actions/accounts" // Reusamos esta action para listar bancos
+import { getInstitutions } from "@/lib/actions/accounts" // Reusamos esta action para listar bancos
 import { getSmartRate } from "@/services/currency"
 
 export default function TestRatesPage() {

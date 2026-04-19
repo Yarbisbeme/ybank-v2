@@ -1,49 +1,36 @@
-import Image from 'next/image';
-import React from 'react';
+import { getAccounts } from '@/lib/actions/accounts';
+import { getTransactions } from '@/lib/actions/transactions';
+import NetWorthCard from '@/components/dashboard/NetWorth/NetWorthCard';
+import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard'; // Componente nuevo
+import RecentActivityTable from '@/components/dashboard/RecentActivityTable'; // Componente nuevo
+import AccountCarousel from '@/components/dashboard/AccountCarousel';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const accounts = await getAccounts();
+  const { transactions } = await getTransactions({ pageSize: 5 });
+
   return (
-    // 1. overflow-hidden: Corta cualquier cosa que intente salirse de la pantalla
-    // 2. px-4: Margen interno para que no pegue a los bordes
-    <div className='h-full w-full flex flex-col items-center justify-center bg-white overflow-hidden px-4'>
-        
-        {/* Contenedor flexible: Columna en móvil, Fila en PC */}
-        <div className="flex flex-col lg:flex-row items-center justify-center">
-            
-            {/* LOGO:
-                - En móvil: w-20 (80px)
-                - En PC: w-28 (112px) - restauramos su tamaño original
-             */}
-            <div className="relative w-24 h-24 lg:w-28 lg:h-28 shrink-0">
-                <Image 
-                    src="/icons/logoY.svg" 
-                    fill
-                    className="object-contain"
-                    alt="Ybank" 
-                />
-            </div>
+    <div className="max-w-[1600px] mx-auto space-y-10">
 
-            {/* TEXTO BANK:
-                - En móvil: text-6xl (más pequeño para que quepa)
-                - En PC: text-9xl (Gigante como querías)
-                - leading-none: Para evitar espacios extra arriba/abajo
-             */}
-            <h1 className='text-6xl lg:text-9xl font-bold text-black/90 mt-2 lg:mt-0 lg:-ml-4 leading-none tracking-tighter'>
-                Bank
-            </h1>
-        </div>
+    {/* SECCIÓN SUPERIOR: HERO + HEALTH */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      <div className="lg:col-span-2">
+        <NetWorthCard accounts={accounts} transactions={transactions} />
+      </div>
+      <div>
+        <FinancialHealthCard accounts={accounts} />
+      </div>
+    </div>
 
-        {/* TEXTO SECUNDARIO:
-            - text-center: Para que se vea bien centrado en el móvil
-         */}
-        <p className='mt-6 text-lg lg:text-2xl text-neutral-600 flex flex-col sm:flex-row items-center gap-1 text-center'>
-            <span>Dashboard en construcción</span>
-            <span className="flex">
-                <span className="text-3xl lg:text-lg animate-[pulse_1.5s_ease-in-out_infinite]">.</span>
-                <span className="text-3xl lg:text-lg animate-[pulse_1.5s_ease-in-out_infinite_300ms]">.</span>
-                <span className="text-3xl lg:text-lg animate-[pulse_1.5s_ease-in-out_infinite_600ms]">.</span>
-            </span>
-        </p>
+    {/* SECCIÓN CUENTAS (Scroll Horizontal) */}
+    <AccountCarousel accounts={accounts} />
+
+    {/* Transacciones */}
+    <section className="mt-10">
+      <h2 className="text-xl font-bold text-slate-900 mb-6">Recent Activity</h2>
+      <RecentActivityTable transactions={transactions} />
+    </section>
+
     </div>
   );
 }

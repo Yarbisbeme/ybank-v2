@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createTransaction, getTransactions, deleteTransaction } from '@/actions/transactions'
-import { getAccounts } from '@/actions/accounts'
-import { getCategories } from '@/actions/categories'
+import { createTransaction, getTransactions, deleteTransaction } from '@/lib/actions/transactions'
+import { getAccounts } from '@/lib/actions/accounts'
+import { getCategories } from '@/lib/actions/categories'
 import { Account, Category } from '@/types'
 
 export default function TransactionLabPage() {

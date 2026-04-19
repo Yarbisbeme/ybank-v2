@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getAccounts, createAccount, updateAccount, archiveAccount, getInstitutions } from '@/actions/accounts'
+import { getAccounts, createAccount, updateAccount, archiveAccount, getInstitutions } from '@/lib/actions/accounts'
 import { Account } from '@/types'
 
 export default function TestCrudPage() {

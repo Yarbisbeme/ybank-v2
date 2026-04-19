@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getCategories, createCategory, deleteCategory } from '@/actions/categories'
+import { getCategories, createCategory, deleteCategory } from '@/lib/actions/categories'
 import { Category } from '@/types'
 import { CategoryIcon } from '@/components/ui/Category-icon'
 

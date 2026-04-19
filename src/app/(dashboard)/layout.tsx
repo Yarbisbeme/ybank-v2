@@ -1,19 +1,23 @@
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import type { ReactNode } from 'react';
+import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/layout/Sidebar";
 
-interface DashboardLayoutProps {
-    children: ReactNode;
-}
+// Definimos el componente como una constante primero
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex min-h-screen bg-[#F8F9FB]">
+      <aside className="hidden lg:flex w-64 flex-col fixed inset-y-0 border-r bg-white z-50">
+        <Sidebar />
+      </aside>
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
-    return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 h-screen">
-                {children}
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        <Navbar />
+        <main className="p-4 md:p-8 lg:p-12 max-w-[1600px] mx-auto w-full">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
 
-                {/* Portal for modals, toasts, etc. */}
-                <Sonner position="bottom-right" />
-            </main>
-        </div>
-    );
-}
+// Exportamos explícitamente al final
+export default DashboardLayout;
