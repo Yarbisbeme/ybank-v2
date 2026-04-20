@@ -2,11 +2,16 @@
 
 import { motion } from 'framer-motion';
 import { Transaction } from '@/types';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 export default function WeeklyActivityChart({ transactions }: { transactions: Transaction[] }) {
-  
-  // 💡 1. HELPER: Genera la fecha en formato YYYY-MM-DD pero en HORA LOCAL, no en UTC
+  // 💡 SOLUCIÓN: Estado para montar el componente solo en el cliente
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const getLocalDateString = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -14,27 +19,23 @@ export default function WeeklyActivityChart({ transactions }: { transactions: Tr
     return `${year}-${month}-${day}`;
   };
 
-  const today = getLocalDateString(new Date());
-
   const weeklyData = useMemo(() => {
+    if (!mounted) return []; // No calculamos nada hasta estar en el cliente
+
     const curr = new Date();
-    
-    // Encontramos el Lunes de la semana actual de forma segura
-    const dayOfWeek = curr.getDay() === 0 ? 6 : curr.getDay() - 1; // 0 = Lunes, 6 = Domingo
+    const today = getLocalDateString(curr);
+    const dayOfWeek = curr.getDay() === 0 ? 6 : curr.getDay() - 1;
     const startOfWeek = new Date(curr);
     startOfWeek.setDate(curr.getDate() - dayOfWeek);
 
-    // Generamos el array de los 7 días en base al inicio de semana
     const days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
-      return getLocalDateString(d); // Guardamos la fecha localmente
+      return getLocalDateString(d);
     });
 
     const stats = days.map(day => {
-      // 💡 2. Aseguramos que la fecha de la transacción también se compare en formato local
       const dayTxs = transactions.filter(tx => {
-        // Convertimos el string de la DB (tx.date) a una fecha local antes de comparar
         const txDateLocal = getLocalDateString(new Date(tx.date));
         return txDateLocal === day;
       });
@@ -52,12 +53,16 @@ export default function WeeklyActivityChart({ transactions }: { transactions: Tr
       ...s,
       height: Math.max((s.volume / maxVolume) * 100, 8) 
     }));
-  }, [transactions, today]);
+  }, [transactions, mounted]);
+
+  // Si no está montado, devolvemos un placeholder vacío del mismo tamaño para evitar saltos visuales
+  if (!mounted) return <div className="w-full h-full" />;
 
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
-    <div className="hidden md:flex items-end justify-between gap-1 w-full h-full relative z-10 pt-8">
+    // 💡 Quitamos 'hidden md:flex' para que sea vea en móvil también como querías
+    <div className="flex items-end justify-between gap-1 w-full h-full relative z-10 pt-8">
       {weeklyData.map((data, i) => (
         <motion.div 
           key={data.day}
@@ -72,7 +77,7 @@ export default function WeeklyActivityChart({ transactions }: { transactions: Tr
             }
           `}
         >
-          {/* TOOLTIP HÍBRIDO */}
+          {/* TOOLTIP (Se mantiene igual) */}
           <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-slate-900 text-white p-2.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 whitespace-nowrap shadow-2xl z-20 pointer-events-none border border-slate-800">
             <div className="flex flex-col items-center">
               <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter mb-1">
@@ -80,9 +85,6 @@ export default function WeeklyActivityChart({ transactions }: { transactions: Tr
               </p>
               <p className="text-white font-black text-sm tracking-tight">
                 ${data.volume.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-              </p>
-              <p className="text-[10px] font-bold text-blue-400 opacity-80">
-                {data.count} {data.count === 1 ? 'transaccion' : 'transacciones'}
               </p>
             </div>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-900 rotate-45 border-r border-b border-slate-800" />

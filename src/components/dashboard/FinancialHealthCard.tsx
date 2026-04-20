@@ -71,7 +71,7 @@ export default function FinancialHealthCard({ accounts = [] }: { accounts?: Acco
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Diagnostic Report</p>
           <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
             {healthStats.debt > 0 
-              ? `Operational infrastructure is dependent on ${100 - healthStats.score}% external debt nodes. Optimization recommended.` 
+              ? `Operational infrastructure is dependent on ${100 - healthStats.score}% external debt Cuentas. Optimization recommended.` 
               : "Zero debt detected. Capital infrastructure is 100% self-sufficient."}
           </p>
         </div>

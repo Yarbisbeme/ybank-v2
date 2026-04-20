@@ -5,10 +5,9 @@ import { getTags } from '@/lib/actions/tags';
 
 import NetWorthCard from '@/components/dashboard/NetWorth/NetWorthCard';
 import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard';
-import RecentActivityTable from '@/components/dashboard/RecentActivityTable';
-import AccountCarousel from '@/components/dashboard/AccountCarousel';
 import { TransactionFilters as FilterType } from '@/types/database.types';
-import TransactionFiltersWrapper from '@/components/Transactions/TransactionFiltersWrapper';
+import ActivitySection from '@/components/Transactions/ActivitySection';
+import AccountCarousel from '@/components/accounts/AccountCarousel';
 
 // 💡 1. Actualizamos la firma para indicar que searchParams es una Promesa
 export default async function DashboardPage(props: {
@@ -45,31 +44,40 @@ export default async function DashboardPage(props: {
   });
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-10">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-        <div className="lg:col-span-2">
+  <div className="max-w-[1600px] mx-auto px-1 md:px-8 py-4 space-y-4 md:space-y-10">
+    <div className='flex flex-col'>
+        
+        {/* Cambiamos a grid-cols-2 para que midan lo mismo (50/50) en escritorio */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+        
+        {/* Tarjeta 1: NetWorth */}
+        <div className="w-full">
           <NetWorthCard accounts={accounts} transactions={transactions} />
         </div>
-        <div>
+
+        {/* Tarjeta 2: FinancialHealth */}
+        <div className="w-full">
           <FinancialHealthCard accounts={accounts} />
         </div>
+        
+      </div>
+    </div>
+
+      {/* SECCIÓN CUENTAS */}
+      {/* El carrusel ya debería manejar su propio scroll, pero bajamos el margen */}
+      <div className="-mx-4 md:mx-0"> 
+        <AccountCarousel accounts={accounts}/>
       </div>
 
-      <AccountCarousel accounts={accounts} />
-
-      <div className="w-full">
-         <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-slate-900 tracking-tight">Recent Activity</h3>
-            
-            <TransactionFiltersWrapper 
-              initialFilters={currentFilters}
-              categories={flatCategories}
-              tags={tags}
-              accounts={accounts}
-            />
-         </div>
-         
-         <RecentActivityTable transactions={transactions} />
+      {/* SECCIÓN DE ACTIVIDAD */}
+      <div className="w-full pb-20 md:pb-0"> {/* Padding bottom para que el menú móvil no tape la tabla */}
+         <ActivitySection 
+           transactions={transactions}
+           initialFilters={currentFilters}
+           categories={flatCategories}
+           tags={tags}
+           accounts={accounts}
+         />
       </div>
     </div>
   );

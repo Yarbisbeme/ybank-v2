@@ -11,6 +11,7 @@ import {
   LogOut,
   Plus
 } from 'lucide-react';
+import { ButtonOla } from '../ui/ButtonOla';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -57,10 +58,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <button className="w-full bg-[#0052FF] text-white p-4 rounded-md font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
-        <Plus size={20} />
-        New Transaction
-      </button>
+      <ButtonOla href="/dashboard/Transactions/new" label="Add Transaction"/>
       {/* BOTTOM NAV */}
       <div className="pt-6 border-t border-slate-100 space-y-2">
         <button className="flex items-center gap-4 px-4 py-3 w-full text-[#9A9FA5] font-bold text-sm hover:text-red-500 transition-colors">
