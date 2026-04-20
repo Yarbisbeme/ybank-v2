@@ -8,6 +8,8 @@ import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard';
 import { TransactionFilters as FilterType } from '@/types/database.types';
 import ActivitySection from '@/components/Transactions/ActivitySection';
 import AccountCarousel from '@/components/accounts/AccountCarousel';
+import TransactionModal from '@/components/Transactions/TransactionModal';
+import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
 
 // 💡 1. Actualizamos la firma para indicar que searchParams es una Promesa
 export default async function DashboardPage(props: {
@@ -48,10 +50,10 @@ export default async function DashboardPage(props: {
     <div className='flex flex-col'>
         
         {/* Cambiamos a grid-cols-2 para que midan lo mismo (50/50) en escritorio */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         
         {/* Tarjeta 1: NetWorth */}
-        <div className="w-full">
+        <div className="w-full md:col-span-2"> {/* En escritorio ocupa 2 columnas (2/3 del espacio) */}
           <NetWorthCard accounts={accounts} transactions={transactions} />
         </div>
 
@@ -79,6 +81,8 @@ export default async function DashboardPage(props: {
            accounts={accounts}
          />
       </div>
+
+      <TransactionModalWrapper />
     </div>
   );
 }

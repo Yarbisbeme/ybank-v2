@@ -24,7 +24,7 @@ export async function getTags() {
 }
 
 // =========================================================
-// 2. CREATE TAG
+// 2. CREATE TAG 
 // =========================================================
 export async function createTag(name: string) {
   const supabase = await createSupabaseClient()
@@ -32,17 +32,18 @@ export async function createTag(name: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Autenticación requerida' }
 
-  const { error } = await supabase.from('tags').insert({
+  const { data, error } = await supabase.from('tags').insert({
     user_id: user.id,
-    name: name.trim() // 💡 trim() limpia espacios accidentales
-  })
+    name: name.trim() 
+  }).select().single() // 💡 LA MAGIA: Le pedimos a Supabase que nos devuelva la fila recién creada
 
   if (error) return { success: false, error: error.message }
   
   revalidatePath('/dashboard')
-  return { success: true }
+  
+  // 💡 Devolvemos el tag completo (con su ID real)
+  return { success: true, tag: data } 
 }
-
 // =========================================================
 // 3. UPDATE TAG (¡Agregado para correcciones de ortografía!)
 // =========================================================

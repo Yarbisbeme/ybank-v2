@@ -2,6 +2,7 @@
 import AccountDetailsHeader from '@/components/accounts/AccountDetailsHeader';
 import AccountStageSelector from '@/components/accounts/AccountStageSelector';
 import TransactionsList from '@/components/accounts/TransactionsList';
+import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
 import { getAccounts } from '@/lib/actions/accounts';
 import { getTransactions } from '@/lib/actions/transactions';
 
@@ -33,6 +34,8 @@ export default async function AccountsPage(props: { searchParams: Promise<{ acco
           <TransactionsList transactions={transactions} emptyMessage="No hay transacciones registradas en esta cuenta." />
         </div>
       </section>
+
+      <TransactionModalWrapper />
     </div>
   );
 }

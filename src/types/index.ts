@@ -50,7 +50,7 @@ export interface Account {
   updated_at: string;
 
   // Relaciones (Opcionales, se llenan al hacer joins)
-  institution?: Institution; 
+  institution: Institution; 
 }
 
 

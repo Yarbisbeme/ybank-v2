@@ -18,7 +18,7 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
 
   return (
     // Mantenemos overflow-hidden para no romper el layout general si hay animaciones extrañas
-    <div className="relative w-full h-[220px] sm:scale-120 md:scale-100 sm:h-[255px] flex items-center justify-center overflow-hidden py-4">
+    <div className="relative w-full h-[240px] ml-1 sm:scale-120 md:scale-100 sm:h-[255px] flex items-center justify-center overflow-hidden py-4">
       <AnimatePresence initial={false}>
         {accounts.map((acc, index) => {
           let state = "hiddenRight"; 

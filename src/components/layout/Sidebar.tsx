@@ -15,9 +15,8 @@ import { ButtonOla } from '../ui/ButtonOla';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: CreditCard, label: 'Accounts', href: '/dashboard/accounts' },
-  { icon: ArrowLeftRight, label: 'Transactions', href: '/dashboard/transactions' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
+  { icon: CreditCard, label: 'Accounts', href: '/accounts' },
+  { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 
 export default function Sidebar() {
@@ -58,7 +57,11 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <ButtonOla href="/dashboard/Transactions/new" label="Add Transaction"/>
+      <ButtonOla 
+        href={`${pathname}?newTx=true`} 
+        label="Add Transaction"
+      />
+
       {/* BOTTOM NAV */}
       <div className="pt-6 border-t border-slate-100 space-y-2">
         <button className="flex items-center gap-4 px-4 py-3 w-full text-[#9A9FA5] font-bold text-sm hover:text-red-500 transition-colors">

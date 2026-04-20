@@ -72,6 +72,8 @@ function TransactionItem({ tx }: { tx: Transaction }) {
           {tx.status || 'Cleared'}
         </span>
       </div>
+
+      
     </div>
   );
 }
