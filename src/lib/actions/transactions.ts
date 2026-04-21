@@ -75,8 +75,51 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     return { transactions: data as unknown as Transaction[], total: count || 0 }
 }
 
+export async function getTransactionById(id: string) {
+  const supabase = await createSupabaseClient(); // Usa tu función normal de conexión
+  
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*, tags(*)') // Traemos la transacción y sus etiquetas asociadas
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error("Error buscando transacción:", error);
+    return null;
+  }
+  
+  return data;
+}
+
 // ==========================================
-// 2. CREATE TRANSACTION (Corregido)
+// 2. SAVE TRANSACTION
+// ==========================================
+export async function saveTransaction(payload: any) {
+    // 💡 Mapeamos los nombres del Formulario (CamelCase) a los de la BD (SnakeCase)
+    const transactionInput: any = {
+        type: payload.type,
+        amount: parseFloat(payload.amount),
+        date: payload.date,
+        description: payload.note, // En tu DB es description
+        account_id: payload.accountId,
+        category_id: payload.categoryId || null,
+        transfer_to_account_id: payload.destinationAccountId || null,
+        tags: payload.tagIds || [], // Tus acciones ya manejan el array de tags
+    };
+
+    if (payload.id) {
+        // 💡 Si hay ID, usamos tu acción de UPDATE
+        // Nota: updateTransaction en tu código recibe (id, input)
+        return await updateTransaction(payload.id, transactionInput);
+    } else {
+        // 💡 Si no hay ID, usamos tu acción de CREATE
+        return await createTransaction(transactionInput);
+    }
+}
+
+// ==========================================
+// 3. CREATE TRANSACTION (Corregido)
 // ==========================================
 export async function createTransaction(input: CreateTransactionInput) {
     const supabase = await createSupabaseClient()
@@ -189,7 +232,7 @@ export async function createTransaction(input: CreateTransactionInput) {
 }
 
 // ==========================================
-// 3. UPDATE TRANSACTION
+// 4. UPDATE TRANSACTION
 // ==========================================
 export async function updateTransaction(id: string, input: Partial<CreateTransactionInput>) {
     const supabase = await createSupabaseClient()
@@ -207,7 +250,7 @@ export async function updateTransaction(id: string, input: Partial<CreateTransac
 }
 
 // ==========================================
-// 4. DELETE TRANSACTION (Corregido)
+// 5. DELETE TRANSACTION (Corregido)
 // ==========================================
 export async function deleteTransaction(id: string) {
     const supabase = await createSupabaseClient()
@@ -223,3 +266,4 @@ export async function deleteTransaction(id: string) {
     revalidatePath('/dashboard/transactions')
     return { success: true }
 }
+

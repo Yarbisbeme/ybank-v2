@@ -1,26 +1,55 @@
-// app/accounts/page.tsx
 import AccountDetailsHeader from '@/components/accounts/AccountDetailsHeader';
 import AccountStageSelector from '@/components/accounts/AccountStageSelector';
-import TransactionsList from '@/components/accounts/TransactionsList';
+import TransactionTable from '@/components/dashboard/RecentActivityTable';
+import PageFilterBar from '@/components/Transactions/PageFilterBar';
 import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
 import { getAccounts } from '@/lib/actions/accounts';
 import { getTransactions } from '@/lib/actions/transactions';
+import { getCategories } from '@/lib/actions/categories';
+import { getTags } from '@/lib/actions/tags';
+import { TransactionFilters as FilterType } from '@/types/database.types';
 
-export default async function AccountsPage(props: { searchParams: Promise<{ accountId?: string }> }) {
-  const { accountId } = await props.searchParams;
-  const accounts = await getAccounts();
+// 💡 Pura función de servidor. Cero hooks de React o Next.
+export default async function AccountsPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = await props.searchParams;
+  const accountId = searchParams.accountId;
+
+  const [accounts, categoriesTree, tags] = await Promise.all([
+    getAccounts(),
+    getCategories(),
+    getTags()
+  ]);
+
+  const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
   const selectedAccount = accountId ? (accounts.find(a => a.id === accountId) || accounts[0]) : accounts[0];
-  const { transactions } = await getTransactions({ accountId: selectedAccount.id });
+
+  const currentFilters: FilterType = {
+    type: (searchParams.type as FilterType['type']) || null,
+    categoryId: searchParams.categoryId || null,
+    tagId: searchParams.tagId || null,
+    accountId: selectedAccount.id, 
+    startDate: searchParams.startDate || null,
+    endDate: searchParams.endDate || null,
+  };
+
+  const { transactions } = await getTransactions({ 
+    accountId: selectedAccount.id,
+    filters: currentFilters
+  });
 
   return (
-    <div className="flex flex-col space-y-6 pb-20 overflow-hidden">
-      <section className="space-y-2">
-        <div className="px-6 flex justify-between items-end">
-          <h1 className="text-2xl font-black italic tracking-tighter">My Wallets</h1>
-          <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{accounts.length} Nodes</span>
-        </div>
-        
-        {/* EL NUEVO COMPONENTE AISLADO */}
+    <div className="flex flex-col space-y-6 pb-20 overflow-hidden relative">
+      
+      <div className="absolute top-0 right-6 z-[120]">
+         <PageFilterBar 
+           initialFilters={currentFilters}
+           categories={flatCategories}
+           tags={tags}
+           accounts={accounts}
+         />
+      </div>
+
+      <section className="space-y-2 mt-4">
         <AccountStageSelector accounts={accounts} activeId={selectedAccount.id} />
       </section>
 
@@ -28,11 +57,11 @@ export default async function AccountsPage(props: { searchParams: Promise<{ acco
         <AccountDetailsHeader account={selectedAccount} />
       </section>
 
-      <section className="px-6 space-y-4">
-        <h2 className="text-xl font-black italic">Recent Activity</h2>
-        <div className="bg-white rounded-[40px] border border-slate-100 overflow-hidden">
-          <TransactionsList transactions={transactions} emptyMessage="No hay transacciones registradas en esta cuenta." />
-        </div>
+      <section className="w-full px-6 mt-8">
+        <h2 className="text-xl font-black italic mb-4">Recent Activity</h2>
+        
+        {/* 💡 Solo pasamos las transacciones. La tabla se encargará de lo demás */}
+        <TransactionTable transactions={transactions} />
       </section>
 
       <TransactionModalWrapper />

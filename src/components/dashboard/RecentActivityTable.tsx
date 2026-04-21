@@ -1,22 +1,33 @@
 "use client";
 
 import React from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'; // 💡 1. Importamos los hooks de navegación
 import { Transaction } from '@/types'; 
-import { Download, Filter } from 'lucide-react';
-import { getCategoryIcon, getTransactionStyles } from '@/lib/utils';
+import { getCategoryIcon } from '@/lib/utils';
+import { Edit2 } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: Transaction[];
 }
 
 export default function TransactionTable({ transactions }: TransactionTableProps) {
+  // 💡 2. Inicializamos los hooks dentro del componente
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // 💡 3. Creamos la función que actualizará la URL
+  const handleEdit = (transactionId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('editTx', transactionId);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options); 
   };
 
-  // 💡 NUEVO: Control total sobre cómo se ve el monto según el tipo
   const getAmountDisplay = (type: string, amount: number) => {
     const absAmount = Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2 });
     
@@ -27,15 +38,12 @@ export default function TransactionTable({ transactions }: TransactionTableProps
         return { color: 'text-slate-800', text: `-$${absAmount}` };
       case 'transfer':
       default:
-        // Las transferencias usan un gris neutral y no llevan símbolo de suma o resta
         return { color: 'text-slate-500', text: `$${absAmount}` };
     }
   };
 
   return (
     <div className="w-full">
-      
-      {/* CONTENEDOR DE LA TABLA */}
       <div className="bg-white rounded-3xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
         
         {/* ENCABEZADOS DE TABLA */}
@@ -53,8 +61,6 @@ export default function TransactionTable({ transactions }: TransactionTableProps
             const rawColor = tx.category?.color || (tx.category as any)?.parent?.color || '#94a3b8'; 
             
             const CategoryIcon = getCategoryIcon(tx.category?.icon);
-            
-            // 💡 Usamos la nueva función para obtener el color y texto exacto del monto
             const amountDisplay = getAmountDisplay(tx.type, tx.amount);
             
             const pillStyle = {
@@ -69,20 +75,12 @@ export default function TransactionTable({ transactions }: TransactionTableProps
               >
                 {/* 1. ENTIDAD Y FECHA */}
                 <div className="col-span-1 md:col-span-6 lg:col-span-5 flex items-center gap-4">
-                  {/* 💡 SOLUCIÓN DEL ICONO: Quitamos el styles.iconColor y aplicamos style={{ color: rawColor }} */}
-                  <div 
-                    className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-slate-100/80"
-                    style={{ color: rawColor }}
-                  >
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 bg-slate-100/80" style={{ color: rawColor }}>
                     {CategoryIcon}
                   </div>
                   <div className="flex flex-col overflow-hidden">
-                    <p className="text-sm font-bold text-slate-800 truncate">
-                      {tx.description} 
-                    </p>
-                    <p className="text-[12px] font-medium text-slate-400 mt-0.5">
-                      {formatDate(tx.date)}
-                    </p>
+                    <p className="text-sm font-bold text-slate-800 truncate">{tx.description}</p>
+                    <p className="text-[12px] font-medium text-slate-400 mt-0.5">{formatDate(tx.date)}</p>
                   </div>
                 </div>
 
@@ -102,25 +100,43 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                    </p>
                 </div>
 
-                {/* 4. MONTO (Desktop) */}
-                <div className="hidden lg:flex lg:col-span-2 items-center justify-end">
-                  {/* 💡 Aplicamos el color dinámico devuelto por getAmountDisplay */}
+                {/* 4. MONTO Y BOTÓN DE EDITAR (Desktop) */}
+                {/* 💡 Metimos el botón dentro de esta columna para no romper el grid-cols-12 */}
+                <div className="hidden lg:flex lg:col-span-2 items-center justify-end gap-2">
                   <p className={`text-[15px] font-black tracking-tight ${amountDisplay.color}`}>
                     {amountDisplay.text}
                   </p>
+                  
+                  {/* 💡 BOTÓN DE EDITAR LLAMANDO A handleEdit */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-2">
+                    <button 
+                      onClick={() => handleEdit(tx.id)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                      title="Editar transacción"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* VISTA MÓVIL DEL MONTO Y CATEGORÍA */}
+                {/* VISTA MÓVIL DEL MONTO, CATEGORÍA Y BOTÓN */}
                 <div className="flex md:hidden items-center justify-between mt-1 pt-3 border-t border-slate-100/50">
                   <div className="inline-flex items-center px-2 py-0.5 rounded" style={pillStyle}>
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest">
-                      {categoryName}
-                    </span>
+                    <span className="text-[9px] font-extrabold uppercase tracking-widest">{categoryName}</span>
                   </div>
-                  {/* 💡 Aplicamos el color dinámico devuelto por getAmountDisplay en móvil */}
-                  <p className={`text-sm font-black tracking-tight ${amountDisplay.color}`}>
-                    {amountDisplay.text}
-                  </p>
+                  
+                  <div className="flex items-center gap-3">
+                    <p className={`text-sm font-black tracking-tight ${amountDisplay.color}`}>
+                      {amountDisplay.text}
+                    </p>
+                    {/* Botón visible en móvil (ya que no hay hover en touchscreens) */}
+                    <button 
+                      onClick={() => handleEdit(tx.id)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-full"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
               </div>

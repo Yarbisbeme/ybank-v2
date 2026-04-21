@@ -3,7 +3,7 @@
 
 import { Account } from '@/types';
 import { AnimatedNumber } from '../dashboard/NetWorth/AnimatedNumber';
-import { Share2, ArrowUpRight, Plus } from 'lucide-react';
+import { Share2, Edit, Plus } from 'lucide-react';
 
 export default function AccountDetailsHeader({ account }: { account: Account }) {
   return (
@@ -25,7 +25,7 @@ export default function AccountDetailsHeader({ account }: { account: Account }) 
       {/* Botones de Acción Rápida */}
       <div className="flex justify-center gap-4">
         <ActionButton icon={<Plus size={20} />} label="Add" />
-        <ActionButton icon={<ArrowUpRight size={20} />} label="Send" />
+        <ActionButton icon={<Edit size={20} />} label="Edit" />
         <ActionButton icon={<Share2 size={20} />} label="Share" />
       </div>
     </div>
