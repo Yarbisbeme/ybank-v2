@@ -24,8 +24,6 @@ export default function SearchableDropdown({ options, value, onChange, placehold
 
   const selectedOption = options.find(opt => opt.id === value);
 
-  // 💡 TRUCO 1: Sincronizar el texto del input con la opción seleccionada 
-  // solo cuando el menú está cerrado.
   useEffect(() => {
     if (!isOpen) {
       setInputValue(selectedOption ? selectedOption.label : '');
@@ -50,43 +48,50 @@ export default function SearchableDropdown({ options, value, onChange, placehold
   return (
     <div className="relative w-full" ref={wrapperRef}>
       
-      {/* EL INPUT PRINCIPAL (Actúa como botón y buscador al mismo tiempo) */}
+      {/* EL INPUT PRINCIPAL */}
       <div className="w-full bg-transparent flex items-center justify-between cursor-text py-1">
-        <div className="flex flex-col min-w-0 w-full pr-2">
-          
-          {/* Mostramos el contexto (ej. "Dentro de Entretenimiento") pequeñito arriba si hay algo seleccionado */}
-          {selectedOption && !isOpen && selectedOption.subLabel && (
-            <span className="text-[10px] text-slate-400 truncate -mb-0.5">{selectedOption.subLabel}</span>
-          )}
+        
+        {/* 💡 MEJORA: flex-row y items-center para que estén en la misma línea */}
+        <div className="flex flex-row items-center min-w-0 w-full pr-2">
           
           <input
             type="text"
-            className="w-full bg-transparent border-none outline-none text-sm text-slate-800 font-bold p-0 focus:ring-0 truncate placeholder:font-medium placeholder:text-slate-400"
+            // 💡 flex-1 hace que el input empuje al subLabel hacia la derecha
+            className="flex-1 bg-transparent border-none outline-none text-sm text-slate-800 font-bold p-0 focus:ring-0 truncate placeholder:font-medium placeholder:text-slate-400"
             placeholder={placeholder}
             value={inputValue}
             onChange={(e) => {
               setInputValue(e.target.value);
-              setIsOpen(true); // Se abre automáticamente en cuanto empiezas a escribir
+              setIsOpen(true); 
             }}
             onFocus={(e) => {
               setIsOpen(true);
-              e.target.select(); // 💡 TRUCO 2: Selecciona todo el texto al hacer clic
+              e.target.select(); 
             }}
           />
+
+          {/* 💡 EL SUB-LABEL A LA DERECHA */}
+          {selectedOption && !isOpen && selectedOption.subLabel && (
+            // whitespace-nowrap evita que el nombre del banco se rompa en dos líneas
+            <span className="text-xs font-medium text-slate-400 ml-3 whitespace-nowrap">
+              {selectedOption.subLabel}
+            </span>
+          )}
+
         </div>
         
-        {/* Flechita decorativa a la derecha */}
+        {/* Flechita decorativa */}
         <button 
           type="button" 
           onClick={() => setIsOpen(!isOpen)}
           className="p-1 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0"
-          tabIndex={-1} // Evita que el Tab se detenga aquí
+          tabIndex={-1} 
         >
           <ChevronDown size={16} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
       </div>
 
-      {/* MENÚ DESPLEGABLE LIMPIO (Ya sin el buscador extra) */}
+      {/* MENÚ DESPLEGABLE */}
       {isOpen && (
         <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-white border border-slate-100 shadow-xl rounded-2xl z-50 overflow-hidden flex flex-col max-h-60">
           <div className="overflow-y-auto py-1 scrollbar-hide">
@@ -102,11 +107,20 @@ export default function SearchableDropdown({ options, value, onChange, placehold
                   }}
                   className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-center justify-between group transition-colors"
                 >
-                  <div className="flex flex-col min-w-0 pr-4">
-                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700 truncate">{opt.label}</span>
-                    {opt.subLabel && <span className="text-[11px] text-slate-400 truncate">{opt.subLabel}</span>}
+                  {/* 💡 MEJORA EN LA LISTA: También ponemos label y subLabel en la misma línea */}
+                  <div className="flex-1 flex flex-row items-center justify-between min-w-0 pr-3">
+                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700 truncate pr-2">
+                      {opt.label}
+                    </span>
+                    
+                    {opt.subLabel && (
+                      <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
+                        {opt.subLabel}
+                      </span>
+                    )}
                   </div>
-                  {value === opt.id && <Check size={16} className="text-blue-600 flex-shrink-0" />}
+
+                  {value === opt.id && <Check size={16} className="text-blue-600 flex-shrink-0 ml-1" />}
                 </div>
               ))
             )}

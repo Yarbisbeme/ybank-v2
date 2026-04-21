@@ -99,28 +99,27 @@ export default function TransactionModal({ accounts, tags, categories }: Transac
               </h2>
             </div>
 
-// En el return de TransactionModal.tsx
-<div className="max-h-[85vh] overflow-y-auto scrollbar-hide">
-  {isLoadingData ? (
-    <div className="w-full h-64 flex flex-col items-center justify-center">
-       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-       <p className="mt-4 font-bold text-slate-400 animate-pulse">Cargando datos...</p>
-    </div>
-  ) : (
-    initialData && (
-      <TransactionForm 
-        // 💡 CLAVE: Usamos el ID de la transacción como KEY. 
-        // Esto obliga a React a borrar el formulario viejo y crear uno nuevo.
-        key={`edit-${initialData.id}`} 
-        initialData={initialData} 
-        accounts={accounts} 
-        tags={tags}
-        categories={categories} 
-        onSuccess={closeModal}
-      />
-    )
-  )}
-</div>
+            <div className="max-h-[85vh] overflow-y-auto scrollbar-hide">
+              {isLoadingData ? (
+                <div className="w-full h-64 flex flex-col items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="mt-4 font-bold text-slate-400 animate-pulse">Cargando datos...</p>
+                </div>
+              ) : (
+                initialData && (
+                  <TransactionForm 
+                    // 💡 CLAVE: Usamos el ID de la transacción como KEY. 
+                    // Esto obliga a React a borrar el formulario viejo y crear uno nuevo.
+                    key={`edit-${initialData.id}`} 
+                    initialData={initialData} 
+                    accounts={accounts} 
+                    tags={tags}
+                    categories={categories} 
+                    onSuccess={closeModal}
+                  />
+                )
+              )}
+            </div>
             
           </motion.div>
         </div>

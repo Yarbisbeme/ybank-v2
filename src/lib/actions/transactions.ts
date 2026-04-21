@@ -234,19 +234,58 @@ export async function createTransaction(input: CreateTransactionInput) {
 // ==========================================
 // 4. UPDATE TRANSACTION
 // ==========================================
+// ==========================================
+// 4. UPDATE TRANSACTION (Corregido: Tags y Caché)
+// ==========================================
 export async function updateTransaction(id: string, input: Partial<CreateTransactionInput>) {
-    const supabase = await createSupabaseClient()
+    const supabase = await createSupabaseClient();
     
+    // 1. Limpiamos el input para no enviar columnas inválidas a Supabase
+    const cleanInput = { ...input };
+    const tagsIds = (cleanInput as any).tags; // Guardamos los tags temporalmente
+    delete (cleanInput as any).tags; // 💡 ELIMINAMOS los tags antes del update
+
+    // Limpiamos los IDs que no corresponden al tipo (igual que en create)
+    if (cleanInput.type !== 'transfer') {
+        delete cleanInput.transfer_to_account_id;
+        delete (cleanInput as any).target_amount;
+        delete (cleanInput as any).exchange_rate;
+    } else {
+        delete cleanInput.category_id;
+    }
+
+    // 2. Actualizamos la transacción
     const { error } = await supabase
         .from('transactions')
-        .update(input)
-        .eq('id', id)
+        .update(cleanInput)
+        .eq('id', id);
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+        console.error("Error al actualizar transacción:", error);
+        return { success: false, error: error.message };
+    }
 
-    revalidatePath('/dashboard')
-    revalidatePath('/dashboard/transactions')
-    return { success: true }
+    // 3. Actualizamos los Tags (Si se enviaron en el input)
+    if (tagsIds !== undefined) {
+        // A. Borramos las etiquetas viejas de esta transacción
+        await supabase.from('transaction_tags').delete().eq('transaction_id', id);
+        
+        // B. Insertamos las nuevas (si hay alguna)
+        if (tagsIds.length > 0) {
+            const tagInserts = tagsIds.map((tagId: string) => ({
+                transaction_id: id,
+                tag_id: tagId
+            }));
+            await supabase.from('transaction_tags').insert(tagInserts);
+        }
+    }
+
+    // 4. 💡 CRUCIAL: Limpiamos la caché de TODAS las rutas involucradas
+    revalidatePath('/dashboard');
+    revalidatePath('/accounts'); // ¡Te faltaba esta!
+    revalidatePath('/dashboard/transactions');
+    
+    return { success: true };
 }
 
 // ==========================================

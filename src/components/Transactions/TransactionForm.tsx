@@ -96,6 +96,9 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🚀 BOTÓN PRESIONADO - Datos listos para enviar:", { type, amount, note });
+    
+    if (isSubmitting) return;
     setIsSubmitting(true);
     
     const payload = { 
@@ -134,8 +137,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
         <button type="button" onClick={() => setType('transfer')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all ${type === 'transfer' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><RefreshCw size={18} /> Transferir</button>
       </div>
 
-      {/* 💡 UN SOLO FORMULARIO QUE ENVUELVE TODO */}
-      <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5">
+      <form id="tx-form" onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5">
         
         <div className="flex flex-col items-center justify-center py-2">
           <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Monto a {type === 'transfer' ? 'transferir' : 'registrar'}</p>
@@ -218,6 +220,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
         {/* 💡 EL BOTÓN AHORA SÍ DISPARARÁ EL FORMULARIO PADRE */}
         <button 
           type="submit" 
+          form="tx-form"
           disabled={isSubmitting}
           className={`w-full py-4 mt-2 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${type === 'expense' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}
         >

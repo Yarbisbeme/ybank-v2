@@ -8,7 +8,6 @@ import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard';
 import { TransactionFilters as FilterType } from '@/types/database.types';
 import ActivitySection from '@/components/Transactions/ActivitySection';
 import AccountCarousel from '@/components/accounts/AccountCarousel';
-import TransactionModal from '@/components/Transactions/TransactionModal';
 import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
 
 // 💡 1. Actualizamos la firma para indicar que searchParams es una Promesa
