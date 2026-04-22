@@ -11,7 +11,7 @@ export default function Home() {
       <nav className="flex w-full items-center justify-between border-b border-neutral-200 bg-white px-6 py-4">
 
         {/* Componente del logo */}
-        <Logo />
+        <Logo/>
         
         <div className="flex items-center gap-4 text-sm font-medium">
           <Link href="/sign-up" className="hidden text-neutral-600 hover:text-black sm:block">
@@ -36,6 +36,7 @@ export default function Home() {
             whitespace-pre-line
             pb-2
           "
+          id="Titulo"
         >
           Infraestructura para
           <br />
@@ -74,6 +75,7 @@ export default function Home() {
             <Link
               href="/sign-up"
               className="group relative inline-flex items-center gap-2 pb-1 text-sm font-medium text-black"
+              id="Sign-Up"
             >
               <span className="relative z-10 text-gray-700 group-hover:text-blue-600">Crea tu cuenta</span>
 
