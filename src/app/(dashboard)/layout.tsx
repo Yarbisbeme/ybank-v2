@@ -1,19 +1,36 @@
-import { Toaster as Sonner } from '@/components/ui/sonner';
-import type { ReactNode } from 'react';
+import { Suspense } from 'react'; // 💡 1. Importamos Suspense
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
+import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/layout/Sidebar";
+import TransactionModal from '@/components/Transactions/TransactionModal';
 
-interface DashboardLayoutProps {
-    children: ReactNode;
-}
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Iniciamos el cliente de Supabase
+  const supabase = await createSupabaseClient();
+  
+  // Obtenemos la sesión del usuario
+  const { data: { session } } = await supabase.auth.getSession();
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
-    return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 h-screen">
-                {children}
+  // Formateamos la data para el Navbar
+  const userData = session ? {
+    name: session.user.user_metadata?.full_name || 'Usuario',
+    avatarUrl: session.user.user_metadata?.avatar_url || '', 
+    role: 'Dev & QA Analyst' 
+  } : undefined;
 
-                {/* Portal for modals, toasts, etc. */}
-                <Sonner position="bottom-right" />
-            </main>
-        </div>
-    );
-}
+  return (
+    <div className="flex min-h-screen bg-[#F8F9FB]">
+      <aside className="hidden lg:flex w-64 flex-col fixed inset-y-0 border-r bg-white z-50">
+        <Sidebar />
+      </aside>
+
+      <div className="flex-1 lg:ml-64 flex flex-col">
+        <Navbar user={userData}/>
+        <main className="p-4 md:px-8 lg:px-12 max-w-[1600px] mx-auto w-full">
+          {children}
+        </main>
+        
+      </div>
+    </div>
+  );
+};

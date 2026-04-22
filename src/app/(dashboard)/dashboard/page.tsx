@@ -1,49 +1,87 @@
-import Image from 'next/image';
-import React from 'react';
+import { getAccounts } from '@/lib/actions/accounts';
+import { getTransactions } from '@/lib/actions/transactions';
+import { getCategories } from '@/lib/actions/categories';
+import { getTags } from '@/lib/actions/tags';
 
-export default function DashboardPage() {
+import NetWorthCard from '@/components/dashboard/NetWorth/NetWorthCard';
+import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard';
+import { TransactionFilters as FilterType } from '@/types/database.types';
+import ActivitySection from '@/components/Transactions/ActivitySection';
+import AccountCarousel from '@/components/accounts/AccountCarousel';
+import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
+
+// 💡 1. Actualizamos la firma para indicar que searchParams es una Promesa
+export default async function DashboardPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  
+  // 💡 2. ¡ESPERAMOS los searchParams antes de usarlos!
+  const resolvedSearchParams = await props.searchParams;
+
+  // 💡 3. Usamos resolvedSearchParams en lugar del searchParams original
+  const currentFilters: FilterType = {
+    type: (resolvedSearchParams.type as FilterType['type']) || null,
+    categoryId: (resolvedSearchParams.categoryId as string) || null,
+    tagId: (resolvedSearchParams.tagId as string) || null,
+    accountId: (resolvedSearchParams.accountId as string) || null,
+    startDate: (resolvedSearchParams.startDate as string) || null,
+    endDate: (resolvedSearchParams.endDate as string) || null,
+  };
+
+  // Obtenemos datos concurrentemente
+  const [accounts, categoriesTree, tags] = await Promise.all([
+    getAccounts(),
+    getCategories(),
+    getTags()
+  ]);
+
+  const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
+
+  // Obtenemos las transacciones
+  const { transactions } = await getTransactions({ 
+    pageSize: 20,
+    accountId: currentFilters.accountId || undefined, 
+    filters: currentFilters 
+  });
+
   return (
-    // 1. overflow-hidden: Corta cualquier cosa que intente salirse de la pantalla
-    // 2. px-4: Margen interno para que no pegue a los bordes
-    <div className='h-full w-full flex flex-col items-center justify-center bg-white overflow-hidden px-4'>
+  <div className="max-w-[1600px] mx-auto px-1 md:px-8 py-4 space-y-4 md:space-y-10">
+    <div className='flex flex-col'>
         
-        {/* Contenedor flexible: Columna en móvil, Fila en PC */}
-        <div className="flex flex-col lg:flex-row items-center justify-center">
-            
-            {/* LOGO:
-                - En móvil: w-20 (80px)
-                - En PC: w-28 (112px) - restauramos su tamaño original
-             */}
-            <div className="relative w-24 h-24 lg:w-28 lg:h-28 shrink-0">
-                <Image 
-                    src="/icons/logoY.svg" 
-                    fill
-                    className="object-contain"
-                    alt="Ybank" 
-                />
-            </div>
-
-            {/* TEXTO BANK:
-                - En móvil: text-6xl (más pequeño para que quepa)
-                - En PC: text-9xl (Gigante como querías)
-                - leading-none: Para evitar espacios extra arriba/abajo
-             */}
-            <h1 className='text-6xl lg:text-9xl font-bold text-black/90 mt-2 lg:mt-0 lg:-ml-4 leading-none tracking-tighter'>
-                Bank
-            </h1>
+        {/* Cambiamos a grid-cols-2 para que midan lo mismo (50/50) en escritorio */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        
+        {/* Tarjeta 1: NetWorth */}
+        <div className="w-full md:col-span-2"> {/* En escritorio ocupa 2 columnas (2/3 del espacio) */}
+          <NetWorthCard accounts={accounts} transactions={transactions} />
         </div>
 
-        {/* TEXTO SECUNDARIO:
-            - text-center: Para que se vea bien centrado en el móvil
-         */}
-        <p className='mt-6 text-lg lg:text-2xl text-neutral-600 flex flex-col sm:flex-row items-center gap-1 text-center'>
-            <span>Dashboard en construcción</span>
-            <span className="flex">
-                <span className="text-3xl lg:text-lg animate-[pulse_1.5s_ease-in-out_infinite]">.</span>
-                <span className="text-3xl lg:text-lg animate-[pulse_1.5s_ease-in-out_infinite_300ms]">.</span>
-                <span className="text-3xl lg:text-lg animate-[pulse_1.5s_ease-in-out_infinite_600ms]">.</span>
-            </span>
-        </p>
+        {/* Tarjeta 2: FinancialHealth */}
+        <div className="w-full">
+          <FinancialHealthCard accounts={accounts} />
+        </div>
+        
+      </div>
+    </div>
+
+      {/* SECCIÓN CUENTAS */}
+      {/* El carrusel ya debería manejar su propio scroll, pero bajamos el margen */}
+      <div className="-mx-4 md:mx-0"> 
+        <AccountCarousel accounts={accounts}/>
+      </div>
+
+      {/* SECCIÓN DE ACTIVIDAD */}
+      <div className="w-full pb-20 md:pb-0"> {/* Padding bottom para que el menú móvil no tape la tabla */}
+         <ActivitySection 
+           transactions={transactions}
+           initialFilters={currentFilters}
+           categories={flatCategories}
+           tags={tags}
+           accounts={accounts}
+         />
+      </div>
+
+      <TransactionModalWrapper />
     </div>
   );
 }

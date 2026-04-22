@@ -74,6 +74,23 @@
   display: none;
 }
 
+/* Oculta la barra de desplazamiento para IE, Edge y Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Glass moderno (usable en cards, modals, headers) */
 .glassmorphism {
   background: var(--glass-bg);
