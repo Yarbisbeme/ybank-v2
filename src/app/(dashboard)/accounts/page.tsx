@@ -8,13 +8,18 @@ import { getTransactions } from '@/lib/actions/transactions';
 import { getCategories } from '@/lib/actions/categories';
 import { getTags } from '@/lib/actions/tags';
 import { TransactionFilters as FilterType } from '@/types/database.types';
+import AccountModalWrapper from '@/components/accounts/AccountModalWrapper';
 
-// 💡 Pura función de servidor. Cero hooks de React o Next.
 export default async function AccountsPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
-
   
   const searchParams = await props.searchParams;
-  const isModalOpen = searchParams.newTx === 'true' || !!searchParams.editTx;
+  const isTxModalOpen = searchParams.newTx === 'true' || !!searchParams.editTx;
+  // 💡 Aseguramos de leer el parámetro correcto para abrir el modal
+  const isAccountModalOpen = searchParams.newAccount === 'true' || !!searchParams.editAccountId;
+  
+  // 💡 Extraemos explícitamente el ID para pasarlo
+  const editAccountId = searchParams.editAccountId;
+  
   const accountId = searchParams.accountId;
 
   const [accounts, categoriesTree, tags] = await Promise.all([
@@ -41,7 +46,8 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
   });
 
   return (
-    <div className="flex flex-col space-y-6 pb-20 overflow-hidden relative">
+    // 💡 Quitamos 'overflow-hidden' temporalmente para asegurar que el fixed overlay funcione
+    <div className="flex flex-col space-y-6 pb-20 relative min-h-screen">
       
       <div className="absolute top-0 right-6 z-[80]">
          <PageFilterBar 
@@ -62,12 +68,18 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
 
       <section className="w-full px-6 mt-8">
         <h2 className="text-xl font-black italic mb-4">Recent Activity</h2>
-        
-        {/* 💡 Solo pasamos las transacciones. La tabla se encargará de lo demás */}
         <TransactionTable transactions={transactions} />
       </section>
 
-      {isModalOpen && ( <TransactionModalWrapper /> )}
+      {/** Modal de Transacciones */}
+      {isTxModalOpen && ( 
+        <TransactionModalWrapper /> 
+      )}
+
+      {/** Modal de Cuentas */}
+      {isAccountModalOpen && ( 
+        <AccountModalWrapper accountId={editAccountId} /> 
+      )}
     </div>
   );
 }

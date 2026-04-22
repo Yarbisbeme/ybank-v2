@@ -66,20 +66,6 @@
    2. UTILIDADES AVANZADAS
 -------------------------------------------------- */
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Oculta la barra de desplazamiento para IE, Edge y Firefox */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -287,5 +273,35 @@ input[type="number"] {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* --------------------------------------------------
+   LIMPIEZA DE SCROLLBARS - TAILWIND V4 STACK
+-------------------------------------------------- */
+
+@layer utilities {
+  /* 💡 FORZAR OCULTAMIENTO TOTAL */
+  .scrollbar-hide {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;     /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none !important;             /* Chrome, Safari and Opera */
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* 💡 Aplicar globalmente al body para el scroll vertical de la página */
+@layer base {
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  body::-webkit-scrollbar {
+    display: none;
   }
 }

@@ -1,9 +1,9 @@
-// components/accounts/AccountDetailsHeader.tsx
 'use client'
 
 import { Account } from '@/types';
 import { AnimatedNumber } from '../dashboard/NetWorth/AnimatedNumber';
 import { Share2, Edit, Plus } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AccountDetailsHeader({ account }: { account: Account }) {
   return (
@@ -24,23 +24,42 @@ export default function AccountDetailsHeader({ account }: { account: Account }) 
 
       {/* Botones de Acción Rápida */}
       <div className="flex justify-center gap-4">
-        <ActionButton icon={<Plus size={20} />} label="Add" />
-        <ActionButton icon={<Edit size={20} />} label="Edit" />
-        <ActionButton icon={<Share2 size={20} />} label="Share" />
+        
+        {/* Botón ADD */}
+        <Link 
+          href={`?accountId=${account.id}&newTx=true`} 
+          scroll={false}
+        >
+          <ActionButton icon={<Plus size={20} />} label="Add" />
+        </Link>
+        
+        {/* Botón EDIT */}
+        <Link 
+          href={`?accountId=${account.id}&editAccountId=${account.id}`}
+          scroll={false}
+        >
+          <ActionButton icon={<Edit size={20} />} label="Edit" />
+        </Link>
+        
+        <div onClick={() => console.log('Share clicked')}>
+          <ActionButton icon={<Share2 size={20} />} label="Share" />
+        </div>
+
       </div>
     </div>
   );
 }
 
+// 💡 FIX 3: Cambiamos <button> a <div> para que Next.js no dé errores de hidratación
 function ActionButton({ icon, label }: { icon: React.ReactNode, label: string }) {
   return (
-    <button className="flex flex-col items-center gap-2 group">
+    <div className="flex flex-col items-center gap-2 group cursor-pointer">
       <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-900 shadow-sm group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300">
         {icon}
       </div>
       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-900 transition-colors">
         {label}
       </span>
-    </button>
+    </div>
   );
 }

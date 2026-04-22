@@ -3,20 +3,20 @@ import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import TransactionModal from '@/components/Transactions/TransactionModal';
+import { getAccounts } from '@/lib/actions/accounts';
+import { getTransactions } from '@/lib/actions/transactions';
+import { getTags } from '@/lib/actions/tags';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // Iniciamos el cliente de Supabase
-  const supabase = await createSupabaseClient();
-  
-  // Obtenemos la sesión del usuario
-  const { data: { session } } = await supabase.auth.getSession();
 
-  // Formateamos la data para el Navbar
-  const userData = session ? {
-    name: session.user.user_metadata?.full_name || 'Usuario',
-    avatarUrl: session.user.user_metadata?.avatar_url || '', 
-    role: 'Dev & QA Analyst' 
-  } : undefined;
+  // Obtenemos la sesión del usuario
+  const [accounts, transactionsData, tags] = await Promise.all([
+    getAccounts(),
+    getTransactions({}),
+    getTags()
+  ]);
+
+  const user = { name: "Yarbis Beltre", role: "Dev & QA", avatarUrl: "..." };
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -25,8 +25,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       <div className="flex-1 lg:ml-64 flex flex-col">
-        <Navbar user={userData}/>
-        <main className="p-4 md:px-8 lg:px-12 max-w-[1600px] mx-auto w-full">
+        <Navbar 
+          user={user} 
+          accounts={accounts} 
+          transactions={transactionsData.transactions} 
+          tags={tags} 
+        />
+        <main className="p-4 md:px-8 lg:px-12 max-w-[1600px] mx-auto w-full scrollbar-hide overflow-x-hidden">
           {children}
         </main>
         

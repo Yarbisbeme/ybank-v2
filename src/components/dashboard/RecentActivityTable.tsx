@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'; // 💡 1. Importamos los hooks de navegación
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'; 
 import { Transaction } from '@/types'; 
 import { getCategoryIcon } from '@/lib/utils';
 import { Edit2 } from 'lucide-react';
@@ -11,20 +11,24 @@ interface TransactionTableProps {
 }
 
 export default function TransactionTable({ transactions }: TransactionTableProps) {
-  // 💡 2. Inicializamos los hooks dentro del componente
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // 💡 3. Creamos la función que actualizará la URL
   const handleEdit = (transactionId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('editTx', transactionId);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  // 💡 SOLUCIÓN APLICADA: Forzamos la zona horaria a UTC para que la fecha no cambie
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric',
+      timeZone: 'UTC' // Este pequeño parámetro evita el viaje en el tiempo 🕰️
+    };
     return new Date(dateString).toLocaleDateString('en-US', options); 
   };
 
@@ -101,16 +105,17 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                 </div>
 
                 {/* 4. MONTO Y BOTÓN DE EDITAR (Desktop) */}
-                {/* 💡 Metimos el botón dentro de esta columna para no romper el grid-cols-12 */}
                 <div className="hidden lg:flex lg:col-span-2 items-center justify-end gap-2">
                   <p className={`text-[15px] font-black tracking-tight ${amountDisplay.color}`}>
                     {amountDisplay.text}
                   </p>
                   
-                  {/* 💡 BOTÓN DE EDITAR LLAMANDO A handleEdit */}
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-2">
                     <button 
-                      onClick={() => handleEdit(tx.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // 💡 Evita que se disparen otros eventos click si los agregas a la fila después
+                        handleEdit(tx.id);
+                      }}
                       className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                       title="Editar transacción"
                     >
@@ -129,9 +134,11 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                     <p className={`text-sm font-black tracking-tight ${amountDisplay.color}`}>
                       {amountDisplay.text}
                     </p>
-                    {/* Botón visible en móvil (ya que no hay hover en touchscreens) */}
                     <button 
-                      onClick={() => handleEdit(tx.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // 💡 Buena práctica para móviles también
+                        handleEdit(tx.id);
+                      }}
                       className="p-1.5 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-full"
                     >
                       <Edit2 size={14} />

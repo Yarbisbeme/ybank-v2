@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDownCircle, ArrowUpCircle, RefreshCw, Calendar, Grid as GridIcon, CreditCard, AlignLeft, Send } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, RefreshCw, Calendar, Grid as GridIcon, CreditCard, AlignLeft, Send, Trash2 } from 'lucide-react';
 import { Account, Tag } from '@/types'; 
 import TagInput from './TagInput';
 import SearchableDropdown from '../ui/SearchableDropdown';
-import { createTransaction, updateTransaction, saveTransaction } from '@/lib/actions/transactions'; // 💡 Asegúrate de importar saveTransaction
+import { createTransaction, updateTransaction, saveTransaction, deleteTransaction } from '@/lib/actions/transactions'; // 💡 Asegúrate de importar saveTransaction
 import { toast } from 'sonner';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
@@ -38,6 +38,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const isEditing = !!initialData;
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
   const [amount, setAmount] = useState(initialData?.amount || '');
   const [accountId, setAccountId] = useState(initialData?.accountId || '');
@@ -129,6 +130,28 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     }
   };
 
+  const handleDelete = async () => {
+    if (!initialData?.id) return;
+    
+    // Confirmación simple nativa (puedes cambiarla por un modal de Radix/Shadcn después)
+    const confirmed = window.confirm('¿Estás seguro de que deseas eliminar esta transacción? Esta acción no se puede deshacer.');
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteTransaction(initialData.id);
+      if (result.success) {
+        toast.success('Transacción eliminada correctamente');
+        if (onSuccess) onSuccess();
+      } else {
+        toast.error(result.error || 'No se pudo eliminar');
+      }
+    } catch (error) {
+      toast.error('Error al conectar con el servidor');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   return (
     <div className="w-full bg-white rounded-3xl overflow-hidden pb-4">
       <div className="flex p-2 bg-slate-50 border-b border-slate-100">
@@ -218,21 +241,39 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
         </div>
 
         {/* 💡 EL BOTÓN AHORA SÍ DISPARARÁ EL FORMULARIO PADRE */}
-        <button 
-          type="submit" 
-          form="tx-form"
-          disabled={isSubmitting}
-          className={`w-full py-4 mt-2 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${type === 'expense' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}
-        >
-          {isSubmitting ? (
-            <div className="flex items-center justify-center gap-2">
-              <RefreshCw className="animate-spin" size={18} />
-              Procesando...
-            </div>
-          ) : (
-            `${isEditing ? 'Actualizar' : 'Guardar'} ${type === 'expense' ? 'Gasto' : type === 'income' ? 'Ingreso' : 'Transferencia'}`
+        <div className="flex items-center gap-3 mt-2">
+          {isEditing && (
+            <button 
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting || isDeleting}
+              className="p-4 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-50"
+              title="Eliminar transacción"
+            >
+              {isDeleting ? <RefreshCw className="animate-spin" size={20} /> : <Trash2 size={20} />}
+            </button>
           )}
-        </button>
+
+          <button 
+            type="submit" 
+            form="tx-form"
+            disabled={isSubmitting || isDeleting}
+            className={`flex-1 py-4 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+              type === 'expense' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : 
+              type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 
+              'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+            }`}
+          >
+            {isSubmitting ? (
+              <div className="flex items-center justify-center gap-2">
+                <RefreshCw className="animate-spin" size={18} />
+                Procesando...
+              </div>
+            ) : (
+              `${isEditing ? 'Actualizar' : 'Guardar'} ${type === 'expense' ? 'Gasto' : type === 'income' ? 'Ingreso' : 'Transferencia'}`
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );
