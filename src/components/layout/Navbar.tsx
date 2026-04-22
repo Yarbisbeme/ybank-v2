@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Bell, ChevronDown, CreditCard, Receipt, Tag as TagIcon, X, Command } from 'lucide-react';
 import { Account, Transaction, Tag } from '@/types'; // Asumiendo que tienes estos tipos
+import Link from 'next/link';
 
 interface NavbarProps {
   user?: { name: string; role: string; avatarUrl?: string };
@@ -98,7 +99,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
                 autoFocus
                 type="text"
                 placeholder="Escribe para buscar cuentas, transacciones o tags..."
-                className="flex-1 bg-transparent border-none outline-none text-lg font-medium text-slate-800 placeholder:text-slate-400"
+                className="flex-1 bg-transparent border-none outline-none text-lg font-medium text-slate-800 placeholder:text-slate-400 pl-2"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -121,14 +122,21 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Cuentas</h3>
                       <div className="space-y-1">
                         {searchResults.accounts.map(acc => (
-                          <div key={acc.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 cursor-pointer transition-colors group">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><CreditCard size={18} /></div>
-                            <div className="flex-1">
-                              <p className="text-sm font-bold text-slate-800">{acc.name}</p>
-                              <p className="text-[10px] font-medium text-slate-400 uppercase">{acc.currency} • ****{acc.last_4_digits}</p>
+                          <Link 
+                            key={acc.id} 
+                            href={`/accounts?accountId=${acc.id}`}
+                            onClick={() => setIsSearchOpen(false)}
+                            className="flex items-center gap-3 p-3 rounded-2xl hover:bg-blue-50/50 cursor-pointer transition-colors group border border-transparent hover:border-blue-100"
+                          >
+                            <div key={acc.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 cursor-pointer transition-colors group">
+                              <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><CreditCard size={18} /></div>
+                              <div className="flex-1">
+                                <p className="text-sm font-bold text-slate-800">{acc.name}</p>
+                                <p className="text-[10px] font-medium text-slate-400 uppercase">{acc.currency} • ****{acc.last_4_digits}</p>
+                              </div>
+                              <p className="text-sm font-black text-slate-700">${acc.current_balance.toLocaleString()}</p>
                             </div>
-                            <p className="text-sm font-black text-slate-700">${acc.current_balance.toLocaleString()}</p>
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
