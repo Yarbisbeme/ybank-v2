@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       <div className="flex-1 lg:ml-64 flex flex-col">
         <Navbar user={userData}/>
-        <main className="p-4 md:p-8 lg:p-12 max-w-[1600px] mx-auto w-full">
+        <main className="p-4 md:px-8 lg:px-12 max-w-[1600px] mx-auto w-full">
           {children}
         </main>
         

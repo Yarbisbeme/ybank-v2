@@ -56,7 +56,8 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
+      
+      {/* Nueva Transaccion */}
       <ButtonOla 
         href={`${pathname}?newTx=true`} 
         label="Add Transaction"

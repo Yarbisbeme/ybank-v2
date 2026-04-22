@@ -69,7 +69,7 @@ export default function TransactionModal({ accounts, tags, categories }: Transac
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 lg:left-64 z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 lg:left-64 z-[130] flex items-end md:items-center justify-center p-0 md:p-4">
           
           <motion.div
             initial={{ opacity: 0 }}
@@ -105,12 +105,10 @@ export default function TransactionModal({ accounts, tags, categories }: Transac
                   <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                   <p className="mt-4 font-bold text-slate-400 animate-pulse">Cargando datos...</p>
                 </div>
-              ) : (
-                initialData && (
+              ) : 
+                (isCreating || initialData) && (
                   <TransactionForm 
-                    // 💡 CLAVE: Usamos el ID de la transacción como KEY. 
-                    // Esto obliga a React a borrar el formulario viejo y crear uno nuevo.
-                    key={`edit-${initialData.id}`} 
+                    key={`edit-${initialData?.id || 'new'}`} 
                     initialData={initialData} 
                     accounts={accounts} 
                     tags={tags}
@@ -118,7 +116,7 @@ export default function TransactionModal({ accounts, tags, categories }: Transac
                     onSuccess={closeModal}
                   />
                 )
-              )}
+              }
             </div>
             
           </motion.div>

@@ -11,7 +11,10 @@ import { TransactionFilters as FilterType } from '@/types/database.types';
 
 // 💡 Pura función de servidor. Cero hooks de React o Next.
 export default async function AccountsPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+
+  
   const searchParams = await props.searchParams;
+  const isModalOpen = searchParams.newTx === 'true' || !!searchParams.editTx;
   const accountId = searchParams.accountId;
 
   const [accounts, categoriesTree, tags] = await Promise.all([
@@ -40,7 +43,7 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
   return (
     <div className="flex flex-col space-y-6 pb-20 overflow-hidden relative">
       
-      <div className="absolute top-0 right-6 z-[120]">
+      <div className="absolute top-0 right-6 z-[80]">
          <PageFilterBar 
            initialFilters={currentFilters}
            categories={flatCategories}
@@ -64,7 +67,7 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
         <TransactionTable transactions={transactions} />
       </section>
 
-      <TransactionModalWrapper />
+      {isModalOpen && ( <TransactionModalWrapper /> )}
     </div>
   );
 }
