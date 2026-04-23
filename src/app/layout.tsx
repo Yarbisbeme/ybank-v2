@@ -1,29 +1,23 @@
-import type { Metadata } from "next";
-import { Inter, IBM_Plex_Serif } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
+// 1. Importamos la fuente
+import { Plus_Jakarta_Sans } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
-const ibmPlexSerif = IBM_Plex_Serif({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-ibm-plex-serif'
+// 2. Configuramos la fuente
+const plusJakarta = Plus_Jakarta_Sans({ 
+  subsets: ["latin"],
+  display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: "yBank v2",
-  description: "Plataforma financiera moderna",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${ibmPlexSerif.variable} antialiased`}>
+    <html lang="es" suppressHydrationWarning className={plusJakarta.className}>
+      <body className="bg-[#F8F9FB] antialiased">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         {children}
+        <Toaster richColors position="top-center" />
+        </ThemeProvider>
       </body>
     </html>
   );
