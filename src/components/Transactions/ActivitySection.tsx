@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Transaction } from '@/types';
 import { TransactionFilters as FilterType } from '@/types/database.types';
 import TransactionFilters from './TransactionFilter';
-import TransactionTable from '../dashboard/RecentActivityTable';
+import TransactionTable from './RecentActivityTable';
 
 interface ActivitySectionProps {
   transactions: Transaction[];

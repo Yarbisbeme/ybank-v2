@@ -15,16 +15,15 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    // 💡 NUEVO: Preparamos el Select dinámico para manejar el Inner Join si hay un tagId
     let selectString = `
       *,
       category:categories(name, icon, color),
       account:accounts!account_id(name, currency), 
       transfer_to_account:accounts!transfer_to_account_id(name, currency),
-      tags ( id, name )
+      tags:transaction_tags(tag:tags(id, name)),
+      items:transaction_items(*) -- 💡 Aseguramos traer los ítems aquí también
     `;
 
-    // 💡 NUEVO: Forzamos INNER JOIN si se está filtrando por un tag específico
     if (filters?.tagId) {
         selectString += `, transaction_tags!inner(tag_id)`
     }
@@ -36,35 +35,16 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         .order('created_at', { ascending: false })
         .range(from, to)
     
-    // Filtro original por cuenta
-    if (accountId) {
-        query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
-    }
-
-    // 💡 NUEVO: APLICACIÓN DE FILTROS ADICIONALES
-    if (filters?.type) {
-        query = query.eq('type', filters.type)
-    }
-
-    if (filters?.categoryId) {
-        query = query.eq('category_id', filters.categoryId)
-    }
-
-    if (filters?.startDate) {
-        query = query.gte('date', filters.startDate)
-    }
-
+    if (accountId) query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
+    if (filters?.type) query = query.eq('type', filters.type)
+    if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
+    if (filters?.startDate) query = query.gte('date', filters.startDate)
+    if (filters?.tagId) query = query.eq('transaction_tags.tag_id', filters.tagId)
     if (filters?.endDate) {
-        // Garantizamos incluir todo el último día hasta las 23:59
         const endOfDay = filters.endDate.includes('T') ? filters.endDate : `${filters.endDate}T23:59:59.999Z`;
         query = query.lte('date', endOfDay)
     }
 
-    if (filters?.tagId) {
-        query = query.eq('transaction_tags.tag_id', filters.tagId)
-    }
-
-    // Ejecutamos la consulta final
     const { data, error, count } = await query
 
     if (error) {
@@ -76,19 +56,18 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
 }
 
 export async function getTransactionById(id: string) {
-  const supabase = await createSupabaseClient(); // Usa tu función normal de conexión
-  
+  const supabase = await createSupabaseClient()
   const { data, error } = await supabase
-    .from('transactions')
-    .select('*, tags(*)') // Traemos la transacción y sus etiquetas asociadas
-    .eq('id', id)
-    .single();
+      .from('transactions')
+      .select(`
+      *,
+      tags:transaction_tags(tag:tags(*)),
+      items:transaction_items(*) 
+      `)
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error("Error buscando transacción:", error);
-    return null;
-  }
-  
+  if (error) throw error;
   return data;
 }
 
@@ -96,213 +75,188 @@ export async function getTransactionById(id: string) {
 // 2. SAVE TRANSACTION
 // ==========================================
 export async function saveTransaction(payload: any) {
-    // 💡 Mapeamos los nombres del Formulario (CamelCase) a los de la BD (SnakeCase)
     const transactionInput: any = {
         type: payload.type,
         amount: parseFloat(payload.amount),
         date: payload.date,
-        description: payload.note, // En tu DB es description
+        description: payload.note, 
         account_id: payload.accountId,
         category_id: payload.categoryId || null,
         transfer_to_account_id: payload.destinationAccountId || null,
-        tags: payload.tagIds || [], // Tus acciones ya manejan el array de tags
+        tags: payload.tagIds || [], 
+        items: payload.items || [], // 💡 1. Pasamos los ítems del desglose
     };
 
     if (payload.id) {
-        // 💡 Si hay ID, usamos tu acción de UPDATE
-        // Nota: updateTransaction en tu código recibe (id, input)
         return await updateTransaction(payload.id, transactionInput);
     } else {
-        // 💡 Si no hay ID, usamos tu acción de CREATE
         return await createTransaction(transactionInput);
     }
 }
 
 // ==========================================
-// 3. CREATE TRANSACTION (Corregido)
+// 3. CREATE TRANSACTION
 // ==========================================
-export async function createTransaction(input: CreateTransactionInput) {
+export async function createTransaction(input: any) {
     const supabase = await createSupabaseClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Usuario no autenticado' }
 
-    // ⚠️ CORRECCIÓN IMPORTANTE:
-    // No borramos target_amount ni exchange_rate si es transferencia.
-    // Asumimos que el Frontend (o quien llame a esta función) YA calculó los valores.
     const cleanInput = { ...input }
 
     const tagsIds = input.tags || []
-    delete (cleanInput as any).tags // Eliminamos tags del input principal
+    const items = input.items || []
+    delete cleanInput.tags 
+    delete cleanInput.items 
 
-    // Solo limpiamos si NO es transferencia, para no ensuciar la BD
     if (input.type !== 'transfer') {
         delete cleanInput.transfer_to_account_id
         delete cleanInput.target_amount
         delete cleanInput.exchange_rate
     } else {
-        // Si es transferencia, quitamos category_id
         delete cleanInput.category_id 
     }
   
-  // =================================================================================
-  // ⚡️ AUTO-CÁLCULO DE DIVISAS (YB-13 Integration)
-  // =================================================================================
+  // LÓGICA DE DIVISAS (Mantenida intacta)
   if (input.type === 'transfer' && input.transfer_to_account_id) {
-    
-    // A. Buscamos las monedas de ambas cuentas
-    const { data: accounts, error: accError } = await supabase
-      .from('accounts')
-      .select('id, currency, institution_id')
-      .in('id', [input.account_id, input.transfer_to_account_id])
-
-    if (accError || !accounts || accounts.length !== 2) {
-      return { success: false, error: 'Error leyendo cuentas para conversión' }
-    }
-
-    const sourceAcc = accounts.find(a => a.id === input.account_id)
-    const targetAcc = accounts.find(a => a.id === input.transfer_to_account_id)
-
-    // B. Si las monedas son DIFERENTES, calculamos la tasa
-    if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
-      
-      let operation: 'buy' | 'sell' = 'sell'; // Valor por defecto
-      let calculatedTargetAmount = 0;
-
-      // CASO 1: USD -> DOP (El banco COMPRA tus dólares)
-      if (sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP') {
-        operation = 'buy';
-      } 
-      // CASO 2: DOP -> USD (El banco te VENDE dólares)
-      else if (sourceAcc.currency === 'DOP' && targetAcc.currency === 'USD') {
-        operation = 'sell';
-      }
-
-      // C. Llamamos al servicio de tasas (Smart Rate)
-      // Usamos la institución de la cuenta ORIGEN para buscar la tasa
-      const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation)
-
-      if (rateInfo) {
-        cleanInput.exchange_rate = rateInfo.rate; // Guardamos la tasa usada
-
-        // D. Calculamos el monto final
-        if (operation === 'buy') {
-           // 100 USD * 60.50 = 6050 DOP
-           calculatedTargetAmount = input.amount * rateInfo.rate;
-        } else {
-           // 6350 DOP / 63.50 = 100 USD
-           calculatedTargetAmount = input.amount / rateInfo.rate;
+    const { data: accounts } = await supabase.from('accounts').select('id, currency, institution_id').in('id', [input.account_id, input.transfer_to_account_id])
+    if (accounts && accounts.length === 2) {
+      const sourceAcc = accounts.find(a => a.id === input.account_id)
+      const targetAcc = accounts.find(a => a.id === input.transfer_to_account_id)
+      if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
+        let operation: 'buy' | 'sell' = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? 'buy' : 'sell';
+        const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation)
+        if (rateInfo) {
+          cleanInput.exchange_rate = rateInfo.rate; 
+          cleanInput.target_amount = Number((operation === 'buy' ? input.amount * rateInfo.rate : input.amount / rateInfo.rate).toFixed(2));
         }
-        
-        // Redondeamos a 2 decimales
-        cleanInput.target_amount = Number(calculatedTargetAmount.toFixed(2));
       }
     }
   }
-  // =================================================================================
 
-  // 2. INSERTAMOS LA TRANSACCIÓN
+  // 1. INSERTAMOS LA TRANSACCIÓN PADRE
   const { data: newTx, error } = await supabase
     .from('transactions')
-    .insert({
-      user_id: user.id,
-      ...cleanInput,
-      status: 'posted'
-    })
+    .insert({ user_id: user.id, ...cleanInput, status: 'posted' })
     .select('id')
     .single()
 
-  if (error) {
-    console.error('Error al crear transacción:', error)
-    return { success: false, error: error.message }
-  }
+  if (error) return { success: false, error: error.message }
 
-  // 3. VINCULAMOS LOS TAGS
+  // 2. VINCULAMOS LOS TAGS
   if (tagsIds.length > 0 && newTx) {
-    const tagInserts = tagsIds.map(tagId => ({
-      transaction_id: newTx.id,
-      tag_id: tagId
-    }))
+    const tagInserts = tagsIds.map((tagId: string) => ({ transaction_id: newTx.id, tag_id: tagId }))
     await supabase.from('transaction_tags').insert(tagInserts)
   }
 
+  // 3. 💡 VINCULAMOS LOS ÍTEMS (CON ERROR HANDLING Y ROLLBACK)
+  if (items.length > 0 && newTx) {
+    const itemInserts = items.map((item: any) => ({
+      transaction_id: newTx.id,
+      name: item.name,
+      quantity: 1, 
+      unit_price: parseFloat(item.unit_price),
+      // 💡 ELIMINAMOS total_price para que PostgreSQL lo genere automáticamente
+      category_id: item.category_id || null
+    }))
+    
+    // 💡 AHORA SÍ CAPTURAMOS EL ERROR
+    const { error: itemsError } = await supabase.from('transaction_items').insert(itemInserts)
+    
+    if (itemsError) {
+      console.error('Error insertando subtransacciones:', itemsError);
+      
+      // 🚨 ROLLBACK MANUAL: Si fallan los hijos, borramos al padre para no dejar data corrupta
+      await supabase.from('transactions').delete().eq('id', newTx.id);
+      
+      return { success: false, error: 'No se pudo guardar el desglose: ' + itemsError.message }
+    }
+  }
+
   revalidatePath('/dashboard') 
-  revalidatePath('/dashboard/transactions')
+  revalidatePath('/accounts') 
   return { success: true }
 }
 
 // ==========================================
 // 4. UPDATE TRANSACTION
 // ==========================================
-// ==========================================
-// 4. UPDATE TRANSACTION (Corregido: Tags y Caché)
-// ==========================================
-export async function updateTransaction(id: string, input: Partial<CreateTransactionInput>) {
+export async function updateTransaction(id: string, input: any) {
     const supabase = await createSupabaseClient();
     
-    // 1. Limpiamos el input para no enviar columnas inválidas a Supabase
     const cleanInput = { ...input };
-    const tagsIds = (cleanInput as any).tags; // Guardamos los tags temporalmente
-    delete (cleanInput as any).tags; // 💡 ELIMINAMOS los tags antes del update
+    
+    const tagsIds = cleanInput.tags; 
+    const items = cleanInput.items;
+    delete cleanInput.tags; 
+    delete cleanInput.items; 
 
-    // Limpiamos los IDs que no corresponden al tipo (igual que en create)
     if (cleanInput.type !== 'transfer') {
         delete cleanInput.transfer_to_account_id;
-        delete (cleanInput as any).target_amount;
-        delete (cleanInput as any).exchange_rate;
+        delete cleanInput.target_amount;
+        delete cleanInput.exchange_rate;
     } else {
         delete cleanInput.category_id;
     }
 
-    // 2. Actualizamos la transacción
-    const { error } = await supabase
-        .from('transactions')
-        .update(cleanInput)
-        .eq('id', id);
+    // 1. Actualizamos el padre
+    const { error } = await supabase.from('transactions').update(cleanInput).eq('id', id);
+    if (error) return { success: false, error: error.message };
 
-    if (error) {
-        console.error("Error al actualizar transacción:", error);
-        return { success: false, error: error.message };
-    }
-
-    // 3. Actualizamos los Tags (Si se enviaron en el input)
+    // 2. ACTUALIZAMOS TAGS
     if (tagsIds !== undefined) {
-        // A. Borramos las etiquetas viejas de esta transacción
         await supabase.from('transaction_tags').delete().eq('transaction_id', id);
-        
-        // B. Insertamos las nuevas (si hay alguna)
         if (tagsIds.length > 0) {
-            const tagInserts = tagsIds.map((tagId: string) => ({
-                transaction_id: id,
-                tag_id: tagId
-            }));
+            const tagInserts = tagsIds.map((tagId: string) => ({ transaction_id: id, tag_id: tagId }));
             await supabase.from('transaction_tags').insert(tagInserts);
         }
     }
 
-    // 4. 💡 CRUCIAL: Limpiamos la caché de TODAS las rutas involucradas
+    // 3. 💡 ACTUALIZAMOS ITEMS CON ERROR HANDLING
+    if (items !== undefined) {
+        // A. Borramos los viejos
+        await supabase.from('transaction_items').delete().eq('transaction_id', id);
+        
+        // B. Insertamos los nuevos
+        if (items.length > 0) {
+            const itemInserts = items.map((item: any) => ({
+                transaction_id: id,
+                name: item.name,
+                quantity: 1,
+                unit_price: parseFloat(item.unit_price),
+                // 💡 ELIMINAMOS total_price aquí también
+                category_id: item.category_id || null
+            }));
+            
+            const { error: itemsError } = await supabase.from('transaction_items').insert(itemInserts);
+            
+            if (itemsError) {
+                console.error('Error actualizando subtransacciones:', itemsError);
+                return { success: false, error: 'La transacción se actualizó, pero hubo un error con el desglose.' };
+            }
+        }
+    }
+
     revalidatePath('/dashboard');
-    revalidatePath('/accounts'); // ¡Te faltaba esta!
-    revalidatePath('/dashboard/transactions');
-    
+    revalidatePath('/accounts'); 
     return { success: true };
 }
 
 // ==========================================
-// 5. DELETE TRANSACTION (Corregido)
+// 5. DELETE TRANSACTION
 // ==========================================
 export async function deleteTransaction(id: string) {
     const supabase = await createSupabaseClient()
 
-    const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id)
+    await supabase.from('transaction_tags').delete().eq('transaction_id', id);
+    await supabase.from('transaction_items').delete().eq('transaction_id', id);
+
+    const { error } = await supabase.from('transactions').delete().eq('id', id)
 
     if (error) return { success: false, error: error.message }
 
     revalidatePath('/dashboard')
-    revalidatePath('/dashboard/transactions')
+    revalidatePath('/accounts')
     return { success: true }
 }
-

@@ -94,33 +94,37 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
            <PageFilterBar initialFilters={currentFilters} categories={flatCategories} tags={tags} accounts={accounts} />
         </div>
 
-        <div className="flex flex-col items-center w-full h-full justify-start pt-6 md:pt-10 pb-4">
+        <div className="absolute top-4 right-6 z-[80] hidden md:block">
+           <PageFilterBar initialFilters={currentFilters} categories={flatCategories} tags={tags} accounts={accounts} />
+        </div>
+
+        {/* === ZONA PRINCIPAL === */}
+        <div className="flex flex-col items-center w-full h-full justify-start pt-12 md:pt-10 pb-4">
+          
           <div className="w-full shrink-0 h-[320px] sm:h-[320px] md:h-[380px]">
             <AccountStageSelector accounts={accounts} activeId={selectedAccount.id} />
           </div>
+          
           <div className="w-full px-4 shrink-0 mt-4 md:mt-6">
             <AccountDetailsHeader account={selectedAccount} />
           </div>
 
-          <div className="mt-auto pb-24 md:hidden flex flex-col items-center justify-center opacity-50 select-none pointer-events-none">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
-              Desliza para actividad
-            </span>
-            <div className="animate-bounce">
-              <ChevronUp className="text-slate-400" size={24} strokeWidth={2.5} />
-            </div>
-          </div>
         </div>
 
+        {/* 💡 FIX 2: Agregamos el Drawer interactivo que creamos para las transacciones */}
         <TransactionsDrawer transactions={transactions} />
+        
 
         {/** === MODALES LIMPIOS === */}
-        {/* 1. Modal de Transacciones (Pendiente de migrar) */}
-        {isTxModalOpen && <TransactionModalWrapper />}
+        
+        {/* 1. Modal de Transacciones */}
+        {isTxModalOpen && <TransactionModalWrapper editTxId={searchParams.editTx} />}
 
-        {/* 🚀 2. Nuevo Modal Universal para Cuentas */}
+        {/* 2. Nuevo Modal Universal para Cuentas */}
         {isAccountModalOpen && (
-          <UniversalModal returnPath="/accounts">
+          <UniversalModal 
+            title={editAccountId ? "Editar Cuenta" : "Nueva Cuenta"} 
+          >
             <AccountFormWrapper initialData={initialData} institutions={institutionsData} />
           </UniversalModal>
         )}
