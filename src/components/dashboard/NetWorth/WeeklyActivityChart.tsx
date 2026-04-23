@@ -36,7 +36,9 @@ export default function WeeklyActivityChart({ transactions }: { transactions: Tr
 
     const stats = days.map(day => {
       const dayTxs = transactions.filter(tx => {
-        const txDateLocal = getLocalDateString(new Date(tx.date));
+        // 💡 SOLUCIÓN: Extraemos "YYYY-MM-DD" directamente del texto de la base de datos.
+        // Si viene con hora (T), la cortamos. Así el navegador no le resta 4 horas.
+        const txDateLocal = tx.date.split('T')[0]; 
         return txDateLocal === day;
       });
 

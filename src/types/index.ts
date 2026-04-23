@@ -1,11 +1,18 @@
 import { ReactNode } from "react";
 
-// Valores Fijos
+// ==========================================
+// 1. VALORES FIJOS Y TIPOS GLOBALES
+// ==========================================
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'payment';
-export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'loan' | 'cash';
-export type CurrencyCode = 'DOP' | 'USD' | 'EUR';
+export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'cash';
+export type CurrencyCode = 'DOP' | 'USD';
+// 💡 Corrección: PascalCase
+export type CustomTextTheme = 'light' | 'dark';
+export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots';
 
-// Entidades de la base de datos
+// ==========================================
+// 2. ENTIDADES DE LA BASE DE DATOS
+// ==========================================
 export interface Institution {
   id: string;
   name: string;
@@ -15,10 +22,10 @@ export interface Institution {
   exchange_rate_buy_adjustment: number; // Margen Compra (-)
   created_at: string;
 
-  brand_color_primary:string,
+  brand_color_primary: string; // 💡 Corrección: punto y coma
   brand_color_secondary?: string;
-  card_pattern?: 'solid' | 'waves' | 'geometric';
-  text_theme?: 'light' | 'dark';
+  card_pattern?: CustomPattern;
+  text_theme?: CustomTextTheme;
 }
 
 export interface Account {
@@ -30,9 +37,10 @@ export interface Account {
   type: AccountType;
   currency: CurrencyCode;
 
-  color: string,
-  custom_pattern: string,
-  custom_text_theme: string,
+  // 💡 Corrección: punto y coma y tipos estrictos
+  color: string;
+  custom_pattern: CustomPattern;
+  custom_text_theme: CustomTextTheme;
   
   // Datos Financieros
   current_balance: number;
@@ -49,50 +57,11 @@ export interface Account {
   created_at: string;
   updated_at: string;
 
-  // Relaciones (Opcionales, se llenan al hacer joins)
+  // Relaciones
   institution: Institution; 
 }
 
-
-export interface CreateAccountInput {
-  name: string;
-  institution_id: string;
-  type: AccountType;
-  currency: CurrencyCode;
-  initial_balance: number;
-  last_4_digits?: string;
-  credit_limit?: number;
-}
-
-export interface UpdateAccountInput {
-  name?: string;
-  type?: AccountType;
-  last_4_digits?: string;
-  credit_limit?: number;
-  is_active?: boolean;
-  // Campos de personalización de la tarjeta (NUEVOS)
-  color?: string;
-  custom_pattern?: string;
-  custom_text_theme?: 'light' | 'dark';
-}
-
-// En tu archivo types.ts
-export interface Category {
-  id: string;
-  user_id: string | null;
-  parent_id: string | null;
-  name: string;
-  icon: string;
-  color: string;
-  type: 'income' | 'expense';
-  created_at: string;
-}
-
-// 💡 El tipo que realmente devuelve tu Server Action
-export interface CategoryTree extends Category {
-  subcategories: Category[];
-}
-
+// 💡 Corrección: Categoría unificada
 export interface Category {
   id: string;
   user_id: string | null; // Null = Categoría del sistema
@@ -101,9 +70,14 @@ export interface Category {
   type: 'income' | 'expense';
   icon: string;
   color: string;
+  created_at: string;
   
   // Relaciones
   subcategories?: Category[];
+}
+
+export interface CategoryTree extends Category {
+  subcategories: Category[];
 }
 
 export interface Transaction {
@@ -128,34 +102,10 @@ export interface Transaction {
   created_at: string;
 
   // Relaciones (Joins)
-  account?: Account;           // Datos de la cuenta origen
-  transfer_to_account?: Account; // Datos de la cuenta destino
+  account?: Account;           
+  transfer_to_account?: Account; 
   category?: Category;
   tags?: Tag[];
-}
-export interface GetTransactionsParams {
-  page?: number;     // Página 1, 2, 3...
-  pageSize?: number; // Cuántas por página (ej: 20)
-  accountId?: string; // Filtro opcional por cuenta
-}
-
-export interface CreateTransactionInput {
-  account_id: string;
-  category_id?: string; // Opcional para transferencias
-  
-  // Transferencias
-  transfer_to_account_id?: string;
-  
-  type: TransactionType;
-  description: string;
-  date: string; // ISO String o 'YYYY-MM-DD'
-  amount: number; // Siempre positivo
-  
-  // Multi-moneda (Solo para transferencias complejas)
-  target_amount?: number;
-  exchange_rate?: number;
-
-  tags?: string[]; // Array de nombres de tags
 }
 
 export interface Tag {
@@ -168,17 +118,108 @@ export interface Tag {
 // 3. INPUT TYPES (Para formularios y Server Actions)
 // ==========================================
 
-// Lo que necesitamos para crear una transferencia manual
+export interface NavbarProps {
+  user?: { name: string; role: string; avatarUrl?: string };
+  accounts?: Account[];
+  transactions?: Transaction[];
+  tags?: Tag[];
+}
+
+export interface GlobalSearchProps {
+  isOpen: boolean;
+  onClose: () => void;
+  query: string;
+  setQuery: (q: string) => void;
+  results: {
+    accounts: Account[];
+    transactions: Transaction[];
+    tags: Tag[];
+  };
+  expanded: { [key: string]: boolean };
+  onToggleSection: (section: string) => void;
+}
+
+export interface EditCreateAccount {
+  id?: string;
+  name: string;
+  type: AccountType;
+  currency: CurrencyCode;
+  color: string;
+  custom_pattern: CustomPattern;
+  custom_text_theme: CustomTextTheme;
+  current_balance: number;
+  last_4_digits: string | null; 
+  institution: Institution; 
+  // 👇 NUEVOS CAMPOS AÑADIDOS
+  initial_balance?: number;
+  expiry_date?: string | null;
+  credit_limit?: number | null;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateAccountInput {
+  name: string;
+  institution_id: string;
+  type: AccountType;
+  currency: CurrencyCode;
+  initial_balance: number;
+  last_4_digits?: string;
+  credit_limit?: number;
+  
+  color?: string;
+  custom_pattern?: CustomPattern; // 💡 Seguridad estricta
+  custom_text_theme?: CustomTextTheme;
+}
+
+export interface UpdateAccountInput {
+  name?: string;
+  type?: AccountType;
+  last_4_digits?: string;
+  credit_limit?: number;
+  is_active?: boolean;
+  
+  color?: string;
+  custom_pattern?: CustomPattern; // 💡 Seguridad estricta
+  custom_text_theme?: CustomTextTheme;
+}
+
+export interface GetTransactionsParams {
+  page?: number;     
+  pageSize?: number; 
+  accountId?: string; 
+}
+
+export interface CreateTransactionInput {
+  account_id: string;
+  category_id?: string; 
+  
+  transfer_to_account_id?: string;
+  
+  type: TransactionType;
+  description: string;
+  date: string; 
+  amount: number; 
+  
+  target_amount?: number;
+  exchange_rate?: number;
+
+  tags?: string[]; 
+}
+
 export interface TransferInput {
   sourceAccountId: string;
   targetAccountId: string;
   amount: number;
   date: Date;
   description: string;
-  // Opcional: Si el usuario quiere forzar una tasa manual
   manualExchangeRate?: number; 
 }
 
+// ==========================================
+// 4. UI TYPES (Componentes)
+// ==========================================
 
 export type Button = {
   logo: string;

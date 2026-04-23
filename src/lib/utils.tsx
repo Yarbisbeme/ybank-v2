@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 // src/utils/card-mapper.tsx
-import { Account } from '@/types';
+import { Account, AccountType } from '@/types';
 import BancoBHDCard from '@/components/Tarjetas/BhdCard';
 import BanreservasWorldElite from '@/components/Tarjetas/BanreservasWordElite';
 import PopularCard from '@/components/Tarjetas/PopularCard';
@@ -19,7 +19,10 @@ import {
   MonitorPlay, Popcorn, Martini, Pill, Stethoscope, ShieldCheck, 
   Dumbbell, Scissors, Brush, Sparkles, MonitorSmartphone, Laptop, 
   Bone, Stethoscope as Vet, CircleDashed, Landmark, Percent, FileText,
-  Shield, Shirt, Armchair, PlaneTakeoff, Bed, Bus, Tag
+  Shield, Shirt, Armchair, PlaneTakeoff, Bed, Bus, Tag,
+  Wallet,
+  CreditCard,
+  Coins
 } from 'lucide-react';
 
 export function cn(...inputs: ClassValue[]) {
@@ -157,3 +160,11 @@ export const getCategoryIcon = (iconName: string | undefined | null) => {
 
     return <Activity size={18} strokeWidth={2.5} />;
   };
+
+export const ACCOUNT_TYPES: { id: AccountType; label: string; icon: React.ElementType }[] = [
+  { id: 'savings', label: 'Ahorros', icon: Wallet },
+  { id: 'checking', label: 'Corriente', icon: Receipt },
+  { id: 'credit_card', label: 'Crédito', icon: CreditCard },
+  { id: 'cash', label: 'Efectivo', icon: Coins },
+  { id: 'investment', label: 'Inversión', icon: Activity },
+];

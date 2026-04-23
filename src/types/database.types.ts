@@ -21,6 +21,7 @@ export interface TransactionFilters {
   accountId?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  color?: string;
 }
 
 export interface ExtendedGetTransactionsParams extends GetTransactionsParams {

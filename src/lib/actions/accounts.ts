@@ -135,17 +135,3 @@ export async function archiveAccount(accountId: string) {
   }
 }
 
-// =========================================================
-// 6. GET INSTITUTIONS - Con colores para el selector
-// =========================================================
-export async function getInstitutions() {
-  const supabase = await createSupabaseClient()
-
-  const { data, error } = await supabase
-    .from('institutions')
-    .select('id, name, logo_url, brand_color_primary')
-    .order('name')
-
-  if (error) return []
-  return data
-}

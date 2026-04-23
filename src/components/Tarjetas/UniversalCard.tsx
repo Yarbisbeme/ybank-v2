@@ -191,9 +191,6 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           <div className="flex flex-col items-end">
              {/* 💡 VISA: Mínimo 24px en móvil */}
              <span className="text-[clamp(24px,5cqw,30px)] lg:text-3xl font-black italic tracking-tighter leading-none opacity-90">VISA</span>
-             {account?.type === 'credit' && (
-               <span className="text-[clamp(8px,1.5cqw,10px)] lg:text-[10px] font-bold uppercase tracking-widest opacity-60 mt-0.5 lg:mt-1">Platinum</span>
-             )}
           </div>
         </div>
       </div>
