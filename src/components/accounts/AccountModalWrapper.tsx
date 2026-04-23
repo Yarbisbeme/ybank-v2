@@ -30,7 +30,6 @@ export default async function AccountModalWrapper({ accountId }: { accountId?: s
       current_balance: account.current_balance || 0,
       last_4_digits: account.last_4_digits || '',
       institution: account.institution || fallbackInstitution,
-      // 💡 MAPEO DE LOS NUEVOS DATOS
       initial_balance: account.initial_balance,
       expiry_date: account.expiry_date,
       credit_limit: account.credit_limit,
@@ -41,18 +40,28 @@ export default async function AccountModalWrapper({ accountId }: { accountId?: s
   }
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-      {/* 💡 CAMBIO: De max-w-md a max-w-4xl para el layout de dos columnas */}
-      <div className="relative w-full max-w-4xl flex flex-col items-center my-auto">
+    // 💡 FIX 1: p-0 en móvil para que toque los bordes, md:p-4 para mantener el margen en PC
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 md:p-4 overflow-hidden md:overflow-y-auto">
+      
+      {/* 💡 FIX 2: h-[100dvh] y w-full en móvil. Fondo adaptativo (tu color base en móvil, transparente en PC) */}
+      <div className="relative w-full h-[100dvh] md:h-auto max-w-4xl flex flex-col bg-[#F8F9FB] md:bg-transparent overflow-y-auto md:overflow-visible">
+        
+        {/* 💡 FIX 3: Botón camaleónico. 
+            Móvil: Adentro (top-4 right-4), gris/oscuro.
+            PC: Afuera (-top-12 right-0), blanco con blur. */}
         <Link 
           href="/accounts" 
           scroll={false}
-          className="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors"
+          className="absolute top-4 right-4 md:-top-12 md:right-0 z-[160] p-2 bg-slate-200/50 md:bg-white/10 hover:bg-slate-300/50 md:hover:bg-white/20 text-slate-800 md:text-white rounded-full md:backdrop-blur-md transition-colors"
         >
           <X size={24} />
         </Link>
 
-        <AccountFormWrapper initialData={initialData} institutions={institutions} />
+        {/* Contenedor del formulario que empuja a llenar el espacio en móvil */}
+        <div className="flex-1 w-full flex flex-col pt-16 md:pt-0 pb-6 md:pb-0 px-4 md:px-0">
+          <AccountFormWrapper initialData={initialData} institutions={institutions} />
+        </div>
+
       </div>
     </div>
   );

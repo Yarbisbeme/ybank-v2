@@ -1,27 +1,35 @@
 import AccountDetailsHeader from '@/components/accounts/AccountDetailsHeader';
 import AccountStageSelector from '@/components/accounts/AccountStageSelector';
-import TransactionTable from '@/components/dashboard/RecentActivityTable';
 import PageFilterBar from '@/components/Transactions/PageFilterBar';
 import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
-import { getAccounts } from '@/lib/actions/accounts';
+import TransactionsDrawer from '@/components/Transactions/TransactionsDrawer'; 
+
+import { getAccounts, getAccountById } from '@/lib/actions/accounts'; // 💡 Importamos getAccountById
 import { getTransactions } from '@/lib/actions/transactions';
 import { getCategories } from '@/lib/actions/categories';
 import { getTags } from '@/lib/actions/tags';
+import { getInstitutions } from '@/lib/actions/institutions'; // 💡 Importamos getInstitutions
 import { TransactionFilters as FilterType } from '@/types/database.types';
-import AccountModalWrapper from '@/components/accounts/AccountModalWrapper';
+import { ChevronUp } from 'lucide-react'; 
+
+import UniversalModal from '@/components/ui/UniversalModal';
+import AccountFormWrapper from '@/components/accounts/AccountFormWrapper';
+
+// 💡 Fallback necesario si creamos una cuenta nueva
+const fallbackInstitution = {
+  id: '', name: '', logo_url: null, exchange_rate_adjustment: 0, exchange_rate_buy_adjustment: 0, created_at: new Date().toISOString(), brand_color_primary: '#1e3a8a'
+};
 
 export default async function AccountsPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
   
   const searchParams = await props.searchParams;
   const isTxModalOpen = searchParams.newTx === 'true' || !!searchParams.editTx;
-  // 💡 Aseguramos de leer el parámetro correcto para abrir el modal
   const isAccountModalOpen = searchParams.newAccount === 'true' || !!searchParams.editAccountId;
   
-  // 💡 Extraemos explícitamente el ID para pasarlo
   const editAccountId = searchParams.editAccountId;
-  
   const accountId = searchParams.accountId;
 
+  // 1. Carga de datos base de la página
   const [accounts, categoriesTree, tags] = await Promise.all([
     getAccounts(),
     getCategories(),
@@ -45,41 +53,78 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
     filters: currentFilters
   });
 
+  // 🛡️ 2. CARGA CONDICIONAL (La magia del rendimiento)
+  // Solo consultamos las instituciones y el detalle de la cuenta si el usuario abre el modal
+  let initialData = undefined;
+  let institutionsData = [];
+
+  if (isAccountModalOpen) {
+    const [fetchedAccount, fetchedInstitutions] = await Promise.all([
+      editAccountId ? getAccountById(editAccountId) : Promise.resolve(null),
+      getInstitutions() 
+    ]);
+    
+    institutionsData = fetchedInstitutions;
+
+    if (fetchedAccount) {
+      initialData = {
+        id: fetchedAccount.id,
+        name: fetchedAccount.name,
+        type: fetchedAccount.type,
+        currency: fetchedAccount.currency,
+        color: fetchedAccount.color || '#1e3a8a',
+        custom_pattern: fetchedAccount.custom_pattern || 'solid',
+        custom_text_theme: fetchedAccount.custom_text_theme || 'light',
+        current_balance: fetchedAccount.current_balance || 0,
+        last_4_digits: fetchedAccount.last_4_digits || '',
+        institution: fetchedAccount.institution || fallbackInstitution,
+        initial_balance: fetchedAccount.initial_balance,
+        expiry_date: fetchedAccount.expiry_date,
+        credit_limit: fetchedAccount.credit_limit,
+        is_active: fetchedAccount.is_active,
+      };
+    }
+  }
+
   return (
-    // 💡 Quitamos 'overflow-hidden' temporalmente para asegurar que el fixed overlay funcione
-    <div className="flex flex-col space-y-6 pb-20 relative min-h-screen">
-      
-      <div className="absolute top-0 right-6 z-[80]">
-         <PageFilterBar 
-           initialFilters={currentFilters}
-           categories={flatCategories}
-           tags={tags}
-           accounts={accounts}
-         />
-      </div>
+    <div className="flex flex-col relative h-[calc(100dvh-6rem)] md:h-auto md:min-h-screen md:overflow-auto bg-[#F8F9FB]">
 
-      <section className="space-y-2 mt-4">
-        <AccountStageSelector accounts={accounts} activeId={selectedAccount.id} />
-      </section>
+        {/* ... Barra de filtros y zona principal se mantienen igual ... */}
+        <div className="absolute top-4 right-6 z-[80] hidden md:block">
+           <PageFilterBar initialFilters={currentFilters} categories={flatCategories} tags={tags} accounts={accounts} />
+        </div>
 
-      <section className="px-6 -mt-8">
-        <AccountDetailsHeader account={selectedAccount} />
-      </section>
+        <div className="flex flex-col items-center w-full h-full justify-start pt-6 md:pt-10 pb-4">
+          <div className="w-full shrink-0 h-[320px] sm:h-[320px] md:h-[380px]">
+            <AccountStageSelector accounts={accounts} activeId={selectedAccount.id} />
+          </div>
+          <div className="w-full px-4 shrink-0 mt-4 md:mt-6">
+            <AccountDetailsHeader account={selectedAccount} />
+          </div>
 
-      <section className="w-full px-6 mt-8">
-        <h2 className="text-xl font-black italic mb-4">Recent Activity</h2>
-        <TransactionTable transactions={transactions} />
-      </section>
+          <div className="mt-auto pb-24 md:hidden flex flex-col items-center justify-center opacity-50 select-none pointer-events-none">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">
+              Desliza para actividad
+            </span>
+            <div className="animate-bounce">
+              <ChevronUp className="text-slate-400" size={24} strokeWidth={2.5} />
+            </div>
+          </div>
+        </div>
 
-      {/** Modal de Transacciones */}
-      {isTxModalOpen && ( 
-        <TransactionModalWrapper /> 
-      )}
+        <TransactionsDrawer transactions={transactions} />
 
-      {/** Modal de Cuentas */}
-      {isAccountModalOpen && ( 
-        <AccountModalWrapper accountId={editAccountId} /> 
-      )}
+        {/** === MODALES LIMPIOS === */}
+        {/* 1. Modal de Transacciones (Pendiente de migrar) */}
+        {isTxModalOpen && <TransactionModalWrapper />}
+
+        {/* 🚀 2. Nuevo Modal Universal para Cuentas */}
+        {isAccountModalOpen && (
+          <UniversalModal returnPath="/accounts">
+            <AccountFormWrapper initialData={initialData} institutions={institutionsData} />
+          </UniversalModal>
+        )}
+
     </div>
   );
 }

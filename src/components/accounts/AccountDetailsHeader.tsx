@@ -7,13 +7,12 @@ import Link from 'next/link';
 
 export default function AccountDetailsHeader({ account }: { account: Account }) {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center py-4 space-y-2">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col items-center justify-center py-2 md:py-4 space-y-1 md:space-y-2">
         <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em]">
           Current Balance
         </p>
-        <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
-          <span className="text-blue-600 text-3xl mr-1">$</span>
+        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter">          <span className="text-blue-600 text-3xl mr-1">$</span>
           <AnimatedNumber value={Number(account.current_balance)} />
           <span className="text-sm text-slate-400 ml-2 uppercase">{account.currency}</span>
         </h1>

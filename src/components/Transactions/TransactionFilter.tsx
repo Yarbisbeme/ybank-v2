@@ -56,7 +56,6 @@ export default function TransactionFilters({
         }`}
       >
         <Filter size={16} strokeWidth={2.5} />
-        {hasActiveFilters ? 'Filters Active' : 'Filter'}
       </button>
 
       {/* Menú Desplegable */}

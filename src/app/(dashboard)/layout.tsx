@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/Navbar/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import TransactionModal from '@/components/Transactions/TransactionModal';
 import { getAccounts } from '@/lib/actions/accounts';
