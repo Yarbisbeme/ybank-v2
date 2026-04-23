@@ -95,9 +95,82 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                         ))}
                       </AnimatePresence>
                     </SearchSection>
+                    {/* === SECCIÓN TRANSACCIONES === */}
+                    <SearchSection 
+                      title="Transacciones" 
+                      count={results.transactions?.length || 0}
+                      isExpanded={expanded.transactions}
+                      onToggle={() => onToggleSection('transactions')}
+                    >
+                      <AnimatePresence mode="popLayout">
+                        {(expanded.transactions ? results.transactions : results.transactions?.slice(0, 3))?.map((tx: any, idx: number) => (
+                          <motion.div
+                            layout
+                            key={tx.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ delay: idx * 0.03 }}
+                          >
+                            {/* 💡 Súper Truco: Al hacer clic, abrimos el modal de edición usando el parámetro en la URL */}
+                            <Link 
+                              href={`/dashboard?editTx=${tx.id}`}
+                              onClick={onClose}
+                              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors group"
+                            >
+                              <div className={`p-2 rounded-xl transition-colors
+                                ${tx.type === 'expense' ? 'bg-rose-50 text-rose-500 group-hover:bg-rose-500 group-hover:text-white' : 
+                                  tx.type === 'income' ? 'bg-emerald-50 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white' : 
+                                  'bg-blue-50 text-blue-500 group-hover:bg-blue-500 group-hover:text-white'}`}
+                              >
+                                <Receipt size={18} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-slate-800 truncate">{tx.description || 'Transacción'}</p>
+                                <p className="text-[10px] font-medium text-slate-400 capitalize">
+                                  {new Date(tx.date).toLocaleDateString('es-DO', { month: 'short', day: 'numeric' })} • {tx.account?.name || 'Cuenta'}
+                                </p>
+                              </div>
+                              <p className={`text-sm font-black shrink-0 ${tx.type === 'expense' ? 'text-slate-800' : 'text-emerald-600'}`}>
+                                {tx.type === 'expense' ? '-' : '+'}${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </p>
+                            </Link>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </SearchSection>
 
-                    {/* SECCIÓN TRANSACCIONES (Repetir lógica de AnimatePresence + layout) */}
-                    
+                    {/* === SECCIÓN ETIQUETAS (TAGS) === */}
+                    <SearchSection 
+                      title="Etiquetas" 
+                      count={results.tags?.length || 0}
+                      isExpanded={expanded.tags}
+                      onToggle={() => onToggleSection('tags')}
+                    >
+                      <AnimatePresence mode="popLayout">
+                        <div className="flex flex-wrap gap-2">
+                          {(expanded.tags ? results.tags : results.tags?.slice(0, 5))?.map((tag: any, idx: number) => (
+                            <motion.div
+                              layout
+                              key={tag.id}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              transition={{ delay: idx * 0.02 }}
+                            >
+                              <Link 
+                                href={`/dashboard?tagId=${tag.id}`}
+                                onClick={onClose}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all text-slate-600 hover:text-blue-600 text-xs font-bold"
+                              >
+                                <TagIcon size={12} />
+                                {tag.name}
+                              </Link>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </AnimatePresence>
+                    </SearchSection>
                   </>
                 )}
               </LayoutGroup>

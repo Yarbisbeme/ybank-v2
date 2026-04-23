@@ -39,6 +39,20 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
   const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
   const selectedAccount = accountId ? (accounts.find(a => a.id === accountId) || accounts[0]) : accounts[0];
 
+  if (!selectedAccount) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] bg-[#F8F9FB]">
+        <div className="bg-white p-8 rounded-3xl shadow-sm text-center border border-slate-100">
+          <h2 className="text-xl font-black text-slate-800 mb-2">Aún no tienes cuentas</h2>
+          <p className="text-sm text-slate-500 mb-6">Para registrar gastos e ingresos, primero debes crear una cuenta.</p>
+          <a href="/accounts?newAccount=true" className="bg-blue-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-colors">
+            Crear mi primera cuenta
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const currentFilters: FilterType = {
     type: (searchParams.type as FilterType['type']) || null,
     categoryId: searchParams.categoryId || null,
@@ -87,19 +101,10 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
   }
 
   return (
-    <div className="flex flex-col relative h-[calc(100dvh-6rem)] md:h-auto md:min-h-screen md:overflow-auto bg-[#F8F9FB]">
-
-        {/* ... Barra de filtros y zona principal se mantienen igual ... */}
-        <div className="absolute top-4 right-6 z-[80] hidden md:block">
-           <PageFilterBar initialFilters={currentFilters} categories={flatCategories} tags={tags} accounts={accounts} />
-        </div>
-
-        <div className="absolute top-4 right-6 z-[80] hidden md:block">
-           <PageFilterBar initialFilters={currentFilters} categories={flatCategories} tags={tags} accounts={accounts} />
-        </div>
+    <div className="flex flex-col relative h-[calc(100dvh-6rem)] md:h-auto md:min-h-screen sm:overflow-x-hidden bg-[#F8F9FB]">
 
         {/* === ZONA PRINCIPAL === */}
-        <div className="flex flex-col items-center w-full h-full justify-start pt-12 md:pt-10 pb-4">
+        <div className="flex flex-col items-center w-full justify-start pt-12 md:pt-10 pb-4">
           
           <div className="w-full shrink-0 h-[320px] sm:h-[320px] md:h-[380px]">
             <AccountStageSelector accounts={accounts} activeId={selectedAccount.id} />
@@ -111,10 +116,8 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
 
         </div>
 
-        {/* 💡 FIX 2: Agregamos el Drawer interactivo que creamos para las transacciones */}
         <TransactionsDrawer transactions={transactions} />
         
-
         {/** === MODALES LIMPIOS === */}
         
         {/* 1. Modal de Transacciones */}

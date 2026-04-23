@@ -21,7 +21,7 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
       account:accounts!account_id(name, currency), 
       transfer_to_account:accounts!transfer_to_account_id(name, currency),
       tags:transaction_tags(tag:tags(id, name)),
-      items:transaction_items(*) -- 💡 Aseguramos traer los ítems aquí también
+      items:transaction_items(*, category:categories(id, name, icon)) 
     `;
 
     if (filters?.tagId) {
@@ -62,7 +62,7 @@ export async function getTransactionById(id: string) {
       .select(`
       *,
       tags:transaction_tags(tag:tags(*)),
-      items:transaction_items(*) 
+      items:transaction_items(*, category:categories(id, name, icon)) 
       `)
       .eq('id', id)
       .single();
@@ -244,7 +244,39 @@ export async function updateTransaction(id: string, input: any) {
 }
 
 // ==========================================
-// 5. DELETE TRANSACTION
+// 5. UPDATE SUBTRANSACTION
+// ==========================================
+export async function updateSubTransaction(itemId: string, input: { 
+  name: string; 
+  unit_price: number; 
+  category_id: string;
+  quantity: number;
+}) {
+  const supabase = await createSupabaseClient();
+  
+  // Calculamos el total price para que la BD esté feliz
+  const total_price = input.quantity * input.unit_price;
+
+  const { error } = await supabase
+    .from('transaction_items')
+    .update({
+      name: input.name,
+      unit_price: input.unit_price,
+      quantity: input.quantity,
+      total_price: total_price,
+      category_id: input.category_id
+    })
+    .eq('id', itemId);
+
+  if (error) return { success: false, error: error.message };
+
+  // Revalidar para que se actualice la vista
+  revalidatePath('/accounts');
+  return { success: true };
+}
+
+// ==========================================
+// 6. DELETE TRANSACTION
 // ==========================================
 export async function deleteTransaction(id: string) {
     const supabase = await createSupabaseClient()
