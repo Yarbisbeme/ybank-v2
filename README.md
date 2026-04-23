@@ -36,12 +36,16 @@ EEl proyecto sigue una Arquitectura en Capas (Layered Architecture) adaptada a N
 src/
 ├── app/                  # [CAPA DE PRESENTACIÓN]
 │   ├── (auth)/           # Rutas públicas (Login)
-│   ├── (dashboard)/      # Rutas protegidas (requieren sesión)
-│   └── actions.ts        # Server Actions (Punto de entrada al backend desde UI)
+│   └── (dashboard)/      # Rutas protegidas (requieren sesión)
+│       ├── dashboard/     
+│       ├── accounts/      
+│       └── settings/
 │
 ├── components/           # [UI BUILDING BLOCKS]
 │   ├── ui/               # Componentes base (Botones, Inputs) - Reutilizables
-│   └── domain/           # Componentes de negocio (TransactionCard, AccountList)
+│   ├── Dashboard/
+│   ├── Accounts/
+│   └── Transactions/
 │
 ├── services/             # [CAPA DE LÓGICA DE NEGOCIO] - EL CEREBRO 🧠
 │   ├── banking/          # Reglas para crear cuentas, detectar bancos duplicados
@@ -51,6 +55,7 @@ src/
 │
 ├── lib/                  # [CAPA DE INFRAESTRUCTURA]
 │   ├── supabase/         # Configuración de clientes (Server vs Browser)
+│   └── actions/          # Server Actions (Punto de entrada al backend desde UI)
 │   └── utils.ts          # Helpers puros
 │
 └── types/                # [DEFINICIONES DE DOMINIO]
@@ -122,8 +127,8 @@ src/
 ## 📝 Roadmap
 
 - [x] Inicialización del proyecto y estructura de carpetas.
-- [ ] Configuración de Cliente Supabase (Server & Client).
-- [ ] Implementación de Autenticación con Google.
+- [x] Configuración de Cliente Supabase (Server & Client).
+- [x] Implementación de Autenticación con Google.
 - [ ] Creación de Servicio de Adaptador de Gmail.
 - [ ] Lógica de "Auto-Discovery" de bancos.
 
