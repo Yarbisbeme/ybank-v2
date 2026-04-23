@@ -118,6 +118,27 @@ export interface Tag {
 // 3. INPUT TYPES (Para formularios y Server Actions)
 // ==========================================
 
+export interface NavbarProps {
+  user?: { name: string; role: string; avatarUrl?: string };
+  accounts?: Account[];
+  transactions?: Transaction[];
+  tags?: Tag[];
+}
+
+export interface GlobalSearchProps {
+  isOpen: boolean;
+  onClose: () => void;
+  query: string;
+  setQuery: (q: string) => void;
+  results: {
+    accounts: Account[];
+    transactions: Transaction[];
+    tags: Tag[];
+  };
+  expanded: { [key: string]: boolean };
+  onToggleSection: (section: string) => void;
+}
+
 export interface EditCreateAccount {
   id?: string;
   name: string;

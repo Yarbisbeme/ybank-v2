@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 // 1. Importamos la fuente
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-[#F8F9FB] antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         {children}
+        <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>
     </html>
