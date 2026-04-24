@@ -119,7 +119,7 @@ export interface Tag {
 // ==========================================
 
 export interface NavbarProps {
-  user?: { name: string; role: string; avatarUrl?: string };
+  user?: { name: string; email: string; avatarUrl?: string };
   accounts?: Account[];
   transactions?: Transaction[];
   tags?: Tag[];

@@ -1,21 +1,40 @@
 'use client'
 
 import React from 'react';
-import { CreditCard, Wallet, Landmark, Receipt } from 'lucide-react';
+import { CreditCard, Wallet, TrendingUp, Receipt, Coins } from 'lucide-react';
 
 interface UniversalCardProps {
   account: any;
   institution: any;
 }
 
+// 💡 FUNCIÓN NUEVA: Calcula si el color de la tarjeta es oscuro o claro
+const isColorDark = (color: string) => {
+  if (!color) return true; // Asumimos oscuro por defecto
+  
+  const hex = color.replace('#', '');
+  if (hex.length !== 6) return true; // Fallback si no es HEX válido
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Fórmula YIQ para calcular el brillo (Luminance)
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  
+  return yiq < 128; // Si es menor a 128, es un color oscuro
+};
+
 const BankLogo = ({ 
   logoUrl, 
   bankName, 
-  isDarkText 
+  isDarkText,
+  cardColor // 💡 RECIBIMOS EL COLOR DE LA TARJETA
 }: { 
   logoUrl: string, 
   bankName: string, 
-  isDarkText: boolean 
+  isDarkText: boolean,
+  cardColor: string 
 }) => {
   const [imgError, setImgError] = React.useState(false);
 
@@ -23,10 +42,8 @@ const BankLogo = ({
     const initial = bankName ? bankName.charAt(0).toUpperCase() : 'B';
 
     return (
-      // 💡 Aumentado el gap mínimo en móvil a 8px
       <div className="flex items-center gap-[clamp(8px,2cqw,12px)] lg:gap-3 max-w-full">
         <div 
-          // 💡 Tamaño del logo en móvil MUCHO más grande: mínimo 32px
           className={`flex-shrink-0 flex items-center justify-center w-[clamp(32px,8cqw,36px)] h-[clamp(32px,8cqw,36px)] lg:w-10 lg:h-10 rounded-[clamp(8px,2cqw,12px)] lg:rounded-xl font-bold text-[clamp(14px,4cqw,16px)] lg:text-base backdrop-blur-sm border shadow-sm ${
             isDarkText 
               ? 'bg-slate-900/5 border-slate-900/10 text-slate-800' 
@@ -35,9 +52,7 @@ const BankLogo = ({
         >
           {initial}
         </div>
-        
         <span 
-          // 💡 Texto del banco en móvil más grande: mínimo 11px
           className={`text-[clamp(11px,2.5cqw,12px)] lg:text-xs font-bold uppercase tracking-[0.25em] leading-tight line-clamp-2 ${
             isDarkText ? 'text-slate-800' : 'text-white/90'
           }`}
@@ -48,20 +63,31 @@ const BankLogo = ({
     );
   }
 
+  const lowerName = bankName?.toLowerCase() || '';
+
   const getLogoScale = () => {
-    const name = bankName?.toLowerCase() || '';
-    // 💡 Ajustamos los márgenes negativos para que no se peguen tanto
-    if (name.includes('banreservas')) return 'scale-[1.8] @[300px]:scale-[2.2] lg:scale-[1.7] -ml-[clamp(16px,4cqw,24px)] lg:-ml-5';
-    if (name.includes('scotiabank')) return 'scale-[1.8] @[300px]:scale-[1.6] lg:scale-[1.3]';
+    if (lowerName.includes('banreservas')) return 'scale-[1.8] @[300px]:scale-[2.2] lg:scale-[1.7] -ml-[clamp(16px,4cqw,24px)] lg:-ml-5';
+    if (lowerName.includes('scotiabank')) return 'scale-[1.8] @[300px]:scale-[1.6] lg:scale-[1.3]';
+    if (lowerName.includes('efectivo') || lowerName.includes('cartera')) return 'scale-[1.7] @[300px]:scale-[1.6] lg:scale-[1.5] -ml-1';
     return 'scale-100'; 
   };
+
+  const needsMonochromeFilter = lowerName.includes('efectivo') || lowerName.includes('cartera');
+
+  // 💡 LÓGICA INTELIGENTE:
+  // Si la tarjeta es Oscura -> Logo Blanco
+  // Si la tarjeta es Clara -> Logo Negro
+  const isDarkCard = isColorDark(cardColor);
+  const themeFilter = needsMonochromeFilter 
+    ? (isDarkCard ? 'brightness-0 invert opacity-100' : 'brightness-0 opacity-80')
+    : ''; 
 
   return (
     <img 
       src={logoUrl} 
       alt={bankName} 
       onError={() => setImgError(true)}
-      className={`max-w-full max-h-full object-contain object-left transition-all duration-300 origin-left ${getLogoScale()}`}
+      className={`max-w-full max-h-full object-contain object-left transition-all duration-300 origin-left ${getLogoScale()} ${themeFilter}`}
     />
   );
 };
@@ -77,9 +103,14 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
 
   const getAccountInfo = () => {
     const type = (account?.type || '').toLowerCase();
-    if (type.includes('credit')) return { icon: CreditCard, label: 'Tarjeta de Crédito' };
-    if (type.includes('saving')) return { icon: Wallet, label: 'Cuenta de Ahorros' };
-    if (type.includes('loan')) return { icon: Landmark, label: 'Préstamo' };
+    if (type.includes('credit') || type.includes('crédito') || type.includes('credito')) 
+      return { icon: CreditCard, label: 'Tarjeta de Crédito' };
+    if (type.includes('saving') || type.includes('ahorro')) 
+      return { icon: Wallet, label: 'Cuenta de Ahorros' };
+    if (type.includes('investment') || type.includes('inversion') || type.includes('inversión')) 
+      return { icon: TrendingUp, label: 'Inversión' };
+    if (type.includes('cash') || type.includes('efectivo')) 
+      return { icon: Coins, label: 'Efectivo' };
     return { icon: Receipt, label: 'Cuenta Corriente' };
   };
 
@@ -87,12 +118,10 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
 
   return (
     <div 
-      // 💡 Radio de borde en móvil subido a mínimo 20px
       className={`@container relative w-full h-full rounded-[clamp(20px,5cqw,28px)] lg:rounded-[28px] overflow-hidden shadow-xl transition-all duration-500 group ${textColor}`}
       style={{ backgroundColor: finalColor }}
     >
       <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden">
-        {/* ... (Tus patrones se mantienen igual, no afectan la legibilidad) ... */}
         {finalPattern === 'waves' && (
           <>
             <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] rounded-full border border-white/10" />
@@ -141,21 +170,19 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
         <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
       </div>
 
-      {/* 💡 PADDING INTERNO: Subido a mínimo 20px en móvil para que no se pegue a los bordes */}
       <div className="relative z-10 h-full p-[clamp(20px,5cqw,28px)] lg:p-7 flex flex-col justify-between">
         
         <div className="flex justify-between items-start relative z-50">
-          {/* 💡 CONTENEDOR LOGO: Subido a mínimo 80px de ancho y 32px de alto en móvil */}
           <div className="w-[clamp(80px,25cqw,128px)] h-[clamp(32px,8cqw,48px)] lg:w-32 lg:h-12 flex items-center justify-start">
             <BankLogo 
               logoUrl={institution?.logo_url} 
               bankName={institution?.name || 'Bank'} 
               isDarkText={isDarkText}
+              cardColor={finalColor} // 💡 LE PASAMOS EL COLOR A LA FUNCIÓN
             />
           </div>
 
           <div className="relative group/tooltip">
-            {/* 💡 ICONO TIPO CUENTA: Ligeramente más grande en móvil */}
             <div className="p-[clamp(8px,2cqw,10px)] lg:p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 cursor-help hover:bg-white/20 transition-colors">
               <TypeIcon size={20} className={`${secondaryOpacity} w-[clamp(16px,4cqw,18px)] h-[clamp(16px,4cqw,18px)] lg:w-[22px] lg:h-[22px]`} strokeWidth={2.5} />
             </div>
@@ -165,16 +192,12 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
         </div>
 
-        {/* 💡 CONTENEDOR BALANCE */}
         <div className="mt-auto mb-[clamp(16px,4cqw,24px)] lg:mb-6">
-          {/* 💡 "BALANCE TOTAL": Mínimo 10px en móvil */}
           <p className={`text-[clamp(10px,2cqw,12px)] lg:text-[11px] font-bold uppercase tracking-[0.2em] mb-1.5 lg:mb-1.5 ${secondaryOpacity}`}>
             {account?.name || 'Balance Total'}
           </p>
           <div className="flex items-baseline gap-[clamp(6px,1cqw,8px)] lg:gap-2">
-            {/* 💡 SÍMBOLO MONEDA: Mínimo 14px en móvil */}
             <span className="text-[clamp(14px,3cqw,18px)] lg:text-base font-medium opacity-80">{account?.currency}</span>
-            {/* 💡 MONTO: Mínimo 28px en móvil (¡Esto es enorme y muy visible!) */}
             <p className="text-[clamp(28px,6cqw,36px)] lg:text-[40px] lg:leading-none font-bold tracking-tight truncate drop-shadow-sm">
               {account?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
@@ -183,13 +206,11 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
 
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
-            {/* 💡 TARJETA NUM: Mínimo 12px en móvil */}
             <p className={`text-[clamp(12px,2.5cqw,14px)] lg:text-[13px] font-mono tracking-[0.25em] ${secondaryOpacity}`}>
               •••• {account?.last_4_digits || '0000'}
             </p>
           </div>
           <div className="flex flex-col items-end">
-             {/* 💡 VISA: Mínimo 24px en móvil */}
              <span className="text-[clamp(24px,5cqw,30px)] lg:text-3xl font-black italic tracking-tighter leading-none opacity-90">VISA</span>
           </div>
         </div>

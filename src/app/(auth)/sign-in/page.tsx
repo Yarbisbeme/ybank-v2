@@ -6,15 +6,13 @@ import Image from "next/image";
 import { ShieldCheck, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"; 
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { AuthCard } from "@/components/ui/AuthCard"; 
-import TextReveal from "@/components/ui/TextReveal";
+import TituloHover from "@/components/ui/TituloHover";
 import { Logo } from "@/components/ui/Logo";
 import { signInWithGoogle, loginWithEmail } from "../../../lib/actions/auth";
 import { PasskeyButton } from "@/components/ui/PassKeyButton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import TituloHover from "@/components/ui/TituloHover";
 
-// Variantes para la animación de entrada en cascada
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -23,13 +21,13 @@ const containerVariants = {
   }
 };
 
-const itemVariants: Variants = { // 💡 Asigna el tipo aquí
+const itemVariants: Variants = { 
   hidden: { y: 20, opacity: 0 },
   visible: { 
     y: 0, 
     opacity: 1, 
     transition: { 
-      type: "spring", // Ahora TS sabe que esto es un AnimationGeneratorType
+      type: "spring", 
       stiffness: 300, 
       damping: 24 
     } 
@@ -71,12 +69,15 @@ export default function SignIn() {
     <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-white font-inter selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
       <div className="h-full w-full overflow-hidden flex">
         
-        {/* COLUMNA IZQUIERDA */}
+        {/* === COLUMNA IZQUIERDA === */}
         <div className="flex w-full lg:w-1/2 flex-col justify-between bg-white overflow-y-auto h-full min-h-svh p-8 sm:px-10 sm:py-8">
+          
+          {/* Logo Header */}
           <div className="flex items-center justify-between shrink-0">
             <Logo />
           </div>
 
+          {/* 💡 Formulario ÚNICO */}
           <motion.div 
             variants={containerVariants}
             initial="hidden"
@@ -106,7 +107,7 @@ export default function SignIn() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full border-2 border-neutral-100 bg-neutral-50/50 pl-12 pr-4 py-4 font-medium outline-none transition-all focus:border-blue-600 focus:bg-white rounded-2xl"
+                    className="text-slate-600 w-full border-2 border-neutral-200 bg-neutral-50/50 pl-12 pr-4 py-4 font-medium outline-none transition-all focus:border-blue-600 focus:bg-white rounded-lg"
                   />
                 </div>
 
@@ -118,7 +119,7 @@ export default function SignIn() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full border-2 border-neutral-100 bg-neutral-50/50 pl-12 pr-12 py-4 font-medium outline-none transition-all focus:border-blue-600 focus:bg-white rounded-2xl"
+                    className="text-slate-600 w-full border-2 border-neutral-200 bg-neutral-50/50 pl-12 pr-12 py-4 font-medium outline-none transition-all focus:border-blue-600 focus:bg-white rounded-lg"
                   />
                   <button 
                     type="button"
@@ -134,7 +135,7 @@ export default function SignIn() {
                   whileTap={{ scale: 0.98 }}
                   type="submit" 
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 bg-neutral-900 py-4 rounded-2xl font-bold text-white transition-all hover:bg-neutral-800 shadow-xl shadow-neutral-200 disabled:opacity-70"
+                  className="flex w-full items-center justify-center gap-2 bg-neutral-900 py-4 rounded-lg font-bold text-white transition-all hover:bg-neutral-800 shadow-xl shadow-neutral-200 disabled:opacity-70"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : "Entrar al panel"}
                 </motion.button>
@@ -150,7 +151,7 @@ export default function SignIn() {
 
               <div className="grid grid-cols-2 gap-3">
                 <form action={signInWithGoogle} className="w-full">
-                  <button type="submit" className="group flex w-full items-center justify-center gap-3 border-2 border-neutral-100 bg-white px-4 py-4 rounded-2xl font-bold text-neutral-700 transition-all hover:border-neutral-200 hover:bg-neutral-50 active:scale-95">
+                  <button type="submit" className="group flex w-full items-center justify-center gap-3 border-2 border-neutral-200 bg-white px-4 py-4 rounded-lg font-bold text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-50 active:scale-95">
                     <Image src="/icons/google.svg" width={20} height={20} alt="G" className="opacity-80 group-hover:opacity-100 transition-opacity" />
                     <span className="hidden sm:inline">Google</span>
                   </button>
@@ -175,7 +176,7 @@ export default function SignIn() {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA */}
+        {/* === COLUMNA DERECHA === */}
         <div className="relative hidden w-1/2 flex-col items-center justify-center bg-neutral-50 p-12 lg:flex border-l border-neutral-200">
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[size:24px_24px]"></div>
           <motion.div 

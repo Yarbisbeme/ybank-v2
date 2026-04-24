@@ -4,6 +4,9 @@ import { useState } from 'react';
 import EditableUniversalCard from './EditableUniversalCard';
 import { EditCreateAccount, Institution, CreateAccountInput, UpdateAccountInput, AccountType, CurrencyCode } from '@/types'; 
 import { ShieldCheck, Calendar, Activity, CreditCard, Power } from 'lucide-react';
+import { createAccount, updateAccount } from '@/lib/actions/accounts'; 
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 const emptyInstitution: Institution = {
   id: '', name: '', logo_url: null, exchange_rate_adjustment: 0, exchange_rate_buy_adjustment: 0, created_at: new Date().toISOString(), brand_color_primary: '#1e3a8a'
@@ -37,13 +40,69 @@ export default function AccountFormWrapper({
     }
   );
 
+  const router = useRouter(); // 💡 Para refrescar la página tras guardar
+  const [isSubmitting, setIsSubmitting] = useState(false); // 💡 Estado de carga
+
   const handleChange = (field: keyof EditCreateAccount, value: any) => {
     setAccountData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    console.log("Guardando datos:", accountData);
-    // Tu lógica de guardado aquí...
+  // 💡 LÓGICA DE GUARDADO REAL
+  const handleSave = async () => {
+    // 1. Validaciones básicas
+    if (!accountData.name.trim()) {
+      toast.error('El nombre de la cuenta es obligatorio.');
+      return;
+    }
+    if (!accountData.institution?.id) {
+      toast.error('Debes seleccionar una institución bancaria.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 2. Preparamos los datos EXACTAMENTE como los pide la interfaz (CreateAccountInput / UpdateAccountInput)
+      const inputData = {
+        name: accountData.name,
+        type: accountData.type,
+        currency: accountData.currency,
+        color: accountData.color,
+        custom_pattern: accountData.custom_pattern,
+        custom_text_theme: accountData.custom_text_theme,
+        initial_balance: accountData.initial_balance ?? 0, 
+        
+        credit_limit: accountData.credit_limit || undefined,
+        expiry_date: accountData.expiry_date || undefined,
+        
+        institution_id: accountData.institution.id, 
+        is_active: accountData.is_active ?? true,
+      };
+
+      // 3. Llamamos a la API
+      let result;
+      if (isEditing && accountData.id) {
+        // 💡 FIX Error 1: Pasamos los 2 argumentos separados (ID, Datos)
+        result = await updateAccount(accountData.id, inputData);
+      } else {
+        // Para crear, solo enviamos los datos
+        result = await createAccount(inputData);
+      }
+
+      // 4. Manejamos el resultado
+      if (result?.success) {
+        toast.success(isEditing ? 'Cuenta actualizada con éxito' : 'Cuenta creada con éxito');
+        if (onSuccess) onSuccess(); 
+        router.refresh(); 
+      } else {
+        toast.error(result?.error || 'Ocurrió un error al guardar la cuenta');
+      }
+    } catch (error) {
+      toast.error('Error de conexión con el servidor');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Función para formatear fechas de forma legible
@@ -54,17 +113,6 @@ export default function AccountFormWrapper({
 
   return (
     <div className="p-6 md:p-8 bg-white rounded-[32px] shadow-2xl w-full">
-      
-      <div className="mb-8 border-b border-slate-100 pb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800">
-            {isEditing ? 'Configuración de Cuenta' : 'Crear Nueva Cuenta'}
-          </h2>
-          <p className="text-sm font-medium text-slate-400 mt-1">
-            {isEditing ? 'Visualiza y ajusta los detalles técnicos.' : 'Diseña tu tarjeta y establece los balances iniciales.'}
-          </p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         

@@ -139,3 +139,13 @@ export async function completeOnboarding(formData: {
 
   return { success: true };
 }
+
+export async function signOut() {
+  const supabase = await getSupabaseClient();
+
+  // Cerramos sesión en Supabase
+  await supabase.auth.signOut();
+  
+  // Redirigimos al usuario a la pantalla de login
+  redirect('/sign-in'); 
+}

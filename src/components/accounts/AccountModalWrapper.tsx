@@ -58,7 +58,7 @@ export default async function AccountModalWrapper({ accountId }: { accountId?: s
         </Link>
 
         {/* Contenedor del formulario que empuja a llenar el espacio en móvil */}
-        <div className="flex-1 w-full flex flex-col pt-16 md:pt-0 pb-6 md:pb-0 px-4 md:px-0">
+        <div className="flex-1 w-full flex flex-col pt-16 md:pt-0 md:pb-0 px-4 md:px-0">
           <AccountFormWrapper initialData={initialData} institutions={institutions} />
         </div>
 

@@ -12,7 +12,7 @@ import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
 import { saveTransaction, deleteTransaction } from '@/lib/actions/transactions'; 
 import { toast } from 'sonner';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
 
@@ -35,18 +35,19 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
 
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dateInputRef = useRef<HTMLInputElement>(null);
   
   const isEditing = !!initialData;
-  // 💡 ESTA ES LA CLAVE: Detectamos si estamos editando un gasto que ya tiene hijos
   const hasExistingSplit = isEditing && initialData?.items && initialData.items.length > 0;
+  const accountIdFromUrl = searchParams.get('account_id') || searchParams.get('accountId');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
   const [amount, setAmount] = useState(initialData?.amount?.toString() || '');
-  const [accountId, setAccountId] = useState(initialData?.account_id || '');
+  const [accountId, setAccountId] = useState(initialData?.account_id || accountIdFromUrl || '');
   const [note, setNote] = useState(initialData?.note || '');
   const [categoryId, setCategoryId] = useState(initialData?.categoryId || '');
   const [destinationAccountId, setDestinationAccountId] = useState(initialData?.destinationAccountId || '');

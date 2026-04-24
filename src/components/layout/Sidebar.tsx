@@ -23,7 +23,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col h-full p-6">
+    <div className="flex flex-col h-full p-6 bg-white border-r border-slate-100">
       {/* BRANDING */}
       <div className="flex flex-row items-center my-2 pr-2"> 
         <img 
