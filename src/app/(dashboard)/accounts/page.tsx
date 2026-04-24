@@ -13,7 +13,7 @@ import { TransactionFilters as FilterType } from '@/types/database.types';
 import { ChevronUp } from 'lucide-react'; 
 
 import UniversalModal from '@/components/ui/UniversalModal';
-import AccountFormWrapper from '@/components/accounts/AccountFormWrapper';
+import ModalRouteCloser from '@/components/accounts/ModalRouteCloser';
 
 // 💡 Fallback necesario si creamos una cuenta nueva
 const fallbackInstitution = {
@@ -124,11 +124,13 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
         {isTxModalOpen && <TransactionModalWrapper editTxId={searchParams.editTx} />}
 
         {/* 2. Nuevo Modal Universal para Cuentas */}
+        {/* 2. Nuevo Modal Universal para Cuentas */}
         {isAccountModalOpen && (
           <UniversalModal 
             title={editAccountId ? "Editar Cuenta" : "Nueva Cuenta"} 
           >
-            <AccountFormWrapper initialData={initialData} institutions={institutionsData} />
+            {/* 💡 Usamos el nuevo componente que SÍ sabe cómo cerrar la URL */}
+            <ModalRouteCloser initialData={initialData} institutionsData={institutionsData} />
           </UniversalModal>
         )}
 

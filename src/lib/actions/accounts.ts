@@ -84,12 +84,19 @@ export async function createAccount(input: CreateAccountInput) {
     current_balance: input.initial_balance,
     last_4_digits: input.last_4_digits || null,
     credit_limit: input.credit_limit || null,
-    is_active: true
+    
+    // 💡 FIX: Faltaban TODOS estos campos en tu Insert original
+    expiry_date: input.expiry_date || null,
+    color: input.color || '#0f172a',
+    custom_pattern: input.custom_pattern || 'geometric',
+    custom_text_theme: input.custom_text_theme || 'light',
+    is_active: input.is_active ?? true
   })
 
   if (error) return { success: false, error: error.message }
 
   revalidatePath('/dashboard')
+  revalidatePath('/accounts') // 💡 Buena práctica: revalidar también la ruta de cuentas
   return { success: true }
 }
 

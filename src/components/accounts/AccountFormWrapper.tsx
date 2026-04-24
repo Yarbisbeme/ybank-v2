@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import EditableUniversalCard from './EditableUniversalCard';
-import { EditCreateAccount, Institution, CreateAccountInput, UpdateAccountInput, AccountType, CurrencyCode } from '@/types'; 
-import { ShieldCheck, Calendar, Activity, CreditCard, Power } from 'lucide-react';
+import { EditCreateAccount, Institution } from '@/types'; 
+import { ShieldCheck, Calendar, Activity, CreditCard, Power, Loader2 } from 'lucide-react';
 import { createAccount, updateAccount } from '@/lib/actions/accounts'; 
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -49,6 +49,8 @@ export default function AccountFormWrapper({
 
   // 💡 LÓGICA DE GUARDADO REAL
   const handleSave = async () => {
+    if (isSubmitting) return;
+
     // 1. Validaciones básicas
     if (!accountData.name.trim()) {
       toast.error('El nombre de la cuenta es obligatorio.');
@@ -62,7 +64,7 @@ export default function AccountFormWrapper({
     setIsSubmitting(true);
 
     try {
-      // 2. Preparamos los datos EXACTAMENTE como los pide la interfaz (CreateAccountInput / UpdateAccountInput)
+      // 2. Preparamos los datos EXACTAMENTE como los pide la interfaz
       const inputData = {
         name: accountData.name,
         type: accountData.type,
@@ -73,7 +75,9 @@ export default function AccountFormWrapper({
         initial_balance: accountData.initial_balance ?? 0, 
         
         credit_limit: accountData.credit_limit || undefined,
-        expiry_date: accountData.expiry_date || undefined,
+        
+        // 💡 FIX: Cambiamos "undefined" por un string vacío ""
+        expiry_date: accountData.expiry_date || "", 
         
         institution_id: accountData.institution.id, 
         is_active: accountData.is_active ?? true,
@@ -96,13 +100,13 @@ export default function AccountFormWrapper({
         router.refresh(); 
       } else {
         toast.error(result?.error || 'Ocurrió un error al guardar la cuenta');
+      setIsSubmitting(false);
       }
     } catch (error) {
       toast.error('Error de conexión con el servidor');
       console.error(error);
-    } finally {
       setIsSubmitting(false);
-    }
+    } 
   };
 
   // Función para formatear fechas de forma legible
@@ -223,9 +227,17 @@ export default function AccountFormWrapper({
 
           <button 
             onClick={handleSave} 
-            className="w-full mt-6 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-colors active:scale-[0.98]"
+            disabled={isSubmitting} 
+            className="flex items-center justify-center gap-2 w-full mt-6 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isEditing ? 'Guardar Configuración' : 'Crear Cuenta Bancaria'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" size={20} /> 
+                Guardando...
+              </>
+            ) : (
+              isEditing ? 'Guardar Configuración' : 'Crear Cuenta Bancaria'
+            )}
           </button>
 
         </div>

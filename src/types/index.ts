@@ -171,6 +171,9 @@ export interface CreateAccountInput {
   color?: string;
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
+
+  expiry_date:string;
+  is_active:boolean;
 }
 
 export interface UpdateAccountInput {
