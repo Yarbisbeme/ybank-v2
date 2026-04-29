@@ -1,4 +1,3 @@
-
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import Navbar from "@/components/layout/Navbar/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
@@ -6,30 +5,30 @@ import { getAccounts } from '@/lib/actions/accounts';
 import { getTransactions } from '@/lib/actions/transactions';
 import { getTags } from '@/lib/actions/tags';
 import { redirect } from 'next/navigation';
+// Importamos un nuevo componente que crearemos para sincronizar el Store
+import StoreInitializer from '@/components/providers/StoreInitializer';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  
   const supabase = await createSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. Verificación de sesión
-  if (!user) {
-    redirect('/sign-in');
-  }
+  if (!user) redirect('/sign-in');
 
-  // 🛡️ 2. EL PORTERO GLOBAL: Verificamos el perfil
   const { data: profile } = await supabase
     .from('profiles')
-    .select('onboarding_completed')
+    .select(`
+      onboarding_completed, 
+      primary_account_id,
+      accounts ( institution_id ) 
+    `) // 💡 Usamos las relaciones de Supabase para traer el institution_id
     .eq('id', user.id)
     .single();
 
-  // 🛡️ Ahora la condición es infalible: si no ha completado el proceso, fuera.
   if (!profile || profile.onboarding_completed === false) {
     redirect('/onboarding');
   }
 
-  // 3. Carga de datos pesados (SOLO si pasó la seguridad)
+  // 3. Carga paralela de alta velocidad
   const [accounts, transactionsData, tags] = await Promise.all([
     getAccounts(),
     getTransactions({}),
@@ -41,21 +40,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     email: user.email!,
     avatarUrl: user.user_metadata?.avatar_url
   };
+
+  const institutionId = (profile.accounts as any)?.institution_id || null;
+
   return (
-    /* 💡 FIX: h-screen + overflow-hidden evita que el BODY haga scroll */
-    <div className="flex h-screen w-full bg-[#F8F9FB] overflow-hidden">
+    <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
       
-      {/* 💡 SIDEBAR: Fijo para escritorio */}
-      <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-slate-100 bg-white">
+      <StoreInitializer 
+        primaryAccountId={profile.primary_account_id} 
+        institutionId={institutionId} 
+      />
+
+      <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-border bg-card">
         <Sidebar />
       </aside>
 
-      {/* 💡 CONTENEDOR DERECHO: Ocupa el resto del espacio */}
       <div className="flex flex-col flex-1 min-w-0 h-full">
-        
-        {/* El Navbar se queda arriba. Al estar fuera del scroll del main, 
-            el menú móvil que vive dentro del Navbar se posicionará relativo 
-            a la pantalla, no al contenido largo. */}
         <Navbar 
           user={navbarUser} 
           accounts={accounts} 
@@ -63,13 +63,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           tags={tags} 
         />
         
-        {/* 💡 MAIN: Este es el ÚNICO lugar donde se permite el scroll */}
-        <main className="flex-1 overflow-y-auto p-4 md:px-8 lg:px-12 scrollbar-hide">
-          <div className="max-w-[1600px] mx-auto w-full pb-20">
+        {/* Usamos el max-width que definiste pero con un toque más de aire */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 scrollbar-hide">
+          <div className="max-w-[1400px] mx-auto w-full pb-24">
             {children}
           </div>
         </main>
-
       </div>
     </div>
   );

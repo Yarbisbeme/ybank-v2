@@ -173,7 +173,7 @@ export interface CreateAccountInput {
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
 
-  expiry_date:string;
+  expiry_date?:string;
   is_active:boolean;
 }
 
@@ -226,6 +226,7 @@ export interface YBankStore {
   preferredRate: SmartRateResult | null;
   setCurrency: (currency: 'DOP' | 'USD') => void;
   updateRateContext: (institutionId: string) => Promise<void>;
+  preferredAccountId: string | null;
 }
 
 // ==========================================

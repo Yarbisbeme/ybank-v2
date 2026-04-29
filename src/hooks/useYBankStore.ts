@@ -11,6 +11,7 @@ export const useYBankStore = create<YBankStore>((set) => ({
   updateRateContext: async (institutionId: string) => {
     const rateData = await getSmartRate(institutionId, 'sell'); 
     set({ preferredRate: rateData });
-
   },
+
+  preferredAccountId: ''
 }));

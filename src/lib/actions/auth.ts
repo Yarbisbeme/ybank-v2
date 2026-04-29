@@ -133,6 +133,7 @@ export async function completeOnboarding(formData: {
     currency_preference: formData.currency,
     onboarding_completed: true, // 👈 ¡ESTO ES LA LLAVE!
     updated_at: new Date().toISOString(),
+    primary_account_id:formData.primaryAccountId,
   });
 
   if (profileError) return { success: false, error: profileError.message };
