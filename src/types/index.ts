@@ -9,6 +9,7 @@ export type CurrencyCode = 'DOP' | 'USD';
 // 💡 Corrección: PascalCase
 export type CustomTextTheme = 'light' | 'dark';
 export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots';
+export type operation = 'buy' | 'sell'
 
 // ==========================================
 // 2. ENTIDADES DE LA BASE DE DATOS
@@ -227,6 +228,7 @@ export interface YBankStore {
   setCurrency: (currency: 'DOP' | 'USD') => void;
   updateRateContext: (institutionId: string) => Promise<void>;
   preferredAccountId: string | null;
+  isCalculatingRate: boolean;
 }
 
 // ==========================================
@@ -247,10 +249,10 @@ export type NotificationProps = {
     duration?: number;
 }
 
-export type SmartRateResult = {
-  rate: number;
-  baseRate: number;
-  margin: number;
-  operation: 'buy' | 'sell';
-  institutionName: string;
+export interface SmartRateResult {
+  rate: number;           
+  baseRate: number;       
+  margin: number;         
+  operation: operation; 
+  institutionName: string; 
 }

@@ -1,29 +1,31 @@
 'use client'
 
-import { useYBankStore } from '@/hooks/useYBankStore';
-import { useRef } from 'react'
+import { useYBankStore } from '@/store/useYBankStore';
+import { useRef, useEffect } from 'react';
 
 interface StoreInitializerProps {
   primaryAccountId: string | null;
-  institutionId: string | null; // 💡 Nuevo prop
+  institutionId: string | null;
 }
 
 export default function StoreInitializer({ primaryAccountId, institutionId }: StoreInitializerProps) {
-  const initialized = useRef(false)
+  // 1. HIDRATACIÓN SÍNCRONA (Evita el flickering inicial)
+  const initialized = useRef(false);
 
   if (!initialized.current) {
-    // 1. Guardamos la configuración en Zustand
     useYBankStore.setState({ 
       preferredAccountId: primaryAccountId,
     });
-    
-    // 2. 💡 EL AMARRE: Disparamos el cálculo si tenemos el banco
+    initialized.current = true;
+  }
+
+  // 2. SIDE EFFECT ASÍNCRONO (Llamada al servidor segura)
+  useEffect(() => {
+    // Esto se ejecuta justo después de que React termine de montar la pantalla
     if (institutionId) {
        useYBankStore.getState().updateRateContext(institutionId);
     }
-    
-    initialized.current = true;
-  }
+  }, [institutionId]); // Se re-ejecuta solo si el banco cambia
 
   return null;
 }

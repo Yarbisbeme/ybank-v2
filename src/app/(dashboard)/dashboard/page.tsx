@@ -1,14 +1,15 @@
-import { getAccounts } from '@/lib/actions/accounts';
+import { getAccounts, calculateNormalizedTotal } from '@/lib/actions/accounts';
 import { getTransactions } from '@/lib/actions/transactions';
 import { getCategories } from '@/lib/actions/categories';
 import { getTags } from '@/lib/actions/tags';
 
-import NetWorthCard from '@/components/dashboard/NetWorth/NetWorthCard';
+// 💡 1. Importamos el nuevo componente
 import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard';
-import { TransactionFilters as FilterType } from '@/types/database.types';
 import ActivitySection from '@/components/Transactions/ActivitySection';
 import AccountCarousel from '@/components/accounts/AccountCarousel';
 import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
+import { TransactionFilters as FilterType } from '@/types/database.types';
+import HeroBalance from '@/components/dashboard/NetWorth/HeroBalance';
 
 export default async function DashboardPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -25,11 +26,8 @@ export default async function DashboardPage(props: {
     endDate: (resolvedSearchParams.endDate as string) || null,
   };
 
-  // 💡 1. Leemos de la URL si el usuario quiere abrir el modal
   const showNewTxModal = resolvedSearchParams.newTx === 'true';
   const editTxId = resolvedSearchParams.editTx as string | undefined;
-  
-  // 💡 2. Evaluamos si el modal DEBE estar abierto
   const isModalOpen = showNewTxModal || !!editTxId;
 
   // Obtenemos datos concurrentemente
@@ -48,14 +46,32 @@ export default async function DashboardPage(props: {
     filters: currentFilters 
   });
 
+  // 💡 2. INGENIERÍA DE DATOS: Separamos el capital líquido de la deuda
+  // Asumiendo que 'credit_card' (o 'loan') son tus tipos de deuda
+  const liquidAccounts = accounts.filter(a => a.type !== 'credit_card');
+  const debtAccounts = accounts.filter(a => a.type === 'credit_card');
+
+  // 💡 3. NORMALIZACIÓN: Calculamos los totales en DOP desde el servidor
+  const [baseLiquidDOP, baseDebtDOP] = await Promise.all([
+    calculateNormalizedTotal(liquidAccounts),
+    calculateNormalizedTotal(debtAccounts)
+  ]);
+
   return (
-  <div className="max-w-[1600px] mx-auto px-1 md:px-8 py-4 space-y-4 md:space-y-10">
-    <div className='flex flex-col'>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+  <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 space-y-8 md:space-y-12">
+    
+    {/* SECCIÓN PRINCIPAL: HERO & HEALTH */}
+    <div className="flex flex-col">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         
-        {/* Tarjeta 1: NetWorth */}
-        <div className="w-full md:col-span-2"> 
-          <NetWorthCard accounts={accounts} transactions={transactions} />
+        {/* Tarjeta 1: Hero Balance (Reemplaza NetWorth) */}
+        <div className="w-full lg:col-span-2"> 
+          <HeroBalance 
+            accounts={accounts}
+            transactions={transactions}
+            baseLiquidDOP={baseLiquidDOP}
+            baseDebtDOP={baseDebtDOP}
+          />
         </div>
 
         {/* Tarjeta 2: FinancialHealth */}
@@ -67,19 +83,16 @@ export default async function DashboardPage(props: {
     </div>
 
       {/* SECCIÓN CUENTAS */}
-      <div className="flex flex-col mt-4 md:mt-6">
-        {/* 💡 El nuevo título con el mismo estilo pesado (font-black) de tu app */}
-        <div className="flex justify-between items-end mb-3 px-2 md:px-0 sm:hidden">
-          <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">
-            Tus Cuentas
+      <div className="flex flex-col">
+        <div className="flex justify-between items-end mb-4 px-1 md:px-0 sm:hidden">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground font-sans tracking-tight">
+            Nodos Activos
           </h2>
-          {/* Opcional: Si en el futuro quieres poner un contador o un botón */}
-          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
+          <span className="text-xs font-mono font-bold text-muted-foreground bg-surface-2 border border-border px-2 py-1 rounded-md">
             {accounts.length}
           </span>
         </div>
 
-        {/* El carrusel de siempre (mantiene el margen negativo para que deslice hasta el borde en móvil) */}
         <div className="-mx-4 md:mx-0"> 
           <AccountCarousel accounts={accounts}/>
         </div>
@@ -96,7 +109,7 @@ export default async function DashboardPage(props: {
          />
       </div>
 
-      {/* 💡 3. RENDERIZADO CONDICIONAL: Solo existe si la URL lo pide */}
+      {/* RENDERIZADO CONDICIONAL DEL MODAL */}
       {isModalOpen && (
         <TransactionModalWrapper editTxId={editTxId} />
       )}

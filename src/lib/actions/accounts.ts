@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { Account, CreateAccountInput, UpdateAccountInput } from '@/types'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
+import { getSmartRate } from '@/services/rates'
 
 // =========================================================
 // 1. GET ALL - Con Metadatos de Diseño
@@ -74,7 +75,8 @@ export async function createAccount(input: CreateAccountInput) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Usuario no autenticado' }
 
-  const { error } = await supabase.from('accounts').insert({
+  // 💡 FIX 1: Añadimos .select().single() para que devuelva el ID creado
+  const { data, error } = await supabase.from('accounts').insert({
     user_id: user.id,
     name: input.name,
     institution_id: input.institution_id,
@@ -84,20 +86,20 @@ export async function createAccount(input: CreateAccountInput) {
     current_balance: input.initial_balance,
     last_4_digits: input.last_4_digits || null,
     credit_limit: input.credit_limit || null,
-    
-    // 💡 FIX: Faltaban TODOS estos campos en tu Insert original
     expiry_date: input.expiry_date || null,
     color: input.color || '#0f172a',
     custom_pattern: input.custom_pattern || 'geometric',
     custom_text_theme: input.custom_text_theme || 'light',
     is_active: input.is_active ?? true
-  })
+  }).select('id').single() // <--- CRÍTICO PARA EL ONBOARDING
 
   if (error) return { success: false, error: error.message }
 
   revalidatePath('/dashboard')
-  revalidatePath('/accounts') // 💡 Buena práctica: revalidar también la ruta de cuentas
-  return { success: true }
+  revalidatePath('/accounts') 
+  
+  // 💡 Retornamos la 'data' para que el Frontend obtenga el ID
+  return { success: true, data } 
 }
 
 // =========================================================
@@ -142,3 +144,30 @@ export async function archiveAccount(accountId: string) {
   }
 }
 
+// =========================================================
+// 6. CALCULATOR - Normalizador de Capital
+// =========================================================
+export async function calculateNormalizedTotal(accounts: any[]) {
+  let totalDOP = 0;
+
+  for (const account of accounts) {
+    // 💡 FIX 2: Cambiamos 'balance' a 'current_balance'
+    const accountBalance = account.current_balance || 0; 
+    
+    // 💡 FIX 3: Soportar institución si viene anidada (por el GET ALL) o directa
+    const institutionId = account.institution?.id || account.institution_id;
+
+    if (account.currency === 'DOP') {
+      totalDOP += accountBalance;
+    } 
+    else if (account.currency === 'USD') {
+      // Usamos el institutionId extraído de forma segura
+      const rateInfo = await getSmartRate(institutionId, 'buy');
+      const conversionRate = rateInfo ? rateInfo.rate : 58.00; 
+      
+      totalDOP += (accountBalance * conversionRate);
+    }
+  }
+
+  return totalDOP; 
+}
