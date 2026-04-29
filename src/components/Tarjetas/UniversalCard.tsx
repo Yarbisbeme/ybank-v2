@@ -121,53 +121,63 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
       className={`@container relative w-full h-full rounded-[clamp(20px,5cqw,28px)] lg:rounded-[28px] overflow-hidden shadow-xl transition-all duration-500 group ${textColor}`}
       style={{ backgroundColor: finalColor }}
     >
-      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden">
+      {/* 💡 FIX 1: Quitamos el opacity-40 global. Ahora cada patrón controla su propia fuerza */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none overflow-hidden">
+        
+        {/* --- 🌊 WAVES: Anillos concéntricos expansivos estilo radar --- */}
         {finalPattern === 'waves' && (
           <>
-            <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] rounded-full border border-white/10" />
-            <div className="absolute top-[10%] left-[20%] w-[100%] h-[100%] rounded-full bg-gradient-to-br from-white/20 to-transparent opacity-30" />
+            <div className="absolute -bottom-[40%] -right-[10%] w-[140%] h-[140%] rounded-full border-[clamp(16px,4cqw,32px)] border-white/20" />
+            <div className="absolute -bottom-[20%] -right-[0%] w-[100%] h-[100%] rounded-full border-[clamp(12px,3cqw,24px)] border-white/30" />
+            <div className="absolute top-[-30%] left-[-20%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-white/40 to-transparent blur-sm" />
           </>
         )}
         
+        {/* --- 🧊 GEOMETRIC: Formas más definidas y sutiles efectos de cristal (backdrop-blur) --- */}
         {finalPattern === 'geometric' && (
           <>
-            <div className="absolute top-[10%] left-[5%] w-[clamp(60px,20cqw,96px)] lg:w-24 lg:h-24 h-[clamp(60px,20cqw,96px)] bg-white/10 rounded-xl rotate-[15deg] blur-[1px]" />
-            <div className="absolute bottom-[15%] right-[15%] w-[clamp(80px,25cqw,128px)] lg:w-32 lg:h-32 h-[clamp(80px,25cqw,128px)] border border-white/20 rounded-2xl rotate-[35deg]" />
-            <div className="absolute top-[40%] right-[10%] w-[clamp(40px,12cqw,64px)] lg:w-16 lg:h-16 h-[clamp(40px,12cqw,64px)] border border-white/10 rounded-lg -rotate-12" />
+            <div className="absolute top-[10%] left-[5%] w-[clamp(60px,20cqw,96px)] lg:w-24 lg:h-24 h-[clamp(60px,20cqw,96px)] bg-white/20 rounded-xl rotate-[15deg] backdrop-blur-md border border-white/30" />
+            <div className="absolute bottom-[10%] right-[10%] w-[clamp(80px,25cqw,128px)] lg:w-32 lg:h-32 h-[clamp(80px,25cqw,128px)] border-[3px] border-white/30 rounded-[2rem] rotate-[35deg]" />
+            <div className="absolute top-[40%] right-[15%] w-[clamp(40px,12cqw,64px)] lg:w-16 lg:h-16 h-[clamp(40px,12cqw,64px)] border-2 border-white/20 rounded-xl -rotate-12" />
+            <div className="absolute bottom-[30%] left-[30%] w-8 h-8 bg-white/15 rounded-full" />
           </>
         )}
 
+        {/* --- 🌌 MESH: Masas de color vibrantes fusionándose (Efecto "Aura") --- */}
         {finalPattern === 'mesh' && (
           <>
-            <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-white/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[80%] h-[80%] bg-black/10 rounded-full blur-3xl" />
-            <div className="absolute top-[20%] right-[20%] w-[40%] h-[40%] bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute top-[-30%] left-[-10%] w-[80%] h-[80%] bg-white/40 rounded-full blur-[60px] mix-blend-overlay" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[80%] bg-white/30 rounded-full blur-[50px] mix-blend-overlay" />
+            <div className="absolute top-[20%] left-[30%] w-[60%] h-[60%] bg-black/20 rounded-full blur-[50px] mix-blend-overlay" />
           </>
         )}
 
+        {/* --- 🏎️ LINES: Velocidad y dinamismo con gradientes para que no parezcan bloques sólidos --- */}
         {finalPattern === 'lines' && (
-          <div className="absolute inset-0 flex gap-[clamp(10px,3cqw,24px)] lg:gap-6 -skew-x-12 opacity-30 scale-150 -translate-x-10">
-            <div className="w-[clamp(40px,10cqw,64px)] lg:w-16 h-full bg-white/10" />
-            <div className="w-[clamp(20px,5cqw,32px)] lg:w-8 h-full bg-white/5" />
-            <div className="w-[clamp(80px,20cqw,128px)] lg:w-32 h-full bg-white/10" />
-            <div className="w-[clamp(10px,2cqw,16px)] lg:w-4 h-full bg-white/20" />
-            <div className="w-[clamp(30px,8cqw,48px)] lg:w-12 h-full bg-white/5" />
+          <div className="absolute inset-0 flex gap-[clamp(15px,4cqw,32px)] lg:gap-8 -skew-x-[20deg] scale-150 -translate-x-12 opacity-80">
+            <div className="w-[clamp(40px,10cqw,64px)] lg:w-16 h-full bg-gradient-to-b from-white/30 to-transparent" />
+            <div className="w-[clamp(20px,5cqw,32px)] lg:w-8 h-full bg-gradient-to-b from-white/15 to-transparent" />
+            <div className="w-[clamp(80px,20cqw,128px)] lg:w-32 h-full bg-gradient-to-b from-white/40 to-white/5" />
+            <div className="w-[clamp(10px,2cqw,16px)] lg:w-4 h-full bg-gradient-to-b from-white/20 to-transparent" />
+            <div className="w-[clamp(50px,12cqw,80px)] lg:w-20 h-full bg-gradient-to-b from-white/15 to-transparent" />
           </div>
         )}
 
+        {/* --- 🔘 DOTS: Puntos más grandes y con mejor contraste según el tema --- */}
         {finalPattern === 'dots' && (
           <div 
-            className="absolute inset-0 opacity-50"
+            className="absolute inset-0 mix-blend-overlay opacity-100"
             style={{
               backgroundImage: isDarkText 
-                ? 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1px, transparent 0)' 
-                : 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
-              backgroundSize: '16px 16px'
+                ? 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.3) 1.5px, transparent 0)' 
+                : 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 1.5px, transparent 0)',
+              backgroundSize: '20px 20px'
             }}
           />
         )}
         
-        <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
+        {/* Sombra interna global (Viñeta) para darle volumen a la tarjeta */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/30 mix-blend-overlay" />
       </div>
 
       <div className="relative z-10 h-full p-[clamp(20px,5cqw,28px)] lg:p-7 flex flex-col justify-between">

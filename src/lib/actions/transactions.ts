@@ -3,7 +3,7 @@
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { revalidatePath } from 'next/cache'
 import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
-import { getSmartRate } from '@/services/currency'
+import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
 
 // ==========================================

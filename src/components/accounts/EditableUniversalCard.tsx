@@ -47,11 +47,11 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
           ========================================= */}
       <div 
         // 💡 FIX 1: Añadido min-h-[220px] y flex flex-col para evitar desbordamientos si el texto es muy largo
-        className={`@container relative z-40 w-full min-h-[220px] aspect-[1.586/1] rounded-[28px] overflow-visible shadow-2xl transition-colors duration-500 group flex flex-col ${textColor}`}
+        className={`@container relative z-40 w-full min-h-[220px] aspect-[1.586/1] rounded-[18px] overflow-visible shadow-2xl transition-colors duration-500 group flex flex-col ${textColor}`}
         style={{ backgroundColor: data.color }}
       >
         {/* === FONDOS Y PATRONES === */}
-        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden rounded-[28px]">
+        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden rounded-[18px]">
           {data.custom_pattern === 'waves' && (
             <>
               <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] rounded-full border border-white/10" />
