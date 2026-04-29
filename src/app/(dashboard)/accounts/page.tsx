@@ -101,8 +101,7 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
   }
 
   return (
-    <div className="flex flex-col relative h-[calc(100dvh-6rem)] md:h-auto md:min-h-screen sm:overflow-x-hidden bg-[#F8F9FB]">
-
+<div className="flex flex-col relative min-h-screen bg-[#F8F9FB] pb-24 md:pb-0">
         {/* === ZONA PRINCIPAL === */}
         <div className="flex flex-col items-center w-full justify-start pt-12 md:pt-10 pb-4">
           

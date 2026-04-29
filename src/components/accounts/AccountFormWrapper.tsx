@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import EditableUniversalCard from './EditableUniversalCard';
 import { EditCreateAccount, Institution } from '@/types'; 
-import { ShieldCheck, Calendar, Activity, CreditCard, Power, Loader2 } from 'lucide-react';
+import { Power, Loader2, ShieldAlert } from 'lucide-react';
 import { createAccount, updateAccount } from '@/lib/actions/accounts'; 
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -21,15 +21,16 @@ export default function AccountFormWrapper({
   institutions: Institution[];
   onSuccess?: () => void;
 }) {
-  
   const isEditing = !!initialData?.id;
+  const router = useRouter(); 
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   const [accountData, setAccountData] = useState<EditCreateAccount>(
     initialData || {
       name: '',
       type: 'checking',
       currency: 'DOP',
-      color: '#0f172a', // Color por defecto (Oscuro)
+      color: '#0f172a',
       custom_pattern: 'geometric',
       custom_text_theme: 'light',
       current_balance: 0,
@@ -40,18 +41,20 @@ export default function AccountFormWrapper({
     }
   );
 
-  const router = useRouter(); // 💡 Para refrescar la página tras guardar
-  const [isSubmitting, setIsSubmitting] = useState(false); // 💡 Estado de carga
-
   const handleChange = (field: keyof EditCreateAccount, value: any) => {
-    setAccountData(prev => ({ ...prev, [field]: value }));
+    setAccountData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (!isEditing) {
+        if (field === 'current_balance') newData.initial_balance = value;
+        if (field === 'initial_balance') newData.current_balance = value;
+      }
+      return newData;
+    });
   };
 
-  // 💡 LÓGICA DE GUARDADO REAL
   const handleSave = async () => {
     if (isSubmitting) return;
 
-    // 1. Validaciones básicas
     if (!accountData.name.trim()) {
       toast.error('El nombre de la cuenta es obligatorio.');
       return;
@@ -64,7 +67,6 @@ export default function AccountFormWrapper({
     setIsSubmitting(true);
 
     try {
-      // 2. Preparamos los datos EXACTAMENTE como los pide la interfaz
       const inputData = {
         name: accountData.name,
         type: accountData.type,
@@ -73,54 +75,47 @@ export default function AccountFormWrapper({
         custom_pattern: accountData.custom_pattern,
         custom_text_theme: accountData.custom_text_theme,
         initial_balance: accountData.initial_balance ?? 0, 
-        
         credit_limit: accountData.credit_limit || undefined,
-        
-        // 💡 FIX: Cambiamos "undefined" por un string vacío ""
         expiry_date: accountData.expiry_date || "", 
-        
         institution_id: accountData.institution.id, 
         is_active: accountData.is_active ?? true,
       };
 
-      // 3. Llamamos a la API
-      let result;
-      if (isEditing && accountData.id) {
-        // 💡 FIX Error 1: Pasamos los 2 argumentos separados (ID, Datos)
-        result = await updateAccount(accountData.id, inputData);
-      } else {
-        // Para crear, solo enviamos los datos
-        result = await createAccount(inputData);
-      }
+      let result = (isEditing && accountData.id) 
+        ? await updateAccount(accountData.id, inputData)
+        : await createAccount(inputData);
 
-      // 4. Manejamos el resultado
       if (result?.success) {
-        toast.success(isEditing ? 'Cuenta actualizada con éxito' : 'Cuenta creada con éxito');
+        toast.success(isEditing ? 'Cuenta actualizada' : 'Cuenta creada');
         if (onSuccess) onSuccess(); 
         router.refresh(); 
       } else {
-        toast.error(result?.error || 'Ocurrió un error al guardar la cuenta');
-      setIsSubmitting(false);
+        toast.error(result?.error || 'Ocurrió un error al guardar');
+        setIsSubmitting(false);
       }
     } catch (error) {
-      toast.error('Error de conexión con el servidor');
-      console.error(error);
+      toast.error('Error de conexión');
       setIsSubmitting(false);
     } 
   };
 
-  // Función para formatear fechas de forma legible
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('es-DO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(dateString).toLocaleDateString('es-DO', { year: 'numeric', month: '2-digit', day: '2-digit' });
   };
 
-  return (
-    <div className="p-6 md:p-8 bg-white rounded-[32px] shadow-2xl w-full">
+  // Clases compartidas para los inputs para mantener consistencia visual
+  const inputBaseClasses = "w-full bg-slate-50 border border-slate-200 text-slate-900 text-[15px] font-semibold rounded-xl px-4 py-3.5 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-slate-400 placeholder:font-medium";
+  const labelClasses = "text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block pl-1";
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+  return (
+    <div className="w-full p-2"> 
+      
+      {/* 💡 NUEVA ESTRUCTURA: Grid 12 Columnas. 5 para la tarjeta, 7 para el form. Gap generoso. */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
         
-        <div className="lg:col-span-5 flex flex-col items-center">
+        {/* === COLUMNA IZQUIERDA: TARJETA === */}
+        <div className="lg:col-span-5 w-full max-w-[400px] mx-auto lg:mx-0 flex flex-col lg:sticky lg:top-0">
           <EditableUniversalCard 
             data={accountData} 
             onChange={handleChange} 
@@ -128,117 +123,113 @@ export default function AccountFormWrapper({
           />
         </div>
 
-        {/* COLUMNA DERECHA: Detalles de la Base de Datos (Ocupa 7 de 12 columnas) */}
-        <div className="lg:col-span-7 flex flex-col">
+        {/* === COLUMNA DERECHA: FORMULARIO === */}
+        <div className="lg:col-span-7 flex flex-col w-full">
           
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-4">
-            <ShieldCheck size={18} className="text-blue-500" /> Detalles Técnicos
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+          <div className="flex flex-col gap-6">
             
-            {/* Límite de Crédito (Solo editable si es Tarjeta de Crédito) */}
+            {/* Límite de Crédito (TC) */}
             {accountData.type === 'credit_card' && (
-              <div className="space-y-1 md:col-span-2 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-                <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <CreditCard size={14} /> Límite de Crédito ({accountData.currency})
-                </label>
-                <input 
-                  type="number" 
-                  value={accountData.credit_limit || ''} 
-                  onChange={(e) => handleChange('credit_limit', Number(e.target.value))} 
-                  placeholder="Ej. 50000" 
-                  className="w-full bg-white border border-blue-200 p-3 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
-                />
+              <div>
+                <label className={labelClasses}>Límite de Crédito</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{accountData.currency}</span>
+                  <input 
+                    type="number" 
+                    value={accountData.credit_limit || ''} 
+                    onChange={(e) => handleChange('credit_limit', Number(e.target.value))} 
+                    placeholder="50000" 
+                    className={`${inputBaseClasses} pl-14`} 
+                  />
+                </div>
               </div>
             )}
 
-            {/* Fecha de Expiración (Editable) */}
-            <div className="space-y-1 p-3 rounded-xl border border-slate-200 bg-slate-50">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fecha Expiración</label>
-              <input 
-                type="text" 
-                maxLength={5}
-                value={accountData.expiry_date || ''} 
-                onChange={(e) => handleChange('expiry_date', e.target.value)} 
-                placeholder="MM/YY" 
-                className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 placeholder:text-slate-300" 
-              />
-            </div>
-
-            {/* Balance Inicial (Editable solo al crear) */}
-            <div className={`space-y-1 p-3 rounded-xl border ${isEditing ? 'border-slate-100 bg-slate-50/50 opacity-70' : 'border-slate-200 bg-slate-50'}`}>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance Inicial Base</label>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-slate-400">{accountData.currency}</span>
+            {/* Fila de 2 Columnas para Fecha y Balance */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              
+              <div>
+                <label className={labelClasses}>Fecha Expiración</label>
                 <input 
-                  type="number" 
-                  value={accountData.initial_balance || 0} 
-                  onChange={(e) => handleChange('initial_balance', Number(e.target.value))} 
-                  disabled={isEditing}
-                  className="w-full bg-transparent border-none p-0 text-sm font-bold text-slate-700 focus:ring-0 disabled:cursor-not-allowed" 
+                  type="text" 
+                  maxLength={5}
+                  value={accountData.expiry_date || ''} 
+                  onChange={(e) => handleChange('expiry_date', e.target.value)} 
+                  placeholder="MM/YY" 
+                  className={inputBaseClasses} 
                 />
               </div>
+
+              <div>
+                <label className={labelClasses}>Balance Inicial</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{accountData.currency}</span>
+                  <input 
+                    type="number" 
+                    value={accountData.initial_balance || ''} 
+                    onChange={(e) => handleChange('initial_balance', Number(e.target.value))} 
+                    disabled={isEditing}
+                    placeholder="0.00"
+                    className={`${inputBaseClasses} pl-14 disabled:opacity-60 disabled:cursor-not-allowed`} 
+                  />
+                </div>
+              </div>
+
             </div>
 
-            {/* Información de Auditoría (Solo Lectura, solo si estamos editando) */}
+            {/* Auditoría de solo lectura */}
             {isEditing && (
-              <>
-                <div className="space-y-1 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <Calendar size={12} /> Creación
-                  </label>
-                  <p className="text-xs font-semibold text-slate-600 truncate">{formatDate(accountData.created_at)}</p>
-                </div>
-
-                <div className="space-y-1 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                    <Activity size={12} /> Última Act.
-                  </label>
-                  <p className="text-xs font-semibold text-slate-600 truncate">{formatDate(accountData.updated_at)}</p>
-                </div>
-              </>
-            )}
-
-            {/* Switch de Archivar Cuenta (Solo editable si ya existe) */}
-            {isEditing && (
-              <div className="md:col-span-2 flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-white">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <Power size={16} className={accountData.is_active ? 'text-blue-500' : 'text-slate-400'} />
-                    Cuenta Activa
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Desactiva esta cuenta para ocultarla de los reportes principales sin borrar su historial.
-                  </p>
+                  <label className={labelClasses}>Fecha de Creación</label>
+                  <input type="text" disabled value={formatDate(accountData.created_at)} className={`${inputBaseClasses} bg-slate-100 opacity-70 cursor-not-allowed`} />
                 </div>
-                {/* Toggle Switch Custom Tailwind */}
+                <div>
+                  <label className={labelClasses}>Última Actualización</label>
+                  <input type="text" disabled value={formatDate(accountData.updated_at)} className={`${inputBaseClasses} bg-slate-100 opacity-70 cursor-not-allowed`} />
+                </div>
+              </div>
+            )}
+
+            {isEditing && <div className="h-px w-full bg-slate-100 my-2"></div>}
+
+            {/* Switch de Cuenta Activa */}
+            {isEditing && (
+              <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="flex gap-4 items-center">
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-700">
+                    <Power size={20} strokeWidth={2.5} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[15px] font-bold text-slate-800">Cuenta Activa</span>
+                    <span className="text-[13px] text-slate-500 font-medium">Visible en los reportes generales.</span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => handleChange('is_active', !accountData.is_active)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${accountData.is_active ? 'bg-blue-600' : 'bg-slate-300'}`}
+                  className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none ${accountData.is_active ? 'bg-blue-600' : 'bg-slate-300'}`}
                 >
-                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${accountData.is_active ? 'translate-x-5' : 'translate-x-0'}`} />
+                  <span className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-sm ring-0 transition duration-300 ease-in-out ${accountData.is_active ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
               </div>
             )}
 
           </div>
 
-          <button 
-            onClick={handleSave} 
-            disabled={isSubmitting} 
-            className="flex items-center justify-center gap-2 w-full mt-6 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" size={20} /> 
-                Guardando...
-              </>
-            ) : (
-              isEditing ? 'Guardar Configuración' : 'Crear Cuenta Bancaria'
-            )}
-          </button>
+          <div className="mt-8">
+            <button 
+              onClick={handleSave} 
+              disabled={isSubmitting} 
+              className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white text-[16px] font-bold py-4 rounded-xl hover:bg-blue-700 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="animate-spin" size={20} /> Procesando...</>
+              ) : (
+                isEditing ? 'Guardar Configuración' : 'Confirmar y Crear Cuenta'
+              )}
+            </button>
+          </div>
 
         </div>
       </div>

@@ -13,6 +13,7 @@ export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' |
 // ==========================================
 // 2. ENTIDADES DE LA BASE DE DATOS
 // ==========================================
+
 export interface Institution {
   id: string;
   name: string;
@@ -218,6 +219,13 @@ export interface TransferInput {
   date: Date;
   description: string;
   manualExchangeRate?: number; 
+}
+
+export interface YBankStore {
+  currency: CurrencyCode;
+  preferredRate: SmartRateResult | null;
+  setCurrency: (currency: 'DOP' | 'USD') => void;
+  updateRateContext: (institutionId: string) => Promise<void>;
 }
 
 // ==========================================
