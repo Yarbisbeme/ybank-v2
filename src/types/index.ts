@@ -52,13 +52,13 @@ export interface Account {
   last_4_digits: string | null; // "4288"
   expiry_date?: string | null;  // "12/28"
   credit_limit?: number | null;
+  cutoff_day?: number | null;
   
   // Control de Estado (Borrado Lógico)
   is_active: boolean; 
   
   created_at: string;
   updated_at: string;
-
   // Relaciones
   institution: Institution; 
 }
@@ -175,6 +175,7 @@ export interface CreateAccountInput {
   custom_text_theme?: CustomTextTheme;
 
   expiry_date?:string;
+  cutoff_day?:string;
   is_active:boolean;
 }
 

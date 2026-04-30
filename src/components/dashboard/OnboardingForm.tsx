@@ -49,7 +49,7 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
         type: 'savings', 
         initial_balance: Number(formData.initialBalance) || 0,
         currency: formData.currency, 
-        is_active: true
+        is_active: true,
       });
 
       if (!accountResult.success) {

@@ -75,7 +75,6 @@ export async function createAccount(input: CreateAccountInput) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Usuario no autenticado' }
 
-  // 💡 FIX 1: Añadimos .select().single() para que devuelva el ID creado
   const { data, error } = await supabase.from('accounts').insert({
     user_id: user.id,
     name: input.name,
@@ -86,19 +85,22 @@ export async function createAccount(input: CreateAccountInput) {
     current_balance: input.initial_balance,
     last_4_digits: input.last_4_digits || null,
     credit_limit: input.credit_limit || null,
+    
+    // 💡 LA PIEZA FALTANTE: Agregar el día de corte
+    cutoff_day: input.cutoff_day || null, 
+    
     expiry_date: input.expiry_date || null,
     color: input.color || '#0f172a',
     custom_pattern: input.custom_pattern || 'geometric',
     custom_text_theme: input.custom_text_theme || 'light',
     is_active: input.is_active ?? true
-  }).select('id').single() // <--- CRÍTICO PARA EL ONBOARDING
+  }).select('id').single()
 
   if (error) return { success: false, error: error.message }
 
   revalidatePath('/dashboard')
   revalidatePath('/accounts') 
   
-  // 💡 Retornamos la 'data' para que el Frontend obtenga el ID
   return { success: true, data } 
 }
 
