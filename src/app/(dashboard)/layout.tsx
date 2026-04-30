@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       accounts ( institution_id ) 
     `) // 💡 Usamos las relaciones de Supabase para traer el institution_id
     .eq('id', user.id)
-    .single();
+    .single(); 
 
   if (!profile || profile.onboarding_completed === false) {
     redirect('/onboarding');
@@ -64,7 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         />
         
         {/* Usamos el max-width que definiste pero con un toque más de aire */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 scrollbar-hide">
+        <main className="flex-1 overflow-y-auto p-6 md:p-4 scrollbar-hide">
           <div className="max-w-[1400px] mx-auto w-full pb-24">
             {children}
           </div>

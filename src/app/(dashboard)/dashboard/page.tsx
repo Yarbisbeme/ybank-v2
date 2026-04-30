@@ -3,14 +3,13 @@ import { getTransactions } from '@/lib/actions/transactions';
 import { getCategories } from '@/lib/actions/categories';
 import { getTags } from '@/lib/actions/tags';
 
-import FinancialHealthCard from '@/components/dashboard/FinancialHealthCard';
-import ActivitySection from '@/components/Transactions/ActivitySection';
+// Componentes
+import HeroBalance from '@/components/dashboard/NetWorth/HeroBalance';
+import CreditHealthBento from '@/components/dashboard/CreditHealthBento'; 
 import AccountCarousel from '@/components/accounts/AccountCarousel';
+import ActivitySection from '@/components/Transactions/ActivitySection';
 import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
 import { TransactionFilters as FilterType } from '@/types/database.types';
-import HeroBalance from '@/components/dashboard/NetWorth/HeroBalance';
-// 💡 1. Importamos nuestro nuevo Bento de Crédito
-import CreditHealthBento from '@/components/dashboard/CreditHealthBento'; 
 
 export default async function DashboardPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -56,14 +55,14 @@ export default async function DashboardPage(props: {
   ]);
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 space-y-6 md:space-y-8">
+    // 💡 Aumentamos un poco el espaciado vertical (space-y-8) para que respire
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 space-y-8 md:space-y-10">
       
-      {/* 💡 BENTO GRID LAYOUT */}
+      {/* =========================================
+          FILA 1: MACRO INDICADORES (Bento Grid)
+      ============================================= */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-auto">
         
-        {/* =========================================
-            FILA 1
-        ============================================= */}
         {/* BLOQUE PRINCIPAL - Hero Balance (8 Columnas) */}
         <div className="md:col-span-12 lg:col-span-8"> 
           <HeroBalance 
@@ -74,10 +73,31 @@ export default async function DashboardPage(props: {
           />
         </div>
 
-        {/* BLOQUE SECUNDARIO - Financial Health (4 Columnas) */}
+        {/* BLOQUE SECUNDARIO - Score Shield (4 Columnas) */}
         <div className="md:col-span-12 lg:col-span-4">
           <CreditHealthBento accounts={accounts} />
         </div>
+      </div>
+
+      {/* =========================================
+          FILA 2: MICRO INDICADORES (Nodos)
+      ============================================= */}
+      {/* Fuera del grid para que aproveche todo el ancho en el scroll horizontal */}
+      <div>
+        <AccountCarousel accounts={accounts} />
+      </div>
+
+      {/* =========================================
+          FILA 3: OPERATIVA (Transacciones)
+      ============================================= */}
+      <div className="pb-20 md:pb-0">
+        <ActivitySection 
+          transactions={transactions}
+          initialFilters={currentFilters}
+          categories={flatCategories}
+          tags={tags}
+          accounts={accounts}
+        />
       </div>
 
       {/* MODAL */}

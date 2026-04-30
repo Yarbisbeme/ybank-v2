@@ -1,75 +1,86 @@
 "use client";
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
-  CreditCard, 
-  ArrowLeftRight, 
+  Server, // 💡 Cambio visual: Representa mejor el concepto de "Nodos"
   Settings, 
-  HelpCircle, 
   LogOut,
-  Plus
 } from 'lucide-react';
 import { ButtonOla } from '../ui/ButtonOla';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: CreditCard, label: 'Accounts', href: '/accounts' },
-  { icon: Settings, label: 'Settings', href: '/settings' },
+  { icon: LayoutDashboard, label: 'Consola', href: '/dashboard' },
+  { icon: Server, label: 'Nodos', href: '/accounts' },
+  { icon: Settings, label: 'Preferencias', href: '/settings' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col h-full p-6 bg-white border-r border-slate-100">
+    // 💡 YBANK Style: bg-card y border-border para que fluya con el Dark Mode
+    <div className="flex flex-col h-full p-6 bg-card border-r border-border transition-colors">
+      
       {/* BRANDING */}
       <div className="flex flex-row items-center my-2 pr-2"> 
         <img 
           src="/icons/logoY.svg" 
           alt="YBank" 
-          className="w-[40px] h-auto object-contain"
+          // 💡 Si tu logo tiene versión blanca para dark mode, ideal manejarlo aquí o vía CSS filter
+          className="w-[30px] h-auto object-contain dark:invert" 
         />
-        <span className="text-black font-bold text-[30px] tracking-tighter mt-1">
+        <span className="text-foreground font-bold text-[30px] tracking-tighter">
             Bank
         </span>
       </div>
 
       {/* NAVIGATION */}
-      <nav className="flex-1 space-y-2 mt-8">
+      <nav className="flex-1 space-y-2 mt-10">
+        {/* 💡 Etiqueta técnica forense para agrupar módulos */}
+        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-4">
+          Módulos Core
+        </p>
+        
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all font-bold text-sm ${
+              // 💡 YBANK Style: rounded-[10px] y variables de color dinámicas
+              className={`flex items-center gap-3 px-4 py-3 rounded-[10px] transition-all font-bold text-sm ${
                 isActive 
-                ? 'bg-[#0052FF]/5 text-[#0052FF]' 
-                : 'text-[#9A9FA5] hover:text-[#1A1D1F] hover:bg-slate-50'
+                ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-surface-2 border border-transparent'
               }`}
             >
-              <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
               {item.label}
             </Link>
           );
         })}
       </nav>
       
-      {/* Nueva Transaccion */}
-      <ButtonOla 
-        href={`${pathname}?newTx=true`} 
-        label="Add Transaction"
-      />
+      {/* NUEVA TRANSACCIÓN */}
+      {/* Mantenemos tu componente ButtonOla, pero ajustamos el label a la jerga */}
+      <div className="mb-6">
+        <ButtonOla 
+          href={`${pathname}?newTx=true`} 
+          label="Nueva Operación"
+        />
+      </div>
 
       {/* BOTTOM NAV */}
-      <div className="pt-6 border-t border-slate-100 space-y-2">
-        <button className="flex items-center gap-4 px-4 py-3 w-full text-[#9A9FA5] font-bold text-sm hover:text-red-500 transition-colors">
-          <LogOut size={20} />
-          Logout
+      <div className="pt-6 border-t border-border">
+        <button className="flex items-center gap-3 px-4 py-3 w-full rounded-[10px] text-muted-foreground font-bold text-sm hover:text-destructive hover:bg-destructive/10 transition-colors">
+          <LogOut size={18} strokeWidth={2} />
+          Cerrar Sesión
         </button>
       </div>
+      
     </div>
   );
 }

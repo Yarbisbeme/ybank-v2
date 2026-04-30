@@ -1,43 +1,46 @@
 'use client'
 
 import { RefObject } from 'react';
-import { useRouter } from 'next/navigation'; // 💡 1. Importamos el router
-import UniversalCard from '../Tarjetas/UniversalCard';
 import { Account } from '@/types';
+import UniversalCard from '../Tarjetas/UniversalCard';
 
 interface DesktopAccountsProps {
-  accounts: Account[]; 
+  accounts: Account[];
   scrollRef: RefObject<HTMLDivElement | null>;
+  activeId?: string;
 }
 
-export default function DesktopAccounts({ accounts, scrollRef }: DesktopAccountsProps) {
-  const router = useRouter(); // 💡 2. Inicializamos el router
-
+export default function DesktopAccounts({ accounts, scrollRef, activeId }: DesktopAccountsProps) {
+  
   return (
     <div 
       ref={scrollRef}
-      className="flex gap-6 overflow-x-auto snap-x snap-mandatory scrollbar-hide py-4 -my-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      // 💡 FIX 1: Removimos el padding lateral (px-2) del contenedor. 
+      // Así aseguramos que el 100% del ancho sea matemáticamente exacto para las 3 tarjetas.
+      className="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-8 pt-2 hide-scrollbar w-full"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
-      {accounts.map((acc) => (
-        <div 
-          key={acc.id} 
-          // 💡 3. Añadimos 'cursor-pointer' a las clases
-          className="min-w-[calc(50%-12px)] xl:min-w-[calc(33.333%-16px)] shrink-0 aspect-[1.45/1] snap-start group cursor-pointer"
-          
-          // 💡 4. Añadimos el evento onClick para navegar
-          onClick={() => {
-            // Te lleva a la página de cuentas y carga automáticamente esta tarjeta
-            router.push(`/accounts?accountId=${acc.id}`);
-          }}
-        >
-          <div className="w-full h-full rounded-[28px] shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-md grid place-items-stretch">
+      {accounts.map((account) => {
+        const isSelected = activeId === account.id;
+
+        return (
+          <div
+            key={account.id}
+            className={`snap-start shrink-0 w-[calc((100%-40px)/3)] aspect-[1.58/1] cursor-pointer transition-all duration-300 ease-out origin-bottom
+              ${isSelected ? 'scale-[1.02] -translate-y-2' : 'hover:-translate-y-2 hover:shadow-xl'}
+            `}
+          >
             <UniversalCard 
-              account={acc} 
-              institution={acc.institution} 
+              account={account} 
+              institution={account.institution} 
             />
+            
+            {isSelected && (
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-full blur-[1px]" />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

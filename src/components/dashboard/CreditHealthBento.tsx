@@ -58,24 +58,26 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
     insightMessage = "Excelente manejo. Mantener tu uso bajo el 30% asegura la mejor calificación crediticia.";
   }
 
-  // 💡 Paleta de Colores Dinámica (Ajustada para legibilidad en Dark Mode)
+  // 💡 Paleta de Colores Dinámica
+  // Usamos clases completas para que Tailwind las compile correctamente
   const theme = isHealthy 
-    ? { text: 'text-white', bg: 'bg-white', badgeBg: 'bg-blue-600', badgeText: 'text-white' }
+    ? { text: 'text-foreground', bg: 'bg-foreground', badgeBg: 'bg-blue-600', glow: 'bg-foreground' }
     : isWarning 
-    ? { text: 'text-amber-400', bg: 'bg-amber-500', badgeBg: 'bg-amber-500/20', badgeText: 'text-amber-400' }
-    : { text: 'text-rose-400', bg: 'bg-rose-500', badgeBg: 'bg-rose-500/20', badgeText: 'text-rose-400' };
+    ? { text: 'text-amber-500', bg: 'bg-amber-500', badgeBg: 'bg-amber-500/10', glow: 'bg-amber-500' }
+    : { text: 'text-rose-500', bg: 'bg-rose-500', badgeBg: 'bg-rose-500/10', glow: 'bg-rose-500' };
 
   return (
-    // 💡 Dark Mode, Bordes a 10px
-    <div className="bg-slate-950 p-6 rounded-[10px] border border-slate-800 h-full flex flex-col justify-between group relative overflow-hidden transition-colors hover:border-slate-700">
+    <div className="bg-card p-6 rounded-[10px] border border-border h-full flex flex-col justify-between group relative overflow-hidden shadow-sm transition-colors hover:border-primary/50">
       
+      {/* Glow de fondo dinámico - sutil */}
+
       {/* Header técnico */}
       <div className="flex justify-between items-start relative z-10">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Zap size={16} className="opacity-70" />
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Zap size={16} className={theme.text} />
           <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Score Shield</span>
         </div>
-        <div className={`px-2 py-1 rounded-[6px] text-[9px] font-black tracking-widest uppercase shadow-sm ${theme.badgeBg} ${theme.badgeText}`}>
+        <div className={`px-2 py-1 rounded-md text-[9px] font-black tracking-widest uppercase ${theme.badgeBg} text-white`}>
           {isHealthy ? 'ÓPTIMO' : isWarning ? 'ELEVADO' : 'RIESGO'}
         </div>
       </div>
@@ -84,49 +86,50 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
       <div className="mt-6 relative z-10 space-y-4">
         <div className="flex items-end justify-between">
           <div>
-            <h3 className="text-5xl font-mono font-bold text-white tracking-tighter">
-              {creditStats.utilization}<span className="text-2xl text-slate-500 ml-1 font-sans">%</span>
+            <h3 className="text-5xl font-mono font-bold text-foreground tracking-tighter">
+              {creditStats.utilization}<span className="text-2xl text-muted-foreground ml-1 font-sans">%</span>
             </h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
               Uso del Límite
             </p>
           </div>
           
           <div className="text-right">
-            <p className="text-sm font-mono font-bold text-white">{formattedAvailable}</p>
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Crédito Disponible</p>
+            <p className="text-sm font-mono font-bold text-foreground">{formattedAvailable}</p>
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Crédito Disponible</p>
           </div>
         </div>
         
-        {/* 💡 Progress Bar Flat (Sin sombra interna) */}
-        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+        {/* Progress Bar YBANK */}
+        <div className="h-2 w-full bg-surface-2 border border-border rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${creditStats.utilization}%` }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-            className={`h-full ${theme.bg}`}
+            // 💡 La barra será negra/blanca (foreground) si está Óptimo
+            className={`h-full ${theme.bg} shadow-[inset_0_1px_3px_rgba(255,255,255,0.3)]`}
           />
         </div>
       </div>
 
       {/* Insight Crediticio Proactivo */}
       <div className="mt-6 relative z-10">
-        {/* 💡 Fondo de la caja de asesoramiento ajustado para contrastar con el fondo oscuro principal */}
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex gap-3 items-start">
+        <div className="bg-surface-2 border border-border p-3.5 rounded-xl flex gap-3 items-start">
           <div className="mt-0.5">
             {creditStats.nearestCutoff <= 5 ? (
                <CalendarClock size={16} className="text-amber-500" />
             ) : isHealthy ? (
-               <ShieldCheck size={16} className="text-blue-500" />
+               // 💡 Ícono monocromático en estado saludable
+               <ShieldCheck size={16} className="text-foreground" />
             ) : (
                <AlertTriangle size={16} className={theme.text} />
             )}
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
               {creditStats.nearestCutoff <= 5 ? `Corte en ${creditStats.nearestCutoff} días` : 'Asesor crediticio'}
             </p>
-            <p className="text-xs text-slate-300 font-medium leading-relaxed">
+            <p className="text-xs text-foreground/80 font-medium leading-relaxed">
               {insightMessage}
             </p>
           </div>

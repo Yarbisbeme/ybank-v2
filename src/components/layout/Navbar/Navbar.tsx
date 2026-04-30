@@ -1,8 +1,9 @@
 "use client";
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, Bell, User as UserIcon, Menu, X, 
-  LayoutDashboard, WalletCards, Settings, LogOut, Plus, PlusCircle
+  Search, Bell, Menu, X, 
+  LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle
 } from 'lucide-react';
 import { NavbarProps } from '@/types';
 import Link from 'next/link';
@@ -16,13 +17,12 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
-  const [avatarError, setAvatarError] = useState(false); // 💡 Estado para el fallback de la imagen
+  const [avatarError, setAvatarError] = useState(false); 
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     accounts: false, transactions: false, tags: false
   });
 
-  // Atajos de teclado para el buscador
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -38,7 +38,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Bloquear scroll al abrir el menú móvil
   useEffect(() => {
     if (isMobileMenuOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'auto';
@@ -47,7 +46,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
-  // Lógica del buscador global
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [] };
     const query = searchQuery.toLowerCase();
@@ -67,36 +65,35 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   return (
     <>
-      {/* 💡 CABECERA SUPERIOR */}
-      {/* Borde suavizado a border-slate-100 */}
-      <header className="sticky top-0 z-[60] h-16 bg-white/95 backdrop-blur-md flex items-center justify-between px-4 md:px-8 lg:px-12 border-b border-slate-100">
+      {/* 💡 CABECERA SUPERIOR YBANK: Temas Dinámicos y Bordes Rígidos */}
+      <header className="sticky top-0 z-[60] h-16 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8 lg:px-12 border-b border-border transition-colors">
 
         <div className="flex items-center gap-3">
           
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden p-2 -ml-2 text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+            className="md:hidden p-2 -ml-2 text-foreground hover:bg-surface-2 rounded-[6px] transition-colors"
           >
-            <Menu size={24} />
+            <Menu size={20} strokeWidth={2.5} />
           </button>
           
           <div className="md:hidden flex flex-row items-center cursor-pointer"> 
             <Image 
               src="/icons/logoY.svg" 
               alt="YBank" 
-              width={28}
-              height={28}
+              width={24}
+              height={24}
               priority
-              className="w-[28px] h-auto object-contain"
+              className="w-[24px] h-auto object-contain dark:invert"
             />
-            <span className="text-black font-bold text-[22px] tracking-tight ml-1.5 mt-0.5">
+            <span className="text-foreground font-bold text-[20px] tracking-tighter ml-1.5 mt-0.5">
                 Bank
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
-            {/* 💡 Avatar Inteligente Desktop */}
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center text-blue-600 font-bold text-lg shrink-0">
+          <div className="hidden md:flex items-center gap-3">
+            {/* 💡 Avatar Inteligente Desktop: Flat y sin bordes llamativos */}
+            <div className="w-9 h-9 rounded-[10px] overflow-hidden border border-border bg-surface-2 flex items-center justify-center text-primary font-bold text-sm shrink-0">
               {user?.avatarUrl && !avatarError ? (
                 <img 
                   src={user.avatarUrl} 
@@ -109,120 +106,129 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               )}
             </div>
             <div className="flex flex-col">
-              <h1 className="text-sm font-semibold text-slate-900 tracking-tight">
-                {user?.name || 'Usuario'}
+              <h1 className="text-xs font-bold text-foreground tracking-tight leading-none">
+                {user?.name || 'Operador'}
               </h1>
-              <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-0.5">
-                {new Date().toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {/* 💡 Tipografía Forense YBANK para la fecha */}
+              <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">
+                {new Date().toLocaleDateString('es-DO', { weekday: 'long', day: '2-digit', month: 'short' }).replace(',', '')}
               </p>
             </div>
           </div>
 
         </div>
 
-        <div className="flex items-center gap-4 flex-1 justify-end">
+        <div className="flex items-center gap-3 flex-1 justify-end">
           
-          <button onClick={() => setIsSearchOpen(true)} className="hidden md:flex relative items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg py-2 px-4 text-slate-500 hover:bg-slate-100 transition-all w-full max-w-[240px]">
-            <Search size={16} />
-            <span className="text-sm">Buscar...</span>
-            <kbd className="ml-auto flex gap-1 opacity-70 text-[10px] font-medium font-mono"><span>⌘</span><span>K</span></kbd>
+          {/* 💡 Buscador Global: Estilo de comando de terminal */}
+          <button onClick={() => setIsSearchOpen(true)} className="hidden md:flex relative items-center gap-2 bg-surface-2 border border-border rounded-[8px] py-1.5 px-3 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all w-full max-w-[220px]">
+            <Search size={14} />
+            <span className="text-xs font-medium">Búsqueda Global...</span>
+            <kbd className="ml-auto flex gap-1 items-center bg-card border border-border px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold font-mono">
+              <span>⌘</span><span>K</span>
+            </kbd>
           </button>
 
-          <button onClick={() => setIsSearchOpen(true)} className="flex md:hidden items-center justify-center w-9 h-9 rounded-md text-slate-700 hover:bg-slate-100 transition-colors">
-            <Search size={18} />
+          <button onClick={() => setIsSearchOpen(true)} className="flex md:hidden items-center justify-center w-8 h-8 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors">
+            <Search size={18} strokeWidth={2.5} />
           </button>
           
           <Link 
             href="/accounts?newAccount=true" 
-            className="hidden md:flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+            // 💡 Botón YBANK: Rounded-[8px], contraste alto
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-[8px] text-xs font-bold hover:opacity-90 transition-opacity"
           >
-            <Plus size={16} /> Crear Cuenta
+            <Plus size={14} strokeWidth={2.5} /> Nuevo Nodo
           </Link>
 
-          <button className="flex items-center justify-center w-9 h-9 rounded-md text-slate-700 hover:bg-slate-100 transition-colors relative">
-            <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-blue-600 rounded-full border-2 border-white"></span>
+          <button className="flex items-center justify-center w-8 h-8 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors relative">
+            <Bell size={18} strokeWidth={2.5} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
           </button>
         </div>
       </header>
 
-      {/* 📱 MENÚ LATERAL MÓVIL */}
+      {/* 📱 MENÚ LATERAL MÓVIL YBANK */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 z-[200] bg-slate-900/20 backdrop-blur-sm md:hidden transition-opacity" 
+          // 💡 Fondo negro translúcido para que combine con dark mode
+          className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm md:hidden transition-opacity" 
           onClick={closeMenu} 
         />
       )}
 
-      {/* 💡 FIX 1: Usamos h-[100dvh] para anclarlo EXACTAMENTE al alto de la pantalla del celular */}
-      <div className={`fixed top-0 left-0 z-[210] h-[100dvh] w-[85%] max-w-[320px] bg-white border-r border-slate-200 transform transition-transform duration-300 ease-out md:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed top-0 left-0 z-[210] h-[100dvh] w-[85%] max-w-[320px] bg-card border-r border-border transform transition-transform duration-300 ease-out md:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
-        {/* 📦 BLOQUE 1: HEADER (Fijo arriba) - shrink-0 evita que se aplaste */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
+        {/* 📦 BLOQUE 1: HEADER */}
+        <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex flex-row items-center cursor-pointer" onClick={closeMenu}> 
             <Image 
               src="/icons/logoY.svg" 
               alt="YBank" 
-              width={28}
-              height={28}
+              width={24}
+              height={24}
               priority
-              className="w-[28px] h-auto object-contain"
+              className="w-[24px] h-auto object-contain dark:invert"
             />
-            <span className="text-black font-bold text-[22px] tracking-tight ml-1.5 mt-0.5">
+            <span className="text-foreground font-bold text-[20px] tracking-tighter ml-1.5 mt-0.5">
                 Bank
             </span>
           </div>
-          <button onClick={closeMenu} className="p-2 text-slate-500 hover:bg-slate-100 rounded-md transition-colors">
-            <X size={20} />
+          <button onClick={closeMenu} className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors">
+            <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
-        {/* 📦 BLOQUE 2: NAVEGACIÓN (Ocupa el centro, es el ÚNICO que hace scroll) */}
+        {/* 📦 BLOQUE 2: NAVEGACIÓN */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-4">
+            Módulos Core
+          </p>
           <SidebarLink 
             href="/dashboard" 
-            label="Inicio" 
+            label="Consola" 
             icon={LayoutDashboard} 
             isActive={pathname === '/dashboard'} 
             onClick={closeMenu} 
           />
           <SidebarLink 
             href="/accounts" 
-            label="Mis Cuentas" 
-            icon={WalletCards} 
+            label="Nodos" 
+            // 💡 Cambiamos WalletCards por Server
+            icon={Server} 
             isActive={pathname === '/accounts'} 
             onClick={closeMenu} 
           />
           <SidebarLink 
             href="/settings" 
-            label="Configuración" 
+            label="Preferencias" 
             icon={Settings} 
             isActive={pathname === '/settings'} 
             onClick={closeMenu} 
           />
         </nav>
 
-        {/* 📦 BLOQUE 3: FOOTER Y PERFIL (Fijo abajo, siempre visible) */}
-        <div className="p-5 border-t border-slate-100 flex flex-col gap-4 shrink-0 bg-white pb-safe">
+        {/* 📦 BLOQUE 3: FOOTER Y PERFIL */}
+        <div className="p-5 border-t border-border flex flex-col gap-4 shrink-0 bg-card pb-safe">
           
           <div className="grid grid-cols-2 gap-3" onClick={closeMenu}>
             <Link 
               href={`${pathname}?newTx=true`} 
-              className="flex items-center justify-center gap-2 bg-black text-white font-medium rounded-lg transition-transform active:scale-95 text-sm py-2.5 shadow-sm"
+              className="flex items-center justify-center gap-2 bg-foreground text-background font-bold rounded-[10px] transition-transform active:scale-95 text-xs py-2.5 shadow-sm"
             >
-              <PlusCircle size={16} /> Gasto
+              <PlusCircle size={14} /> Operación
             </Link>
             <Link 
               href="/accounts?newAccount=true" 
-              className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-800 font-medium rounded-lg hover:bg-slate-50 transition-all active:scale-95 text-sm py-2.5 shadow-sm"
+              className="flex items-center justify-center gap-2 bg-surface-2 border border-border text-foreground font-bold rounded-[10px] hover:border-primary/50 transition-all active:scale-95 text-xs py-2.5"
             >
-              <Plus size={16} /> Cuenta
+              <Plus size={14} /> Nodo
             </Link>
           </div>
           
-          <div className="flex flex-row items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+          <div className="flex flex-row items-center justify-between bg-surface-2 p-3 rounded-[10px] border border-border">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center text-blue-600 font-bold text-sm shrink-0">
+              <div className="w-8 h-8 rounded-[8px] overflow-hidden border border-border bg-card flex items-center justify-center text-primary font-bold text-xs shrink-0">
                 {user?.avatarUrl && !avatarError ? (
                   <img 
                     src={user.avatarUrl} 
@@ -231,21 +237,21 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
                     onError={() => setAvatarError(true)} 
                   />
                 ) : (
-                  <span>{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
+                  <span>{user?.name?.charAt(0).toUpperCase() || 'O'}</span>
                 )}
               </div>
               <div className="flex flex-col min-w-0 pr-2">
-                <h2 className="text-sm font-semibold text-slate-900 truncate leading-tight">{user?.name || 'Usuario'}</h2>
-                <p className="text-[10px] text-slate-500 truncate leading-tight">{user?.email || 'Mi Perfil'}</p>
+                <h2 className="text-xs font-bold text-foreground truncate leading-tight">{user?.name || 'Operador'}</h2>
+                <p className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground truncate leading-tight mt-0.5">{user?.email || 'SYSTEM_ADMIN'}</p>
               </div>
             </div>
 
             <button 
               onClick={() => { closeMenu(); signOut(); }} 
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors shrink-0"
+              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-[6px] transition-colors shrink-0"
               title="Cerrar Sesión"
             >
-              <LogOut size={18} strokeWidth={2} />
+              <LogOut size={16} strokeWidth={2.5} />
             </button>
           </div>
 
@@ -267,7 +273,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 }
 
 /* =========================================================
-   🧩 COMPONENTE DE NAVEGACIÓN: Minimalista y Corporativo
+   🧩 COMPONENTE DE NAVEGACIÓN YBANK: Minimalista y Técnico
    ========================================================= */
 
 interface SidebarLinkProps {
@@ -284,14 +290,14 @@ function SidebarLink({ href, label, icon: Icon, isActive, onClick }: SidebarLink
       href={href}
       onClick={onClick}
       className={`
-        flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
+        flex items-center gap-3 px-4 py-3 rounded-[10px] transition-all duration-200 font-bold text-sm
         ${isActive 
-          ? 'bg-slate-100/70 text-slate-900 font-semibold shadow-sm border border-slate-200/50' 
-          : 'text-slate-500 font-medium hover:bg-slate-50 hover:text-slate-800'} 
+          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm' 
+          : 'text-muted-foreground hover:text-foreground hover:bg-surface-2 border border-transparent'} 
       `}
     >
-      <Icon size={18} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
-      <span className={isActive ? 'text-slate-900' : 'text-slate-500'} >{label}</span>
+      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+      <span>{label}</span>
     </Link>
   );
 }

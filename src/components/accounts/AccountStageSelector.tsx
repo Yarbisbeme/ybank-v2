@@ -64,7 +64,7 @@ export default function AccountStackSelector({
   };
 
   return (
-    <div className="relative -mx-4 w-[calc(100%+2rem)] md:mx-0 md:w-full h-full flex items-center justify-center py-4 group">
+    <div className="relative w-full min-h-[300px] md:min-h-[420px] flex items-center justify-center py-12 group perspective-[1200px]">
       {/* BOTÓN PREVIO */}
       <button
         onClick={(e) => {
@@ -95,48 +95,49 @@ export default function AccountStackSelector({
           const offsetBase = isMobile ? 70 : 90;
 
           // 💡 AQUÍ ESTÁ LA MAGIA: Mayor contraste de escalas
+          // 💡 Variantes con Hack de Hardware Acceleration para Framer Motion
           const variants = {
             active: { 
               x: 0, 
               y: 0,
-              // 💡 Aumentamos la escala de la activa (antes 1.02/1.10)
-              scale: isMobile ? 1.08 : 1.15, 
+              z: 1,           // 👈 Obliga a Framer a usar translate3d siempre
+              scale: 1, 
               opacity: 1, 
               zIndex: 50,
               rotateY: 0,
-              filter: "blur(0px) brightness(1)" 
+              rotateZ: 0.001, // 👈 Hack mágico anti-pixelado para Chrome
+              filter: "brightness(1)"
             },
             prev1: { 
               x: -offsetBase, 
               y: -5,
-              // 💡 Reducimos la escala de las que están al lado (antes 0.95)
-              scale: 0.88, 
-              opacity: 1, 
+              z: -10, 
+              scale: 0.82, 
+              opacity: 0.95, 
               zIndex: 40,
               rotateY: 8, 
-              filter: "blur(0.5px) brightness(0.85)" 
+              filter: "brightness(0.75)" 
             },
             prev2: { 
               x: -(offsetBase * 1.8), 
               y: -10,
-              // 💡 Reducimos la escala de las que están más atrás (antes 0.85)
-              scale: 0.78, 
-              opacity: 1, 
+              z: -20,
+              scale: 0.72, 
+              opacity: 0.8, 
               zIndex: 30,
               rotateY: 15,
-              filter: "blur(1px) brightness(0.7)" 
+              filter: "brightness(0.55)" 
             },
             hiddenLeft: { x: -300, scale: 0.6, opacity: 0, zIndex: 20 },
-            
             next1: { 
               x: offsetBase, 
               y: -5,
-              // 💡 Igualamos la reducción de escala con prev1
-              scale: 0.88, 
-              opacity: 1, 
+              z: -10,
+              scale: 0.82, 
+              opacity: 0.95, 
               zIndex: 40, 
               rotateY: -8, 
-              filter: "blur(0.5px) brightness(0.85)" 
+              filter: "brightness(0.75)" 
             },
             hiddenRight: { x: '150%', scale: 0.8, opacity: 0, zIndex: 10 },
           };
@@ -153,18 +154,19 @@ export default function AccountStackSelector({
               dragElastic={0.15}
               onDragEnd={handleDragEnd}
               onClick={() => index !== activeIdx && handleSelection(index)}
-              style={{ transformOrigin: "center center", perspective: "1000px" }} 
-              // 💡 MAGIA RESPONSIVA: Max-height evita que la tarjeta crezca más de lo que la pantalla permite.
-              className="absolute w-[82vw] md:w-[85%] max-w-[420px] max-h-[260px] aspect-[1.586/1] cursor-grab active:cursor-grabbing preserve-3d"
+              // 💡 Trucos anti-pixelado mantenidos
+              style={{ 
+                transformOrigin: "center center", 
+                WebkitFontSmoothing: "antialiased",
+                transform: "translateZ(0)"
+              }} 
+              className={`absolute w-[82vw] md:w-[85%] max-w-[480px] max-h-[300px] aspect-[1.586/1] cursor-grab active:cursor-grabbing transition-shadow duration-500 rounded-[10px] ${
+                index === activeIdx 
+                  ? 'shadow-[0_20px_40px_rgba(0,0,0,0.15)] ring-1 ring-black/5' 
+                  : 'shadow-lg shadow-black/10'
+              }`}
             >
-              <div className={`
-                w-full h-full rounded-[24px] md:rounded-[40px] overflow-hidden transition-all duration-500
-                ${index === activeIdx 
-                  ? 'shadow-[0_20px_40px_rgba(0,0,0,0.2)] ring-1 ring-white/20' 
-                  : 'shadow-lg shadow-black/40'} 
-              `}>
-                <UniversalCard account={acc} institution={acc.institution} />
-              </div>
+              <UniversalCard account={acc} institution={acc.institution} />
             </motion.div>
           );
         })}
