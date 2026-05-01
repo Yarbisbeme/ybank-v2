@@ -1,27 +1,52 @@
-'use client'
+'use client';
 
-import { Account } from '@/types';
+import { useMemo } from 'react';
 import { Share2, Edit, Plus, Loader2 } from 'lucide-react';
-import { useModalStore } from '@/store/useModalStore'; // 💡 Importamos tu nuevo store
+import { useModalStore } from '@/store/useModalStore';
+import { useFilterStore } from '@/store/useFilterStore'; // 💡 Importamos el filtro
+import { useAccounts } from '@/hooks/useCatalogs';     // 💡 Importamos el hook de caché
 
-export default function AccountDetailsHeader({ account }: { account: Account }) {
-  // 💡 Extraemos la función openModal de Zustand
+export default function AccountDetailsHeader() {
   const openModal = useModalStore((state) => state.openModal);
+  const { accountId } = useFilterStore(); // Obtenemos el ID de la cuenta activa desde Zustand
   
+  // 1. Obtenemos las cuentas de la caché
+  const { data: accounts = [], isLoading } = useAccounts();
+
+  // 2. Determinamos qué cuenta mostrar (La seleccionada o la primera por defecto)
+  const activeAccount = useMemo(() => {
+    if (accounts.length === 0) return null;
+    return accounts.find(a => a.id === accountId) || accounts[0];
+  }, [accounts, accountId]);
+
+  // 3. Estado de carga discreto para el header
+  if (isLoading) {
+    return (
+      <div className="flex justify-center gap-4 pt-2 opacity-50">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col items-center gap-2 animate-pulse">
+            <div className="w-14 h-14 rounded-[10px] border border-border bg-surface-2" />
+            <div className="h-2 w-8 bg-surface-2 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!activeAccount) return null;
+
   return (
     <div className="flex justify-center gap-4 pt-2">
       <ActionButton 
         icon={<Plus size={20} />} 
         label="Add" 
-        // 💡 Abrimos el modal instantáneamente pasándole el payload
-        onClick={() => openModal('transaction', { accountId: account.id })}
+        onClick={() => openModal('transaction', { accountId: activeAccount.id })}
       />
       
       <ActionButton 
         icon={<Edit size={20} />} 
         label="Edit" 
-        // 💡 Abrimos el modal de cuenta instantáneamente
-        onClick={() => openModal('account', { accountId: account.id })}
+        onClick={() => openModal('account', { accountId: activeAccount.id })}
       />
       
       <ActionButton 
@@ -29,15 +54,13 @@ export default function AccountDetailsHeader({ account }: { account: Account }) 
         label="Share" 
         onClick={() => {
           // Lógica futura para compartir (ej. navigator.share o copiar al portapapeles)
-          console.log("Compartir cuenta:", account.name);
+          console.log("Compartir cuenta:", activeAccount.name);
         }}
       />
     </div>
   );
 }
 
-// 💡 El ActionButton se queda igual para conservar tu excelente diseño visual, 
-// aunque ya no necesite el estado de 'isLoading' por ahora.
 function ActionButton({ 
   icon, 
   label, 

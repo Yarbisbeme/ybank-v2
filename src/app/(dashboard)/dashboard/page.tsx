@@ -23,7 +23,7 @@ export default async function DashboardPage() {
         <AccountCarousel />
       </div>
 
-      <section className="pt-8 sm:pt-0">
+      <section className="sm:pt-0">
         <div className="flex items-center gap-2 mb-6">
            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
              Registro de Operaciones

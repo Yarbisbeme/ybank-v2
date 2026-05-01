@@ -102,6 +102,15 @@ export default function AccountCarousel() {
 
       {/* VERSIÓN MÓVIL */}
       <div className="block md:hidden">
+        <div className="flex items-center justify-center gap-2">
+              <Zap size={16} className="text-muted-foreground" />
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                Ecosistema de Nodos
+              </h2>
+              <span className="ml-2 px-2 py-0.5 rounded-[4px] bg-surface-2 border border-border text-[9px] font-mono font-bold text-foreground">
+                {accounts.length}
+              </span>
+        </div>
         <MobileWalletStack accounts={accounts} />
       </div>
     </section>

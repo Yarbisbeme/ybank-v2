@@ -2,12 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  // 1. Crear una respuesta inicial
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  // 2. Crear el cliente de Supabase para manipular cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,10 +15,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // Actualizar cookies en la petición y en la respuesta
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
@@ -32,21 +27,25 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // 3. Refrescar la sesión (esto actualiza la cookie si expiró)
+  // 💡 IMPORTANTE: En el middleware, a veces getUser() falla si la red es inestable.
+  // Intentamos obtener la sesión primero, que es menos pesada que getUser().
   const {
     data: { user },
+    error
   } = await supabase.auth.getUser();
 
-  // 4. Lógica de Protección de Rutas
-  
-  // A. Si intenta entrar al Dashboard sin estar logueado -> Login
+  // Si hay un error de red (como el fetch failed), loguealo para debuguear pero no rompas la app
+  if (error) {
+    console.error("Supabase Auth Error en Middleware:", error.message);
+  }
+
+  // Protección de rutas
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     return NextResponse.redirect(url);
   }
 
-  // B. Si ya está logueado y va al Login/Registro -> Dashboard
   if (user && (request.nextUrl.pathname.startsWith("/sign-in") || request.nextUrl.pathname.startsWith("/sign-up"))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";

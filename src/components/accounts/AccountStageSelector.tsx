@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import UniversalCard from '../Tarjetas/UniversalCard';
-import { Account } from '@/types';
+import { useAccounts } from '@/hooks/useCatalogs'; 
+import { useFilterStore } from '@/store/useFilterStore'; 
 
+/**
+ * Hook para detectar si el dispositivo es móvil
+ */
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -18,30 +22,64 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function AccountStackSelector({ 
-  accounts, 
-  activeId 
-}: { 
-  accounts: Account[], 
-  activeId?: string 
-}) {
+export default function AccountStackSelector({ initialAccountId }: { initialAccountId?: string }) {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { setFilter, accountId: activeFilterId } = useFilterStore();
   
-  const initialIdx = accounts.findIndex(acc => acc.id === activeId);
-  const [activeIdx, setActiveIdx] = useState(initialIdx !== -1 ? initialIdx : 0);
+  // 1. Obtención de datos desde la caché global
+  const { data: accounts = [], isLoading } = useAccounts();
+  
+  // 2. Estado local para el índice visual
+  const [activeIdx, setActiveIdx] = useState(0);
 
+  // 3. Sincronización del estado global y visual
   useEffect(() => {
-    const newIdx = accounts.findIndex(acc => acc.id === activeId);
-    if (newIdx !== -1 && newIdx !== activeIdx) {
+    if (accounts.length === 0) return;
+    
+    // Prioridad: Estado global -> Parámetro URL -> Primera cuenta disponible
+    const targetId = activeFilterId || initialAccountId || accounts[0].id;
+    const newIdx = accounts.findIndex(acc => acc.id === targetId);
+    
+    if (newIdx !== -1) {
       setActiveIdx(newIdx);
+      if (activeFilterId !== accounts[newIdx].id) {
+        setFilter('accountId', accounts[newIdx].id);
+      }
     }
-  }, [activeId, accounts]);
+  }, [accounts, initialAccountId, activeFilterId, setFilter]);
 
+  // 4. Definición de Variantes de Animación optimizadas
+  const variants = useMemo(() => {
+    const offsetBase = isMobile ? 70 : 90;
+    return {
+      active: { 
+        x: 0, y: 0, z: 1, scale: 1, opacity: 1, zIndex: 50,
+        rotateY: 0, rotateZ: 0.001, filter: "brightness(1)"
+      },
+      prev1: { 
+        x: -offsetBase, y: -5, z: -10, scale: 0.82, 
+        opacity: 0.95, zIndex: 40, rotateY: 8, filter: "brightness(0.75)" 
+      },
+      prev2: { 
+        x: -(offsetBase * 1.8), y: -10, z: -20, scale: 0.72, 
+        opacity: 0.8, zIndex: 30, rotateY: 15, filter: "brightness(0.55)" 
+      },
+      next1: { 
+        x: offsetBase, y: -5, z: -10, scale: 0.82, 
+        opacity: 0.95, zIndex: 40, rotateY: -8, filter: "brightness(0.75)" 
+      },
+      hiddenLeft: { x: -300, scale: 0.6, opacity: 0, zIndex: 20 },
+      hiddenRight: { x: '150%', scale: 0.8, opacity: 0, zIndex: 10 },
+    };
+  }, [isMobile]);
+
+  // Handlers de navegación
   const handleSelection = (index: number) => {
-    setActiveIdx(index);
     const selectedId = accounts[index]?.id;
     if (selectedId) {
+      setActiveIdx(index);
+      setFilter('accountId', selectedId);
       router.push(`/accounts?accountId=${selectedId}`, { scroll: false });
     }
   };
@@ -63,8 +101,19 @@ export default function AccountStackSelector({
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[300px] flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary/30" size={40} />
+      </div>
+    );
+  }
+
+  if (accounts.length === 0) return null;
+
   return (
     <div className="relative w-full min-h-[300px] md:min-h-[420px] flex items-center justify-center py-12 group perspective-[1200px]">
+      
       {/* BOTÓN PREVIO */}
       <button
         onClick={(e) => {
@@ -72,7 +121,7 @@ export default function AccountStackSelector({
           handlePrev();
         }}
         disabled={activeIdx === 0}
-        className={`hidden md:flex absolute left-8 top-1/2 -translate-y-1/2 z-[60] p-3 rounded-full bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-slate-200 transition-all duration-300 ${
+        className={`hidden md:flex absolute left-8 top-1/2 -translate-y-1/2 z-[60] p-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg border border-slate-200 transition-all duration-300 ${
           activeIdx === 0 
             ? 'opacity-0 translate-x-4 pointer-events-none'
             : 'opacity-100 hover:bg-white hover:scale-110 active:scale-95'
@@ -83,64 +132,13 @@ export default function AccountStackSelector({
 
       <AnimatePresence initial={false}>
         {accounts.map((acc, index) => {
+          // Lógica de estados visuales
           let state = "hiddenRight"; 
-          
           if (index === activeIdx) state = "active";
           else if (index === activeIdx - 1) state = "prev1";
           else if (index === activeIdx - 2) state = "prev2";
           else if (index < activeIdx - 2) state = "hiddenLeft";
-          else if (index === activeIdx + 1) state = "next1"; 
-          else if (index > activeIdx + 1) state = "hiddenRight";
-
-          const offsetBase = isMobile ? 70 : 90;
-
-          // 💡 AQUÍ ESTÁ LA MAGIA: Mayor contraste de escalas
-          // 💡 Variantes con Hack de Hardware Acceleration para Framer Motion
-          const variants = {
-            active: { 
-              x: 0, 
-              y: 0,
-              z: 1,           // 👈 Obliga a Framer a usar translate3d siempre
-              scale: 1, 
-              opacity: 1, 
-              zIndex: 50,
-              rotateY: 0,
-              rotateZ: 0.001, // 👈 Hack mágico anti-pixelado para Chrome
-              filter: "brightness(1)"
-            },
-            prev1: { 
-              x: -offsetBase, 
-              y: -5,
-              z: -10, 
-              scale: 0.82, 
-              opacity: 0.95, 
-              zIndex: 40,
-              rotateY: 8, 
-              filter: "brightness(0.75)" 
-            },
-            prev2: { 
-              x: -(offsetBase * 1.8), 
-              y: -10,
-              z: -20,
-              scale: 0.72, 
-              opacity: 0.8, 
-              zIndex: 30,
-              rotateY: 15,
-              filter: "brightness(0.55)" 
-            },
-            hiddenLeft: { x: -300, scale: 0.6, opacity: 0, zIndex: 20 },
-            next1: { 
-              x: offsetBase, 
-              y: -5,
-              z: -10,
-              scale: 0.82, 
-              opacity: 0.95, 
-              zIndex: 40, 
-              rotateY: -8, 
-              filter: "brightness(0.75)" 
-            },
-            hiddenRight: { x: '150%', scale: 0.8, opacity: 0, zIndex: 10 },
-          };
+          else if (index === activeIdx + 1) state = "next1";
 
           return (
             <motion.div
@@ -154,7 +152,6 @@ export default function AccountStackSelector({
               dragElastic={0.15}
               onDragEnd={handleDragEnd}
               onClick={() => index !== activeIdx && handleSelection(index)}
-              // 💡 Trucos anti-pixelado mantenidos
               style={{ 
                 transformOrigin: "center center", 
                 WebkitFontSmoothing: "antialiased",
@@ -172,14 +169,14 @@ export default function AccountStackSelector({
         })}
       </AnimatePresence>
 
-      {/* BOTÓN NEXT */}
+      {/* BOTÓN SIGUIENTE */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           handleNext();
         }}
         disabled={activeIdx === accounts.length - 1}
-        className={`hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 z-[60] p-3 rounded-full bg-white/80 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-slate-200 transition-all duration-300 ${
+        className={`hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 z-[60] p-3 rounded-full bg-white/80 backdrop-blur-md shadow-lg border border-slate-200 transition-all duration-300 ${
           activeIdx === accounts.length - 1 
             ? 'opacity-0 -translate-x-4 pointer-events-none'
             : 'opacity-100 hover:bg-white hover:scale-110 active:scale-95'
