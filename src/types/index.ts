@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 // 1. VALORES FIJOS Y TIPOS GLOBALES
 // ==========================================
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'payment';
+export type ModalType = 'transaction' | 'account' | 'tag' | null;
 export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'cash';
 export type CurrencyCode = 'DOP' | 'USD';
 // 💡 Corrección: PascalCase
@@ -256,4 +257,22 @@ export interface SmartRateResult {
   margin: number;         
   operation: operation; 
   institutionName: string; 
+}
+
+export interface ModalState {
+  isOpen: boolean;
+  type: ModalType;
+  payload: { accountId?: string | null; transactionId?: string | null; categoryId?: string | null } | null;
+  openModal: (type: ModalType, payload?: ModalState['payload']) => void;
+  closeModal: () => void;
+}
+
+export interface FilterState {
+  type: string | null;
+  categoryId: string | null;
+  tagId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  setFilter: (key: keyof Omit<FilterState, 'setFilter' | 'clearFilters'>, value: string | null) => void;
+  clearFilters: () => void;
 }

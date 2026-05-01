@@ -5,25 +5,24 @@ import Link from "next/link";
 interface ButtonOlaProps {
   label: string;
   href?: string;
+  onClick?: () => void;
 }
 
-export function ButtonOla({ label, href = "" }: ButtonOlaProps) {
-  return (
-    <Link
-      href={href}
-      className="
-        group relative flex items-center justify-center overflow-hidden
-        bg-black px-8 py-3 font-semibold text-white rounded-lg
-        transition-shadow duration-300
-        hover:shadow-[0_0_40px_rgba(1,121,254,0.45)]
-      "
-    >
-      {/* TEXTO */}
+export function ButtonOla({ label, href, onClick }: ButtonOlaProps) {
+  
+  const containerClasses = `
+    group relative flex items-center justify-center overflow-hidden
+    bg-black px-8 py-3 font-semibold text-white rounded-lg
+    transition-shadow duration-300 w-full
+    hover:shadow-[0_0_40px_rgba(1,121,254,0.45)]
+  `;
+
+  const innerContent = (
+    <>
       <span className="relative z-30 tracking-wide">
         {label}
       </span>
 
-      {/* CONTENEDOR DE TRANSICIÓN (OLAS) */}
       <div
         className="
           absolute inset-0 z-10 h-[200%] w-[200%]
@@ -33,17 +32,13 @@ export function ButtonOla({ label, href = "" }: ButtonOlaProps) {
           group-hover:translate-y-[-20%]
         "
       >
-        {/* Ola profunda */}
         <WaveLayer color="#014ba0" className="opacity-30" />
 
-        {/* Ola principal */}
         <WaveLayer color="#0179FE" className="opacity-80 translate-y-2" />
 
-        {/* Relleno base */}
         <div className="absolute -bottom-[98%] left-0 h-full w-full bg-[#0179FE]" />
       </div>
 
-      {/* OVERLAY FINAL — AZUL SÓLIDO */}
       <div
         className="
           pointer-events-none
@@ -54,11 +49,24 @@ export function ButtonOla({ label, href = "" }: ButtonOlaProps) {
           group-hover:opacity-100
         "
       />
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={containerClasses}>
+        {innerContent}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={href || "#"} className={containerClasses}>
+      {innerContent}
     </Link>
   );
 }
 
-/* ---------- Subcomponentes ---------- */
 
 function WaveLayer({
   color,

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { 
   ArrowDownCircle, ArrowUpCircle, RefreshCw, Calendar, 
   Grid as GridIcon, CreditCard, AlignLeft, Send, Trash2,
-  Info // 💡 Importamos Info para nuestro nuevo banner
+  Info 
 } from 'lucide-react';
 import { Account, Tag, Category } from '@/types'; 
 import TagInput from './TagInput';
@@ -12,7 +12,7 @@ import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
 import { saveTransaction, deleteTransaction } from '@/lib/actions/transactions'; 
 import { toast } from 'sonner';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+// 🗑️ ELIMINADO: import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
 
@@ -21,7 +21,8 @@ interface TransactionFormProps {
   tags: Tag[]; 
   categories: Category[];
   initialData?: any; 
-  onSuccess?: () => void;
+  defaultAccountId?: string | null; // 💡 NUEVO: Recibido desde Zustand/Wrapper
+  onSuccess: () => void; // 💡 NUEVO: Ahora es obligatorio para cerrar el modal
 }
 
 const getSafeType = (rawType?: string): TransactionType => {
@@ -31,23 +32,22 @@ const getSafeType = (rawType?: string): TransactionType => {
   return 'expense'; 
 };
 
-export default function TransactionForm({ accounts, tags, categories, initialData, onSuccess }: TransactionFormProps) {
+export default function TransactionForm({ accounts, tags, categories, initialData, defaultAccountId, onSuccess }: TransactionFormProps) {
 
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  // 🗑️ ELIMINADO: router, pathname, y searchParams
   const dateInputRef = useRef<HTMLInputElement>(null);
   
   const isEditing = !!initialData;
   const hasExistingSplit = isEditing && initialData?.items && initialData.items.length > 0;
-  const accountIdFromUrl = searchParams.get('account_id') || searchParams.get('accountId');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
   const [amount, setAmount] = useState(initialData?.amount?.toString() || '');
-  const [accountId, setAccountId] = useState(initialData?.account_id || accountIdFromUrl || '');
+  
+  // 💡 USAMOS EL defaultAccountId
+  const [accountId, setAccountId] = useState(initialData?.account_id || defaultAccountId || '');
   const [note, setNote] = useState(initialData?.note || '');
   const [categoryId, setCategoryId] = useState(initialData?.categoryId || '');
   const [destinationAccountId, setDestinationAccountId] = useState(initialData?.destinationAccountId || '');
@@ -72,7 +72,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
 
   useEffect(() => {
     if (initialData) {
-      // 💡 FIX 2: Sincronizamos la misma lectura cuando el initialData cambia
       setType(getSafeType(initialData.type));
       setAmount(initialData.amount?.toString() || '');
       setAccountId(initialData.account_id || '');
@@ -115,7 +114,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     e.preventDefault();
     if (isSubmitting) return;
 
-    // Validación de desglose (Solo si no estamos en modo "solo padre")
     if (!hasExistingSplit && type === 'expense' && isSplit) {
       const splitTotal = items.reduce((sum, item) => sum + Number(item.unit_price || 0), 0);
       if (Math.abs(splitTotal - Number(amount)) > 0.01) { 
@@ -130,7 +128,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
 
     setIsSubmitting(true);
     
-    // 💡 Modificamos el Payload de manera inteligente
     const payload: any = { 
       id: initialData?.id, 
       type, 
@@ -140,8 +137,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       tagIds: selectedTags 
     };
 
-    // Si tiene un desglose existente, NO enviamos ni el monto, ni las categorías, ni los ítems. 
-    // Solo actualizamos los datos informativos del padre (Cuenta, Fecha, Nota).
     if (!hasExistingSplit) {
       payload.amount = amount;
       if (type === 'transfer') {
@@ -156,9 +151,9 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       const result = await saveTransaction(payload);
       
       if (result.success) {
-        if (onSuccess) onSuccess(); 
-        else router.push(pathname, { scroll: false });
         toast.success(isEditing ? 'Transacción actualizada' : 'Transacción creada');
+        // 💡 CERRAMOS EL MODAL INSTANTÁNEAMENTE
+        onSuccess(); 
       } else {
         toast.error(result.error || 'Ocurrió un error');
         setIsSubmitting(false); 
@@ -177,7 +172,8 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       const result = await deleteTransaction(initialData.id);
       if (result.success) {
         toast.success('Transacción eliminada correctamente');
-        if (onSuccess) onSuccess(); else router.push(pathname, { scroll: false });
+        // 💡 CERRAMOS EL MODAL INSTANTÁNEAMENTE
+        onSuccess(); 
       } else { 
         toast.error(result.error || 'No se pudo eliminar');
         setIsDeleting(false);
@@ -213,7 +209,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
               placeholder="0.00" 
               value={amount} 
               onChange={handleAmountChange} 
-              disabled={hasExistingSplit} // 💡 Bloqueamos el monto si hay desglose
+              disabled={hasExistingSplit}
               required 
               className="w-full max-w-[300px] bg-transparent border-none outline-none text-center placeholder:text-slate-200 focus:ring-0 p-0 tracking-tighter disabled:opacity-60 disabled:cursor-not-allowed" 
               autoFocus={!isEditing} 
@@ -231,7 +227,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             </div>
           </div>
 
-          {/* 💡 MAGIA DE UX: Si ya está desglosada, ocultamos el componente y mostramos un aviso */}
           {hasExistingSplit ? (
             <div className="col-span-1 md:col-span-2 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-start gap-3">
               <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />

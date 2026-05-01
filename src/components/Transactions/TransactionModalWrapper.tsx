@@ -1,49 +1,76 @@
-import { getTransactionById } from '@/lib/actions/transactions';
-import { getAccounts } from '@/lib/actions/accounts';
-import { getTags } from '@/lib/actions/tags';
-import { getCategories } from '@/lib/actions/categories';
-import TransactionForm from './TransactionForm';
-import TransactionDetailView from './TransactionDetailView'; // 💡 1. Importamos el nuevo Recibo
-import UniversalModal from '../ui/UniversalModal';
+'use client'
 
-export default async function TransactionModalWrapper({ editTxId }: { editTxId?: string }) {
+import { useEffect, useState } from 'react';
+import { getTransactionById } from '@/lib/actions/transactions';
+import TransactionForm from './TransactionForm';
+import TransactionDetailView from './TransactionDetailView'; 
+import UniversalModal from '../ui/UniversalModal';
+import { Account, Tag, CategoryTree } from '@/types';
+import { Loader2 } from 'lucide-react';
+
+interface TransactionModalProps {
+  transactionId?: string | null;
+  defaultAccountId?: string | null;
+  accounts: Account[];
+  tags: Tag[];
+  categoriesTree: CategoryTree[];
+  onClose: () => void; // 💡 Para cerrar el modal desde aquí
+}
+
+export default function TransactionModalWrapper({ 
+  transactionId, 
+  defaultAccountId,
+  accounts, 
+  tags, 
+  categoriesTree,
+  onClose
+}: TransactionModalProps) {
   
-  // Obtenemos todos los datos necesarios en paralelo
-  const [accounts, tags, categoriesTree, initialData] = await Promise.all([
-    getAccounts(),
-    getTags(),
-    getCategories(),
-    editTxId ? getTransactionById(editTxId) : Promise.resolve(null)
-  ]);
+  const [initialData, setInitialData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(!!transactionId);
+
+  // 💡 Carga de datos optimizada en el cliente
+  useEffect(() => {
+    if (transactionId) {
+      getTransactionById(transactionId).then(data => {
+        setInitialData(data);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
+    }
+  }, [transactionId]);
 
   const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
-  
-  // 💡 2. Detectamos si la transacción es un desglose
   const hasSplitItems = initialData?.items && initialData.items.length > 0;
 
   return (
     <UniversalModal 
-      // 💡 3. Título dinámico
       title={
+        isLoading ? "Cargando..." :
         !initialData ? "Nueva Transacción" : 
         hasSplitItems ? "Detalle del Gasto" : "Editar Transacción"
       }
+      onClose={onClose}
     >
-      {/* 💡 4. EL ENRUTADOR INTERNO DEL MODAL */}
-      {hasSplitItems ? (
-        // Si tiene hijos, mostramos el Recibo de Lectura / Micro-edición
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+        </div>
+      ) : hasSplitItems ? (
         <TransactionDetailView 
           transaction={initialData} 
           categories={flatCategories} 
           accounts={accounts}
         />
       ) : (
-        // Si no tiene hijos (o es nueva), mostramos el formulario completo
         <TransactionForm 
           accounts={accounts} 
           tags={tags} 
           categories={flatCategories} 
           initialData={initialData} 
+          defaultAccountId={defaultAccountId} 
+          onSuccess={onClose} 
         />
       )}
     </UniversalModal>

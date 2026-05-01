@@ -1,64 +1,43 @@
 'use client'
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Account } from '@/types';
 import { Share2, Edit, Plus, Loader2 } from 'lucide-react';
+import { useModalStore } from '@/store/useModalStore'; // 💡 Importamos tu nuevo store
 
 export default function AccountDetailsHeader({ account }: { account: Account }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoadingAction(null);
-  }, [searchParams]);
-
-  const handleAction = (type: string, url: string) => {
-    if (loadingAction) return;
-
-    setLoadingAction(type);
-    router.push(url, { scroll: false });
-
-    setTimeout(() => {
-      setLoadingAction(prev => prev === type ? null : prev);
-    }, 2000);
-  };
+  // 💡 Extraemos la función openModal de Zustand
+  const openModal = useModalStore((state) => state.openModal);
   
   return (
-    // 💡 Redujimos el contenedor a solo agrupar los botones
     <div className="flex justify-center gap-4 pt-2">
       <ActionButton 
         icon={<Plus size={20} />} 
         label="Add" 
-        isLoading={loadingAction === 'add'}
-        disabled={!!loadingAction}
-        onClick={() => handleAction('add', `?accountId=${account.id}&newTx=true`)}
+        // 💡 Abrimos el modal instantáneamente pasándole el payload
+        onClick={() => openModal('transaction', { accountId: account.id })}
       />
       
       <ActionButton 
         icon={<Edit size={20} />} 
         label="Edit" 
-        isLoading={loadingAction === 'edit'}
-        disabled={!!loadingAction}
-        onClick={() => handleAction('edit', `?accountId=${account.id}&editAccountId=${account.id}`)}
+        // 💡 Abrimos el modal de cuenta instantáneamente
+        onClick={() => openModal('account', { accountId: account.id })}
       />
       
       <ActionButton 
         icon={<Share2 size={20} />} 
         label="Share" 
-        isLoading={loadingAction === 'share'}
-        disabled={!!loadingAction}
         onClick={() => {
-          setLoadingAction('share');
-          setTimeout(() => setLoadingAction(null), 1000);
+          // Lógica futura para compartir (ej. navigator.share o copiar al portapapeles)
+          console.log("Compartir cuenta:", account.name);
         }}
       />
     </div>
   );
 }
 
+// 💡 El ActionButton se queda igual para conservar tu excelente diseño visual, 
+// aunque ya no necesite el estado de 'isLoading' por ahora.
 function ActionButton({ 
   icon, 
   label, 
@@ -78,7 +57,6 @@ function ActionButton({
       disabled={disabled || isLoading}
       className="flex flex-col items-center gap-2 group cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 transition-all"
     >
-      {/* 💡 Identidad YBANK: rounded-[10px], shadow-sm y bordes sutiles */}
       <div className={`w-14 h-14 rounded-[10px] border flex items-center justify-center transition-all duration-300 shadow-sm
         ${isLoading 
           ? 'bg-blue-50/50 border-blue-200 text-blue-600' 

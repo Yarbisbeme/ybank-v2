@@ -46,7 +46,6 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
           💳 LA TARJETA (IN-PLACE EDITING)
           ========================================= */}
       <div 
-        // 💡 FIX 1: Añadido min-h-[220px] y flex flex-col para evitar desbordamientos si el texto es muy largo
         className={`@container relative z-40 w-full min-h-[220px] aspect-[1.586/1] rounded-[18px] overflow-visible shadow-2xl transition-colors duration-500 group flex flex-col ${textColor}`}
         style={{ backgroundColor: data.color }}
       >
@@ -64,12 +63,10 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
               <div className="absolute bottom-[15%] right-[15%] w-32 h-32 border border-white/20 rounded-2xl rotate-[35deg]" />
             </>
           )}
-          {/* Añade los demás patrones aquí si los tienes... */}
           <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
         </div>
 
         {/* === CONTENIDO INTERACTIVO === */}
-        {/* 💡 FIX 2: Reducido el padding vertical (p-5) para que respire mejor en espacios reducidos */}
         <div className="relative z-10 h-full p-5 md:p-6 flex flex-col justify-between flex-1">
           
           <div className="flex justify-between items-start relative z-50">
@@ -205,11 +202,11 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
           </div>
 
           {/* BODY: Nombre y Balance */}
-          {/* 💡 FIX 3: Cambiado mb-6 a mb-3 para no empujar el footer hacia abajo */}
           <div className="mt-auto mb-3">
+            {/* 💡 FIX 1: value={data.name || ''} para evitar el error null */}
             <input 
               type="text"
-              value={data.name}
+              value={data.name || ''}
               onChange={(e) => onChange('name', e.target.value)}
               placeholder="Ej. Ahorros Viaje"
               className={`text-[11px] font-bold uppercase tracking-[0.2em] mb-1 bg-transparent border-none p-1 -ml-1 rounded outline-none ring-2 ring-transparent transition-all ${secondaryOpacity} ${inputHoverClass} w-full placeholder:text-current placeholder:opacity-50`}
@@ -225,10 +222,11 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
                 <option value="USD" className="text-black">USD</option>
               </select>
 
+              {/* 💡 FIX 2: value={data.current_balance ?? ''} para evitar el error null y permitir 0 */}
               <input 
                 type="number"
                 step="0.01"
-                value={data.current_balance || ''}
+                value={data.current_balance ?? ''}
                 onChange={(e) => onChange('current_balance', Number(e.target.value))}
                 placeholder="0.00"
                 className={`text-[40px] leading-none font-bold tracking-tight bg-transparent border-none p-1 rounded outline-none ring-2 ring-transparent transition-all ${inputHoverClass} w-full max-w-[200px] placeholder:text-current placeholder:opacity-30`}
@@ -239,7 +237,6 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
           {/* FOOTER: Últimos 4 dígitos y Red */}
           <div className="flex justify-between items-end">
             <div className="flex items-center relative z-40">
-              {/* 💡 FIX 4: Reducido a solo 4 puntos para ahorrar espacio horizontal vital */}
               <span className={`text-[13px] font-mono tracking-[0.25em] ${secondaryOpacity} mr-1`}>••••</span>
               <input 
                 type="text"
@@ -265,11 +262,12 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
           <label 
             title="Cambiar color de la tarjeta"
             className="relative flex items-center justify-center w-8 h-8 rounded-full shadow-sm border-[3px] border-white cursor-pointer overflow-hidden transition-transform hover:scale-105 ring-1 ring-slate-200" 
-            style={{ backgroundColor: data.color }}
+            style={{ backgroundColor: data.color || '#0f172a' }}
           >
+            {/* 💡 FIX 3: value={data.color || '#0f172a'} para evitar el error null en el input de color */}
             <input 
               type="color" 
-              value={data.color}
+              value={data.color || '#0f172a'}
               onChange={(e) => onChange('color', e.target.value)}
               className="absolute inset-[-10px] w-12 h-12 opacity-0 cursor-pointer"
             />
@@ -287,7 +285,7 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
 
         {/* Selector de Patrón */}
         <select 
-          value={data.custom_pattern}
+          value={data.custom_pattern || 'geometric'} // 💡 FIX: Agregamos 'geometric' como fallback
           onChange={(e) => onChange('custom_pattern', e.target.value as CustomPattern)}
           className="text-xs font-bold text-slate-600 bg-transparent border-none focus:ring-0 cursor-pointer max-w-[100px]"
         >

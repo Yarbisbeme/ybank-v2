@@ -13,13 +13,8 @@ export default async function OnboardingPage() {
         redirect('/sign-in');
     }
 
-    // 🔍 ANALISIS DE QA: ¿Qué nos falta saber?
-    // 1. ¿Tiene nombre? (Si se registró por Email ya lo pedimos, si es Google viene en la metadata)
     const hasName = !!user?.user_metadata?.full_name;
     const institutions = await getInstitutions();
-    // 2. ¿Necesita configurar contraseña? 
-    // Solo si entró por Google y queremos que tenga una clave local, 
-    // O si quieres que todos pasen por este paso por seguridad.
     const needsPassword = !user?.app_metadata?.providers?.includes('email');
 
   return (

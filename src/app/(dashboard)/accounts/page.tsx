@@ -1,8 +1,6 @@
 import AccountDetailsHeader from '@/components/accounts/AccountDetailsHeader';
 import AccountStageSelector from '@/components/accounts/AccountStageSelector';
-import PageFilterBar from '@/components/Transactions/PageFilterBar';
 import TransactionModalWrapper from '@/components/Transactions/TransactionModalWrapper';
-// 💡 Asegúrate de importar el componente de tu modal de cuentas
 
 import { getAccounts } from '@/lib/actions/accounts';
 import { getTransactions } from '@/lib/actions/transactions';
@@ -11,24 +9,19 @@ import { getTags } from '@/lib/actions/tags';
 import { TransactionFilters as FilterType } from '@/types/database.types';
 import TransactionTable from '@/components/Transactions/RecentActivityTable';
 import { Zap } from 'lucide-react'; 
-import AccountFormWrapper from '@/components/accounts/AccountFormWrapper';
+import ModalProvider from '@/components/providers/ModalProvider';
+import { getInstitutions } from '@/lib/actions/institutions';
 
 export default async function AccountsPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
   
   const searchParams = await props.searchParams;
-  
-  // 💡 1. Variable para el modal de Transacciones (El botón "Add")
-  const isTransactionModalOpen = searchParams.newTx === 'true' || !!searchParams.editTx;
-  
-  // 💡 2. Variable para el modal de Cuentas (El botón "Edit")
-  const isAccountModalOpen = !!searchParams.editAccountId;
-  
   const accountId = searchParams.accountId;
 
-  const [accounts, categoriesTree, tags] = await Promise.all([
+  const [accounts, categoriesTree, tags, institutions] = await Promise.all([
     getAccounts(),
     getCategories(),
-    getTags()
+    getTags(),
+    getInstitutions()
   ]);
 
   const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
@@ -80,9 +73,6 @@ export default async function AccountsPage(props: { searchParams: Promise<{ [key
         
         <TransactionTable transactions={transactions} />
       </section>
-
-      {/* 💡 Renderizado condicional independiente para cada modal */}
-      {isTransactionModalOpen && ( <TransactionModalWrapper /> )}
     </div>
   );
 }
