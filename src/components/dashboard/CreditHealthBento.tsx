@@ -1,13 +1,16 @@
-'use client'
+'use client';
 
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Account } from '@/types';
-import { ShieldCheck, AlertTriangle, CalendarClock, Zap } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, CalendarClock, Zap, Loader2 } from 'lucide-react';
 import { useYBankStore } from '@/store/useYBankStore';
+import { useAccounts } from '@/hooks/useCatalogs';
 
-export default function CreditHealthBento({ accounts }: { accounts: Account[] }) {
+export default function CreditHealthBento() {
   const { currency, preferredRate } = useYBankStore();
+  
+  // 💡 2. Consumimos los datos de la caché global
+  const { data: accounts = [], isLoading } = useAccounts();
 
   const creditStats = useMemo(() => {
     // 1. Filtramos tarjetas
@@ -32,9 +35,18 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
     return { utilization, nearestCutoff, totalAvailable, cardCount: cards.length };
   }, [accounts]);
 
+  // 💡 3. Estado de carga elegante (Skeleton)
+  if (isLoading) {
+    return (
+      <div className="bg-card p-6 rounded-[10px] border border-border h-full animate-pulse flex flex-col justify-center items-center">
+        <Loader2 className="animate-spin text-primary/20" size={24} />
+      </div>
+    );
+  }
+
   if (!creditStats) return null;
 
-  // Conversión de moneda para el crédito disponible
+  // Conversión de moneda
   const displayAvailable = currency === 'USD' && preferredRate 
     ? creditStats.totalAvailable / preferredRate.rate 
     : creditStats.totalAvailable;
@@ -43,7 +55,6 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
     style: 'currency', currency: currency, minimumFractionDigits: 0
   }).format(displayAvailable);
 
-  // LÓGICA DE ASESORAMIENTO Y ESTADOS
   const isHealthy = creditStats.utilization <= 30;
   const isWarning = creditStats.utilization > 30 && creditStats.utilization < 60;
   
@@ -58,20 +69,15 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
     insightMessage = "Excelente manejo. Mantener tu uso bajo el 30% asegura la mejor calificación crediticia.";
   }
 
-  // 💡 Paleta de Colores Dinámica
-  // Usamos clases completas para que Tailwind las compile correctamente
   const theme = isHealthy 
-    ? { text: 'text-foreground', bg: 'bg-foreground', badgeBg: 'bg-blue-600', glow: 'bg-foreground' }
+    ? { text: 'text-foreground', bg: 'bg-foreground', badgeBg: 'bg-blue-600' }
     : isWarning 
-    ? { text: 'text-amber-500', bg: 'bg-amber-500', badgeBg: 'bg-amber-500/10', glow: 'bg-amber-500' }
-    : { text: 'text-rose-500', bg: 'bg-rose-500', badgeBg: 'bg-rose-500/10', glow: 'bg-rose-500' };
+    ? { text: 'text-amber-500', bg: 'bg-amber-500', badgeBg: 'bg-amber-500' }
+    : { text: 'text-rose-500', bg: 'bg-rose-500', badgeBg: 'bg-rose-500' };
 
   return (
     <div className="bg-card p-6 rounded-[10px] border border-border h-full flex flex-col justify-between group relative overflow-hidden shadow-sm transition-colors hover:border-primary/50">
       
-      {/* Glow de fondo dinámico - sutil */}
-
-      {/* Header técnico */}
       <div className="flex justify-between items-start relative z-10">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Zap size={16} className={theme.text} />
@@ -82,7 +88,6 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
         </div>
       </div>
 
-      {/* Main Metric */}
       <div className="mt-6 relative z-10 space-y-4">
         <div className="flex items-end justify-between">
           <div>
@@ -100,26 +105,22 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
           </div>
         </div>
         
-        {/* Progress Bar YBANK */}
         <div className="h-2 w-full bg-surface-2 border border-border rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${creditStats.utilization}%` }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-            // 💡 La barra será negra/blanca (foreground) si está Óptimo
             className={`h-full ${theme.bg} shadow-[inset_0_1px_3px_rgba(255,255,255,0.3)]`}
           />
         </div>
       </div>
 
-      {/* Insight Crediticio Proactivo */}
       <div className="mt-6 relative z-10">
         <div className="bg-surface-2 border border-border p-3.5 rounded-xl flex gap-3 items-start">
           <div className="mt-0.5">
             {creditStats.nearestCutoff <= 5 ? (
                <CalendarClock size={16} className="text-amber-500" />
             ) : isHealthy ? (
-               // 💡 Ícono monocromático en estado saludable
                <ShieldCheck size={16} className="text-foreground" />
             ) : (
                <AlertTriangle size={16} className={theme.text} />
@@ -135,7 +136,6 @@ export default function CreditHealthBento({ accounts }: { accounts: Account[] })
           </div>
         </div>
       </div>
-      
     </div>
   );
 }

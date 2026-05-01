@@ -5,7 +5,7 @@ import TransactionTable from './RecentActivityTable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
-export default function ClientTransactionTable({ initialTransactions }: { initialTransactions: any[] }) {
+export default function ClientTransactionTable({ initialTransactions = [] }: { initialTransactions?: any[] }) {
   const { data: transactions = [], isFetching } = useTransactionsList(initialTransactions);
 
   return (
