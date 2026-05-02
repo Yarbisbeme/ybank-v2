@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Download, Monitor, Smartphone, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 export default function PWAFooter() {
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -40,10 +41,20 @@ export default function PWAFooter() {
         
         {/* Info de la Compañía */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center border border-blue-600/20">
-            <Terminal size={14} className="text-blue-600" />
-          </div>
           <div>
+            <div className="md:hidden flex flex-row items-center cursor-pointer"> 
+                <Image 
+                    src="/icons/logoY.svg" 
+                    alt="YBank" 
+                    width={24}
+                    height={24}
+                    priority
+                    className="w-[24px] h-auto object-contain dark:invert"
+                />
+                <span className="text-foreground font-bold text-[22px] tracking-tighter">
+                    Bank
+                </span>
+            </div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">
               YBank Engine <span className="text-muted-foreground ml-1">v2.0</span>
             </p>
@@ -68,16 +79,6 @@ export default function PWAFooter() {
             </motion.button>
           )}
         </AnimatePresence>
-
-        {/* Badge de Estado (Solo se ve si ya es PWA) */}
-        {isStandalone && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">
-              Nativa Encrypted Mode
-            </span>
-          </div>
-        )}
 
       </div>
     </footer>

@@ -85,9 +85,9 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               width={24}
               height={24}
               priority
-              className="w-[24px] h-auto object-contain dark:invert"
+              className="w-[26px] h-auto object-contain dark:invert"
             />
-            <span className="text-foreground font-bold text-[22px] tracking-tighter">
+            <span className="text-foreground font-bold text-[24px] tracking-tighter">
                 Bank
             </span>
           </div>
@@ -163,9 +163,9 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               width={24}
               height={24}
               priority
-              className="w-[24px] h-auto object-contain dark:invert"
+              className="w-[26px] h-auto object-contain dark:invert"
             />
-            <span className="text-foreground font-bold text-[22px] tracking-tighter">
+            <span className="text-foreground font-bold text-[24px] tracking-tighter">
                 Bank
             </span>
           </div>
