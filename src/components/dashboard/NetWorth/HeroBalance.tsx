@@ -4,28 +4,28 @@ import { useState, useMemo } from 'react';
 import { useYBankStore } from '@/store/useYBankStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, TrendingUp, TrendingDown, CreditCard, Wallet, Loader2 } from 'lucide-react';
-import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs'; // 💡 1. Importamos los hooks
+import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs';
 import { AnimatedNumber } from './AnimatedNumber';
 import WeeklyActivityChart from './WeeklyActivityChart';
+// 💡 Importamos los tipos si los tienes definidos en tu carpeta de types
+import { Account, Transaction } from '@/types'; 
 
-// 💡 2. Eliminamos las Props de datos. Ya no las necesitamos.
 export default function HeroBalance() {
   const { currency, preferredRate, isCalculatingRate, setCurrency } = useYBankStore();
   const [includeCredit, setIncludeCredit] = useState(false);
 
-  // 💡 3. Consumimos los datos de la caché
   const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
   const { data: transactions = [], isLoading: isLoadingTx } = useTransactionsList();
 
-  // 💡 4. LÓGICA FINANCIERA (Calculada en tiempo real)
   const totals = useMemo(() => {
+    // 💡 Tipamos 'sum' como number y 'a' como Account
     const liquid = accounts
-      .filter(a => a.type !== 'credit_card')
-      .reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
+      .filter((a: Account) => a.type !== 'credit_card')
+      .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
     
     const debt = accounts
-      .filter(a => a.type === 'credit_card')
-      .reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
+      .filter((a: Account) => a.type === 'credit_card')
+      .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
 
     return { liquid, debt };
   }, [accounts]);
@@ -39,22 +39,22 @@ export default function HeroBalance() {
   const isNegative = displayBalance < 0;
   const absoluteBalance = Math.abs(displayBalance);
 
-  // 5. TENDENCIA MENSUAL (Optimizado)
   const trend = useMemo(() => {
     if (transactions.length === 0) return { percentage: 0, isUp: true };
     const now = new Date();
     const currentMonth = now.getMonth();
     
+    // 💡 Tipamos 'sum' como number y 'tx' como Transaction
     const currentMonthTotal = transactions
-      .filter(tx => new Date(tx.date).getMonth() === currentMonth)
-      .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+      .filter((tx: Transaction) => new Date(tx.date).getMonth() === currentMonth)
+      .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
 
     const lastMonthTotal = transactions
-      .filter(tx => {
+      .filter((tx: Transaction) => {
         const d = new Date(tx.date);
         return d.getMonth() === (currentMonth === 0 ? 11 : currentMonth - 1);
       })
-      .reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+      .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
 
     if (lastMonthTotal === 0) return { percentage: 0, isUp: currentMonthTotal >= 0 };
     const diff = ((currentMonthTotal - lastMonthTotal) / Math.abs(lastMonthTotal)) * 100;

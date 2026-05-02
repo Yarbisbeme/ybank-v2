@@ -262,7 +262,7 @@ export interface SmartRateResult {
 export interface ModalState {
   isOpen: boolean;
   type: ModalType;
-  payload: { accountId?: string | null; transactionId?: string | null; categoryId?: string | null } | null;
+  payload: { accountId?: string | null; transactionId?: string | null; categoryId?: string | null; initialData?: any; } | null;
   openModal: (type: ModalType, payload?: ModalState['payload']) => void;
   closeModal: () => void;
 }

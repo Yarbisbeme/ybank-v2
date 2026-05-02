@@ -25,15 +25,12 @@ export async function getCategories(): Promise<CategoryTree[]> {
 
   const allCategories = data as Category[]
   
-  // ALGORITMO DE ÁRBOL:
-  // 1. Encontramos los Padres (los que no tienen parent_id)
   const parents = allCategories.filter(c => !c.parent_id)
   
-  // 2. A cada Padre, le buscamos sus Hijos
   const tree: CategoryTree[] = parents.map(parent => ({
     ...parent,
     subcategories: allCategories.filter(child => child.parent_id === parent.id)
   }))
 
-  return tree
+  return JSON.parse(JSON.stringify(tree))
 }

@@ -34,10 +34,9 @@ export async function getAccounts() {
       console.error('Error al traer cuentas:', error)
       return []
     }
+    // 💡 PURIFICACIÓN:
+    return JSON.parse(JSON.stringify(data)) as Account[]
 
-    // Retornamos los datos. El alias 'institution' asegura que 
-    // acc.institution contenga el objeto del banco.
-    return data as unknown as Account[]
   } catch (error) {
     console.error('Error inesperado:', error)
     return []
@@ -63,7 +62,7 @@ export async function getAccountById(id: string) {
     .single()
 
   if (error) return null
-  return data as unknown as Account
+  return JSON.parse(JSON.stringify(data)) as Account
 }
 
 // =========================================================
@@ -101,7 +100,7 @@ export async function createAccount(input: CreateAccountInput) {
   revalidatePath('/dashboard')
   revalidatePath('/accounts') 
   
-  return { success: true, data } 
+  return { success: true, data: JSON.parse(JSON.stringify(data)) }
 }
 
 // =========================================================

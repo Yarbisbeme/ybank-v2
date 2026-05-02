@@ -11,44 +11,51 @@ import { Loader2 } from 'lucide-react';
 interface TransactionModalProps {
   transactionId?: string | null;
   defaultAccountId?: string | null;
+  initialData?: any; // 💡 Recibimos la data instantánea
   accounts: Account[];
   tags: Tag[];
   categoriesTree: CategoryTree[];
-  onClose: () => void; // 💡 Para cerrar el modal desde aquí
+  onClose: () => void;
 }
 
 export default function TransactionModalWrapper({ 
   transactionId, 
   defaultAccountId,
+  initialData: passedInitialData, // 💡 Lo renombramos para uso interno
   accounts, 
   tags, 
   categoriesTree,
   onClose
 }: TransactionModalProps) {
   
-  const [initialData, setInitialData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(!!transactionId);
+  // Si nos pasan la data, la usamos. Si no, empezamos en null.
+  const [data, setData] = useState<any>(passedInitialData || null);
+  // Si no tenemos data pero sí un ID, mostramos carga. Si ya hay data, NO cargamos.
+  const [isLoading, setIsLoading] = useState(!passedInitialData && !!transactionId);
 
-  // 💡 Carga de datos optimizada en el cliente
   useEffect(() => {
-    if (transactionId) {
-      getTransactionById(transactionId).then(data => {
-        setInitialData(data);
+    // Solo buscamos en la BD si nos pasaron un ID pero NO nos pasaron el objeto inicial
+    // (Por ejemplo, si abrimos el modal desde una URL compartida en el futuro)
+    if (!passedInitialData && transactionId) {
+      setIsLoading(true);
+      getTransactionById(transactionId).then(res => {
+        setData(res);
         setIsLoading(false);
       });
     } else {
+      setData(passedInitialData);
       setIsLoading(false);
     }
-  }, [transactionId]);
+  }, [transactionId, passedInitialData]);
 
   const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
-  const hasSplitItems = initialData?.items && initialData.items.length > 0;
+  const hasSplitItems = data?.items && data.items.length > 0;
 
   return (
     <UniversalModal 
       title={
         isLoading ? "Cargando..." :
-        !initialData ? "Nueva Transacción" : 
+        !data ? "Nueva Transacción" : 
         hasSplitItems ? "Detalle del Gasto" : "Editar Transacción"
       }
       onClose={onClose}
@@ -59,7 +66,7 @@ export default function TransactionModalWrapper({
         </div>
       ) : hasSplitItems ? (
         <TransactionDetailView 
-          transaction={initialData} 
+          transaction={data} 
           categories={flatCategories} 
           accounts={accounts}
         />
@@ -68,7 +75,7 @@ export default function TransactionModalWrapper({
           accounts={accounts} 
           tags={tags} 
           categories={flatCategories} 
-          initialData={initialData} 
+          initialData={data} 
           defaultAccountId={defaultAccountId} 
           onSuccess={onClose} 
         />

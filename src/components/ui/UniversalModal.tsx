@@ -1,55 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UniversalModalProps {
   children: React.ReactNode;
   title?: string; 
   maxWidth?: string;
-  // 💡 1. Añadimos la nueva propiedad para que Zustand pueda conectarse
-  onClose?: () => void; 
+  onClose: () => void; // 💡 Ahora es OBLIGATORIO para que Zustand tome el control
 }
 
 export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl', onClose }: UniversalModalProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [isOpen, setIsOpen] = useState(false);
+  // 💡 Usamos isVisible solo para manejar la animación de salida de Framer Motion
+  const [isVisible, setIsVisible] = useState(false);
 
-  // useEffect(() => { setIsOpen(true); }, []);
-  useEffect(() => { setIsOpen(true); }, [searchParams]);
+  useEffect(() => { 
+    setIsVisible(true); 
+  }, []);
 
   const handleClose = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     
-    setIsOpen(false);
+    // 1. Iniciamos la animación de salida
+    setIsVisible(false);
     
+    // 2. Esperamos a que termine la animación (300ms) y le avisamos a Zustand
     setTimeout(() => {
-      if (onClose) {
-        onClose();
-      } else {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete('newTx');
-        params.delete('editTx');
-        params.delete('newAccount');
-        params.delete('editAccountId');
-        
-        const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-        router.push(newUrl, { scroll: false });
-      }
+      onClose(); 
     }, 300); 
   };
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isVisible && (
         <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-6">
           
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            // 💡 3. Aseguramos que al hacer clic fuera se ejecute nuestra nueva lógica
             onClick={handleClose} 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer" 
           />

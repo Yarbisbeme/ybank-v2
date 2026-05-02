@@ -12,7 +12,6 @@ import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
 import { saveTransaction, deleteTransaction } from '@/lib/actions/transactions'; 
 import { toast } from 'sonner';
-// 🗑️ ELIMINADO: import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
 

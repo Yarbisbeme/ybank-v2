@@ -27,6 +27,7 @@ export default function ModalProvider() {
         <TransactionModalWrapper 
           transactionId={payload?.transactionId}
           defaultAccountId={payload?.accountId}
+          initialData={payload?.initialData}
           accounts={accounts}
           tags={tags}
           categoriesTree={categoriesTree}

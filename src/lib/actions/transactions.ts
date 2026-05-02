@@ -52,7 +52,10 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         return { transactions: [], total: 0 }
     }
 
-    return { transactions: data as unknown as Transaction[], total: count || 0 }
+    return JSON.parse(JSON.stringify({ 
+      transactions: data, 
+      total: count || 0 
+  }));
 }
 
 export async function getTransactionById(id: string) {
@@ -67,8 +70,8 @@ export async function getTransactionById(id: string) {
       .eq('id', id)
       .single();
 
-  if (error) throw error;
-  return data;
+  if (error) throw new Error(error.message);
+  return JSON.parse(JSON.stringify(data));
 }
 
 // ==========================================

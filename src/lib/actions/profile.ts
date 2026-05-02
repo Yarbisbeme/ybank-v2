@@ -27,7 +27,7 @@ export async function getProfile() {
     .single()
 
   if (error) throw error
-  return data
+  return JSON.parse(JSON.stringify(data))
 }
 
 export async function updateProfile(payload: ProfileUpdateInput) {
