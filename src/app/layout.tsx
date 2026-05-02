@@ -28,8 +28,7 @@ export const metadata: Metadata = {
     telephone: false, // Evita que los balances parezcan links de teléfono
   },
   icons: {
-    shortcut: "/favicon.ico",
-    apple: "/icons/icon-192x192.png", // Fundamental para iOS
+    apple: "/icons/logoy.png", // Fundamental para iOS
   },
 };
 
