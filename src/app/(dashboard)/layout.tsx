@@ -12,6 +12,7 @@ import { redirect } from 'next/navigation';
 import StoreInitializer from '@/components/providers/StoreInitializer';
 import ModalProvider from '@/components/providers/ModalProvider';
 import QueryProvider from '@/components/providers/QueryProvider';
+import PWAFooter from '@/components/layout/PWAFooter';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createSupabaseClient();
@@ -76,6 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <div className="max-w-[1400px] mx-auto w-full">
               {children}
             </div>
+            <PWAFooter />
           </main>
         </div>
       </div>

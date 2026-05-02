@@ -1,16 +1,43 @@
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
-// Importamos ambas fuentes
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Metadata, Viewport } from "next";
 
-// Fuente principal para la UI
+// 💡 1. Viewport: Ya lo tienes perfecto para evitar el zoom en móviles.
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+// 💡 2. Metadata: Añadimos iconos específicos para que luzca bien en iPhone/Android.
+export const metadata: Metadata = {
+  title: "YBank Intelligence",
+  description: "Sistema de Telemetría Financiera Personal",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "YBank",
+    // startupImage: "/splash.png", // Opcional: para pantalla de carga en iOS
+  },
+  formatDetection: {
+    telephone: false, // Evita que los balances parezcan links de teléfono
+  },
+  icons: {
+    shortcut: "/favicon.ico",
+    apple: "/icons/icon-192x192.png", // Fundamental para iOS
+  },
+};
+
 const inter = Inter({ 
   subsets: ["latin"],
-  variable: "--font-inter", // Variable CSS para usar en Tailwind
+  variable: "--font-inter", 
 });
 
-// Fuente para números y datos técnicos (ADN YBANK)
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
@@ -23,18 +50,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning 
       className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
-      {/* Cambiamos bg-[#F8F9FB] por bg-background 
-          para que use las variables OKLCH de tu globals.css 
-      */}
-      <body className="bg-background antialiased">
+      <body className="bg-background antialiased font-sans">
         <ThemeProvider 
           attribute="class" 
-          defaultTheme="light" // Sugiero empezar en light para ver la claridad que buscamos
+          defaultTheme="light" 
           enableSystem
         >
-          <main>
-            {children}
-          </main>
+          {children}
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
