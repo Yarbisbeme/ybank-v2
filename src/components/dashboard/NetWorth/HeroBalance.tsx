@@ -15,7 +15,7 @@ export default function HeroBalance() {
 
   // 💡 3. Consumimos los datos de la caché
   const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
-  const { data: transactions = [], isLoading: isLoadingTx } = useTransactionsList([]);
+  const { data: transactions = [], isLoading: isLoadingTx } = useTransactionsList();
 
   // 💡 4. LÓGICA FINANCIERA (Calculada en tiempo real)
   const totals = useMemo(() => {

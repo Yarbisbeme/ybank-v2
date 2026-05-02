@@ -6,11 +6,8 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import UniversalCard from '../Tarjetas/UniversalCard';
 import { useAccounts } from '@/hooks/useCatalogs'; 
-import { useFilterStore } from '@/store/useFilterStore'; 
+// 💡 ELIMINAMOS useFilterStore de aquí. La URL es el único jefe ahora.
 
-/**
- * Hook para detectar si el dispositivo es móvil
- */
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -23,31 +20,24 @@ function useIsMobile() {
 }
 
 export default function AccountStackSelector({ initialAccountId }: { initialAccountId?: string }) {
+
   const router = useRouter();
   const isMobile = useIsMobile();
-  const { setFilter, accountId: activeFilterId } = useFilterStore();
-  
-  // 1. Obtención de datos desde la caché global
   const { data: accounts = [], isLoading } = useAccounts();
-  
-  // 2. Estado local para el índice visual
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [ activeIdx, setActiveIdx ] = useState(0);
 
-  // 3. Sincronización del estado global y visual
+  // 💡 MOTOR DE SINCRONIZACIÓN VISUAL (Corregido)
   useEffect(() => {
     if (accounts.length === 0) return;
     
-    // Prioridad: Estado global -> Parámetro URL -> Primera cuenta disponible
-    const targetId = activeFilterId || initialAccountId || accounts[0].id;
+    // El objetivo principal es la URL (initialAccountId). Si no hay, usa el primero.
+    const targetId = initialAccountId || accounts[0].id;
     const newIdx = accounts.findIndex(acc => acc.id === targetId);
     
-    if (newIdx !== -1) {
+    if (newIdx !== -1 && newIdx !== activeIdx) {
       setActiveIdx(newIdx);
-      if (activeFilterId !== accounts[newIdx].id) {
-        setFilter('accountId', accounts[newIdx].id);
-      }
     }
-  }, [accounts, initialAccountId, activeFilterId, setFilter]);
+  }, [accounts, initialAccountId]); // Solo reacciona cuando cargan las cuentas o cambia la URL
 
   // 4. Definición de Variantes de Animación optimizadas
   const variants = useMemo(() => {
@@ -74,12 +64,12 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
     };
   }, [isMobile]);
 
-  // Handlers de navegación
+  // 💡 Handlers de navegación actualizados
   const handleSelection = (index: number) => {
     const selectedId = accounts[index]?.id;
-    if (selectedId) {
-      setActiveIdx(index);
-      setFilter('accountId', selectedId);
+    if (selectedId && index !== activeIdx) {
+      setActiveIdx(index); // Movemos el carrusel
+      // 💡 Actualizamos la URL silenciosamente. La tabla cliente lo detectará y se filtrará sola.
       router.push(`/accounts?accountId=${selectedId}`, { scroll: false });
     }
   };

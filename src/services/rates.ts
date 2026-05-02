@@ -5,7 +5,6 @@ import { SmartRateResult } from '@/types/index'
 
 const API_URL = 'https://open.er-api.com/v6/latest/USD';
 
-// VALOR DE RESPALDO (Por si la API se cae o no hay internet)
 const FALLBACK_RATE = 60.50;
 
 async function fetchMarketRate(): Promise<number> {
@@ -28,16 +27,15 @@ async function fetchMarketRate(): Promise<number> {
 }
 
 export async function getSmartRate(institutionId: string, type: 'buy' | 'sell'): Promise<SmartRateResult | null> {
-    
     const supabase = await createSupabaseClient()
 
     const [marketRate, { data: bank, error }] = await Promise.all([
-    fetchMarketRate(),
-    supabase
-      .from('institutions')
-      .select('name, exchange_rate_adjustment, exchange_rate_buy_adjustment')
-      .eq('id', institutionId)
-      .single()
+      fetchMarketRate(),
+      supabase
+        .from('institutions')
+        .select('name, exchange_rate_adjustment, exchange_rate_buy_adjustment')
+        .eq('id', institutionId)
+        .single()
     ]);
 
     if (error || !bank) {
@@ -45,23 +43,26 @@ export async function getSmartRate(institutionId: string, type: 'buy' | 'sell'):
         return null
     }
 
-    // B. Aplicamos la fórmula financiera
+    // 💡 FIX CRÍTICO: Convertimos los strings de la BD a Números reales
+    const sellSpread = Number(bank.exchange_rate_adjustment) || 0;
+    const buySpread = Number(bank.exchange_rate_buy_adjustment) || 0;
+
     let finalRate = 0;
     let margin = 0;
 
     if (type === 'sell') {
-        // EL BANCO VENDE (Caro): Market + Spread
-        margin = bank.exchange_rate_adjustment; 
+        // Tasa de Venta (El banco te vende USD a un precio más caro)
+        margin = sellSpread; 
         finalRate = marketRate + margin;
     } else {
-        // EL BANCO COMPRA (Barato): Market - Spread
-        margin = bank.exchange_rate_buy_adjustment; 
+        // Tasa de Compra (El banco te compra tus USD a un precio más barato)
+        margin = buySpread; 
         finalRate = marketRate - margin;
     }
 
     return {
-        rate: Number(finalRate.toFixed(2)), // Redondeamos a 2 decimales visuales
-        baseRate: Number(marketRate.toFixed(4)), // Guardamos precisión en la base
+        rate: Number(finalRate.toFixed(2)),
+        baseRate: Number(marketRate.toFixed(4)),
         margin,
         operation: type,
         institutionName: bank.name
