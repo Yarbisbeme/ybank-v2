@@ -7,7 +7,6 @@ import { RefreshCw, TrendingUp, TrendingDown, CreditCard, Wallet, Loader2 } from
 import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs';
 import { AnimatedNumber } from './AnimatedNumber';
 import WeeklyActivityChart from './WeeklyActivityChart';
-// 💡 Importamos los tipos si los tienes definidos en tu carpeta de types
 import { Account, Transaction } from '@/types'; 
 
 export default function HeroBalance() {
@@ -15,10 +14,14 @@ export default function HeroBalance() {
   const [includeCredit, setIncludeCredit] = useState(false);
 
   const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
-  const { data: transactions = [], isLoading: isLoadingTx } = useTransactionsList();
+  
+  // 💡 FIX 1: Renombramos la salida del hook a `queryData`
+  const { data: queryData, isLoading: isLoadingTx } = useTransactionsList();
+
+  // 💡 FIX 2: Extraemos el arreglo real de transacciones de forma segura
+  const transactions = Array.isArray(queryData) ? queryData : (queryData?.transactions || []);
 
   const totals = useMemo(() => {
-    // 💡 Tipamos 'sum' como number y 'a' como Account
     const liquid = accounts
       .filter((a: Account) => a.type !== 'credit_card')
       .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
@@ -40,11 +43,11 @@ export default function HeroBalance() {
   const absoluteBalance = Math.abs(displayBalance);
 
   const trend = useMemo(() => {
+    // 💡 Ahora transactions SÍ es un arreglo válido
     if (transactions.length === 0) return { percentage: 0, isUp: true };
     const now = new Date();
     const currentMonth = now.getMonth();
     
-    // 💡 Tipamos 'sum' como number y 'tx' como Transaction
     const currentMonthTotal = transactions
       .filter((tx: Transaction) => new Date(tx.date).getMonth() === currentMonth)
       .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
@@ -63,7 +66,6 @@ export default function HeroBalance() {
 
   const TrendIcon = trend.isUp ? TrendingUp : TrendingDown;
 
-  // 💡 6. Estado de carga elegante
   if (isLoadingAccs || isLoadingTx) {
     return (
       <div className="w-full h-[320px] bg-card animate-pulse rounded-[10px] border border-border flex items-center justify-center">
@@ -186,6 +188,7 @@ export default function HeroBalance() {
       <div className="hidden md:flex w-72 flex-col justify-end border-l border-border pl-8">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Actividad Semanal</p>
         <div className="h-40 w-full">
+          {/* 💡 FIX 3: Ahora le pasamos el arreglo limpio al gráfico semanal */}
           <WeeklyActivityChart transactions={transactions} />
         </div>
       </div>

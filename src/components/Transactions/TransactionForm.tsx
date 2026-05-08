@@ -12,6 +12,7 @@ import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
 import { saveTransaction, deleteTransaction } from '@/lib/actions/transactions'; 
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
 
@@ -20,8 +21,8 @@ interface TransactionFormProps {
   tags: Tag[]; 
   categories: Category[];
   initialData?: any; 
-  defaultAccountId?: string | null; // 💡 NUEVO: Recibido desde Zustand/Wrapper
-  onSuccess: () => void; // 💡 NUEVO: Ahora es obligatorio para cerrar el modal
+  defaultAccountId?: string | null; 
+  onSuccess: () => void; 
 }
 
 const getSafeType = (rawType?: string): TransactionType => {
@@ -33,27 +34,34 @@ const getSafeType = (rawType?: string): TransactionType => {
 
 export default function TransactionForm({ accounts, tags, categories, initialData, defaultAccountId, onSuccess }: TransactionFormProps) {
 
-  // 🗑️ ELIMINADO: router, pathname, y searchParams
   const dateInputRef = useRef<HTMLInputElement>(null);
   
   const isEditing = !!initialData;
-  const hasExistingSplit = isEditing && initialData?.items && initialData.items.length > 0;
+  
+  // 💡 FIX 1: Bloqueamos la edición de montos/tipos SOLO si es un GASTO manual desglosado.
+  // Las transferencias son desglosadas por el sistema, por lo que SÍ permitimos editar su monto base.
+  const hasExistingSplit = isEditing && initialData?.type === 'expense' && initialData?.items && initialData.items.length > 0;
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
-  const [amount, setAmount] = useState(initialData?.amount?.toString() || '');
   
-  // 💡 USAMOS EL defaultAccountId
+  // 💡 FIX 2: Si es transferencia, cargamos el monto PURO (target_amount).
+  const initialAmount = initialData?.type === 'transfer' 
+    ? (initialData.target_amount || initialData.amount) 
+    : initialData?.amount;
+    
+  const [amount, setAmount] = useState(initialAmount?.toString() || '');
+  
   const [accountId, setAccountId] = useState(initialData?.account_id || defaultAccountId || '');
   const [note, setNote] = useState(initialData?.note || '');
-  const [categoryId, setCategoryId] = useState(initialData?.categoryId || '');
-  const [destinationAccountId, setDestinationAccountId] = useState(initialData?.destinationAccountId || '');
+  const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
+  const [destinationAccountId, setDestinationAccountId] = useState(initialData?.transfer_to_account_id || '');
 
-  const [isSplit, setIsSplit] = useState(initialData?.items?.length > 0 || false);
+  const [isSplit, setIsSplit] = useState(initialData?.type === 'expense' && initialData?.items?.length > 0);
   const [items, setItems] = useState<any[]>(
-    initialData?.items?.length > 0 
+    initialData?.type === 'expense' && initialData?.items?.length > 0 
     ? initialData.items.map((i: any) => ({ ...i, _id: crypto.randomUUID() })) 
     : [{ _id: crypto.randomUUID(), name: '', unit_price: '', quantity: 1, category_id: '' }]
   );
@@ -69,24 +77,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     initialData?.tags?.map((t: any) => t.tag?.id) || []
   );
 
-  useEffect(() => {
-    if (initialData) {
-      setType(getSafeType(initialData.type));
-      setAmount(initialData.amount?.toString() || '');
-      setAccountId(initialData.account_id || '');
-      setDate(initialData.date ? initialData.date.split('T')[0].split(' ')[0] : '');
-      setNote(initialData.description || '');
-      setCategoryId(initialData.category_id || '');
-      setDestinationAccountId(initialData.transfer_to_account_id || '');
-      setSelectedTags(initialData.tags?.map((t: any) => t.tag?.id) || []);
-      
-      if (initialData.items && initialData.items.length > 0) {
-        setIsSplit(true);
-        setItems(initialData.items);
-      }
-    }
-  }, [initialData]);
-
+  // Limpiamos el isSplit si cambiamos el tipo
   useEffect(() => {
     if (type !== 'expense') setIsSplit(false);
   }, [type]);
@@ -130,18 +121,18 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     const payload: any = { 
       id: initialData?.id, 
       type, 
-      accountId, 
+      account_id: accountId, // 💡 Corregido para que coincida con tu backend
       date, 
       note, 
-      tagIds: selectedTags 
+      tags: selectedTags // 💡 Corregido para que el backend lo reciba como 'tags'
     };
 
     if (!hasExistingSplit) {
       payload.amount = amount;
       if (type === 'transfer') {
-        payload.destinationAccountId = destinationAccountId;
+        payload.transfer_to_account_id = destinationAccountId; // 💡 Ajuste de nomenclatura
       } else {
-        payload.categoryId = (type === 'expense' && isSplit) ? null : categoryId;
+        payload.category_id = (type === 'expense' && isSplit) ? null : categoryId;
       }
       payload.items = (type === 'expense' && isSplit) ? items : [];
     }
@@ -151,7 +142,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       
       if (result.success) {
         toast.success(isEditing ? 'Transacción actualizada' : 'Transacción creada');
-        // 💡 CERRAMOS EL MODAL INSTANTÁNEAMENTE
         onSuccess(); 
       } else {
         toast.error(result.error || 'Ocurrió un error');
@@ -171,7 +161,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       const result = await deleteTransaction(initialData.id);
       if (result.success) {
         toast.success('Transacción eliminada correctamente');
-        // 💡 CERRAMOS EL MODAL INSTANTÁNEAMENTE
         onSuccess(); 
       } else { 
         toast.error(result.error || 'No se pudo eliminar');
@@ -214,6 +203,15 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
               autoFocus={!isEditing} 
             />
           </div>
+          
+          {/* 💡 FIX 3: Feedback visual de que la DGII está siendo calculada y protegida por el sistema */}
+          {type === 'transfer' && Number(amount) > 0 && (
+            <motion.div initial={{opacity: 0, y: -5}} animate={{opacity: 1, y: 0}} className="mt-3 flex flex-col items-center">
+               <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">
+                 + ${ (Number(amount) * 0.0015).toLocaleString('en-US', { minimumFractionDigits: 2 }) } DOP (Comisión DGII 0.15% Auto)
+               </span>
+            </motion.div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,14 +1,25 @@
+// TransactionTable.tsx
 'use client';
 
-import { useState } from 'react';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { TransactionRow } from './TransactionRow';
 
-// === COMPONENTE PADRE (Con Paginación YBANK) ===
-export default function TransactionTable({ transactions }: { transactions: any[] }) {
-  // 💡 Lógica de Paginación
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+// 💡 1. Actualizamos las props para recibir la paginación controlada externamente
+export default function TransactionTable({ 
+  transactions, 
+  activeAccountId,
+  currentPage,
+  totalItems,
+  onPageChange
+}: { 
+  transactions: any[],
+  activeAccountId?: string | null,
+  currentPage: number,
+  totalItems: number,
+  onPageChange: (page: number) => void
+}) {
+  const itemsPerPage = 10; // Debe coincidir con el pageSize de tu hook en TanStack
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   
   if (!transactions || transactions.length === 0) {
     return (
@@ -21,24 +32,22 @@ export default function TransactionTable({ transactions }: { transactions: any[]
     );
   }
 
-  // 💡 Cálculos de Paginación
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentTransactions = transactions.slice(startIndex, startIndex + itemsPerPage);
-
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const handlePrevPage = () => onPageChange(Math.max(currentPage - 1, 1));
+  const handleNextPage = () => onPageChange(Math.min(currentPage + 1, totalPages));
 
   return (
     <div className="w-full flex flex-col pb-8">
-      {/* 💡 Lista renderizada con el slice actual */}
       <div className="border-t border-border mt-2">
-        {currentTransactions.map((tx) => (
-          <TransactionRow key={tx.id} tx={tx} />
+        {/* 💡 2. Renderizamos DIRECTAMENTE las transacciones, sin .slice() */}
+        {transactions.map((tx) => (
+          <TransactionRow 
+            key={tx.id} 
+            tx={tx} 
+            activeAccountId={activeAccountId} 
+          />
         ))}
       </div>
 
-      {/* 💡 Controles de Paginación Forenses */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 mt-2">
           <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">

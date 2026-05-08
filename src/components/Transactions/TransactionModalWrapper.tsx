@@ -8,34 +8,23 @@ import UniversalModal from '../ui/UniversalModal';
 import { Account, Tag, CategoryTree } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-interface TransactionModalProps {
-  transactionId?: string | null;
-  defaultAccountId?: string | null;
-  initialData?: any; // 💡 Recibimos la data instantánea
-  accounts: Account[];
-  tags: Tag[];
-  categoriesTree: CategoryTree[];
-  onClose: () => void;
-}
-
 export default function TransactionModalWrapper({ 
   transactionId, 
   defaultAccountId,
-  initialData: passedInitialData, // 💡 Lo renombramos para uso interno
+  initialData: passedInitialData,
   accounts, 
   tags, 
   categoriesTree,
   onClose
-}: TransactionModalProps) {
+}: any) {
   
-  // Si nos pasan la data, la usamos. Si no, empezamos en null.
   const [data, setData] = useState<any>(passedInitialData || null);
-  // Si no tenemos data pero sí un ID, mostramos carga. Si ya hay data, NO cargamos.
   const [isLoading, setIsLoading] = useState(!passedInitialData && !!transactionId);
 
+  // 💡 1. ESTADO LOCAL: Controla si estamos forzando la vista de edición
+  const [isForcedEdit, setIsForcedEdit] = useState(false);
+
   useEffect(() => {
-    // Solo buscamos en la BD si nos pasaron un ID pero NO nos pasaron el objeto inicial
-    // (Por ejemplo, si abrimos el modal desde una URL compartida en el futuro)
     if (!passedInitialData && transactionId) {
       setIsLoading(true);
       getTransactionById(transactionId).then(res => {
@@ -48,15 +37,17 @@ export default function TransactionModalWrapper({
     }
   }, [transactionId, passedInitialData]);
 
-  const flatCategories = categoriesTree.flatMap(c => [c, ...(c.subcategories || [])]);
-  const hasSplitItems = data?.items && data.items.length > 0;
+  const flatCategories = categoriesTree.flatMap((c: any) => [c, ...(c.subcategories || [])]);
+  
+  // 💡 2. LA MAGIA: Si el usuario activó la edición manual, apagamos hasSplitItems
+  const hasSplitItems = data?.items && data.items.length > 0 && !isForcedEdit;
 
   return (
     <UniversalModal 
       title={
         isLoading ? "Cargando..." :
         !data ? "Nueva Transacción" : 
-        hasSplitItems ? "Detalle del Gasto" : "Editar Transacción"
+        hasSplitItems ? "Detalle de la Operación" : "Editar Transacción"
       }
       onClose={onClose}
     >
@@ -69,6 +60,8 @@ export default function TransactionModalWrapper({
           transaction={data} 
           categories={flatCategories} 
           accounts={accounts}
+          // 💡 3. Le pasamos una función que enciende el modo edición
+          onEditRequest={() => setIsForcedEdit(true)} 
         />
       ) : (
         <TransactionForm 

@@ -46,16 +46,17 @@ export function useAccounts() {
   });
 }
 
-export function useTransactionsList() {
+// 💳 5. Hook para Transacciones (Paginación Real)
+export function useTransactionsList(page: number = 1) { // 💡 Recibimos la página
   const filters = useFilterStore();
   const searchParams = useSearchParams();
   
   const urlAccountId = searchParams.get('accountId');
 
   return useQuery({
-    queryKey: ['transactions', urlAccountId, filters.type, filters.categoryId, filters.startDate, filters.endDate],
+    // 💡 FUNDAMENTAL: Añadir `page` a la queryKey para que cachee cada página por separado
+    queryKey: ['transactions', urlAccountId, filters.type, filters.categoryId, filters.startDate, filters.endDate, page],
     queryFn: async () => {
-      // 💡 Limpiamos estrictamente el objeto para no enviar "null" o "undefined" al backend
       const activeFilters = {
         ...(filters.type && { type: filters.type }), 
         ...(filters.categoryId && { categoryId: filters.categoryId }),
@@ -64,17 +65,15 @@ export function useTransactionsList() {
       };
 
       const response = await getTransactions({
-        page: 1, // 💡 Aseguramos mandar la página
-        pageSize: 20,
+        page: page, // 💡 Usamos la página que pide la UI
+        pageSize: 10, // 💡 Lo igualamos al `itemsPerPage` de tu tabla
         accountId: urlAccountId || undefined, 
         filters: activeFilters 
       });
 
-      return response.transactions;
+      // 💡 Devolvemos el objeto completo con { transactions, total }
+      return response; 
     },
-    // 💡 Ya no bloqueamos la petición inicial con initialData
-    // placeholderData (keepPreviousData) mantendrá los datos en pantalla 
-    // mientras el spinner de arriba carga los nuevos filtros.
     placeholderData: keepPreviousData, 
   });
 }

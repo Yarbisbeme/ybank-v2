@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
-import TransactionTable from '@/components/Transactions/RecentActivityTable'; // Asumo que este es tu componente de tabla/lista
+import TransactionTable from '@/components/Transactions/TransactionTable'; // Asumo que este es tu componente de tabla/lista
 
 export default function TransactionsDrawer({ transactions }: { transactions: any[] }) {
   const [isExpanded, setIsExpanded] = useState(false);

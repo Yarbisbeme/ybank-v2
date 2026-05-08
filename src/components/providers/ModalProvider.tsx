@@ -25,9 +25,11 @@ export default function ModalProvider() {
     <>
       {type === 'transaction' && (
         <TransactionModalWrapper 
+          key={`${payload?.transactionId}-${payload?.forceEditMode}`} 
           transactionId={payload?.transactionId}
           defaultAccountId={payload?.accountId}
           initialData={payload?.initialData}
+          forceEditMode={payload?.forceEditMode}
           accounts={accounts}
           tags={tags}
           categoriesTree={categoriesTree}
