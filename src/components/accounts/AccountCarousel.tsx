@@ -95,7 +95,6 @@ export default function AccountCarousel() {
         <DesktopAccounts 
           accounts={accounts} 
           scrollRef={desktopScrollRef}
-          // Nota: Si necesitas activeId, podrías obtenerlo de Zustand o la URL si decides revivir esa lógica
         />
 
       </div>
