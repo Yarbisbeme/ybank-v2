@@ -42,7 +42,7 @@ export default async function AccountsPage(props: {
 
   return (
     <div className="max-w-[1400px] mx-auto sm:px-4 md:px-8 sm:py-6 space-y-8 sm:pb-20">
-      
+      {/*
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hidden sm:block">
         <div className="flex items-center gap-2">
           <Zap size={16} className="text-muted-foreground" />
@@ -69,6 +69,7 @@ export default async function AccountsPage(props: {
         <TransactionFilterBar />
         <ClientTransactionTable /> 
       </section>
+      */}
     </div>
   );
 }

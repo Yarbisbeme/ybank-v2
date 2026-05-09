@@ -3,8 +3,9 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Metadata, Viewport } from "next";
+// 💡 1. Importamos el componente Script de Next.js
+import Script from "next/script"; 
 
-// 💡 1. Viewport: Ya lo tienes perfecto para evitar el zoom en móviles.
 export const viewport: Viewport = {
   themeColor: "#2563eb",
   width: "device-width",
@@ -13,7 +14,6 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-// 💡 2. Metadata: Añadimos iconos específicos para que luzca bien en iPhone/Android.
 export const metadata: Metadata = {
   title: "YBank Intelligence",
   description: "Sistema de Telemetría Financiera Personal",
@@ -22,13 +22,12 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "YBank",
-    // startupImage: "/splash.png", // Opcional: para pantalla de carga en iOS
   },
   formatDetection: {
-    telephone: false, // Evita que los balances parezcan links de teléfono
+    telephone: false, 
   },
   icons: {
-    apple: "/icons/logoy.png", // Fundamental para iOS
+    apple: "/icons/logoy.png", 
   },
 };
 
@@ -49,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning 
       className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="bg-background antialiased font-sans">
+      <body className="bg-background antialiased font-sans" suppressHydrationWarning>
         <ThemeProvider 
           attribute="class" 
           defaultTheme="light" 
@@ -57,24 +56,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
           <Toaster richColors position="top-right" />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                if ('serviceWorker' in navigator) {
-                  window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/sw.js').then(
-                      function(registration) {
-                        console.log('YBank SW registrado con éxito');
-                      },
-                      function(err) {
-                        console.log('Fallo el registro del SW: ', err);
-                      }
-                    );
-                  });
-                }
-              `,
-            }}
-          />
+          
+          {/* 💡 2. Usamos next/script con strategy="afterInteractive" */}
+          <Script id="sw-registration" strategy="afterInteractive">
+            {`
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('YBank SW registrado con éxito');
+                    },
+                    function(err) {
+                      console.log('Fallo el registro del SW: ', err);
+                    }
+                  );
+                });
+              }
+            `}
+          </Script>
         </ThemeProvider>
       </body>
     </html>

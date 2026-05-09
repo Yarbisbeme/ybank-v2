@@ -1,18 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Edit2, ArrowDownCircle, ArrowUpCircle, RefreshCw, AlignLeft } from 'lucide-react';
-import SubTransactionEditForm from './SubTransactionEditForm';
 
-// 💡 1. Ya no necesitamos importar useModalStore aquí.
 
 export default function TransactionDetailView({ 
   transaction, 
   categories, 
   accounts,
-  onEditRequest // 💡 2. Recibimos la función desde el Wrapper
+  onEditRequest 
 }: any) {
   
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -38,7 +34,7 @@ export default function TransactionDetailView({
           {isExpense ? '-' : '+'}${Number(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </p>
 
-        {/* 💡 3. Botón de Edición Principal: Solo llama a onEditRequest */}
+        {/* Botón de Edición Principal: Solo llama a onEditRequest */}
         <button 
           onClick={onEditRequest}
           className="mt-4 flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-xl text-xs font-bold transition-all shadow-sm"

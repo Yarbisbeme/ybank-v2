@@ -10,7 +10,7 @@ import { Account, Tag, Category } from '@/types';
 import TagInput from './TagInput';
 import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
-import { saveTransaction, deleteTransaction } from '@/lib/actions/transactions'; 
+import { useSaveTransaction, useDeleteTransaction, useSaveTag } from '@/hooks/useCatalogs'; 
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -35,25 +35,19 @@ const getSafeType = (rawType?: string): TransactionType => {
 export default function TransactionForm({ accounts, tags, categories, initialData, defaultAccountId, onSuccess }: TransactionFormProps) {
 
   const dateInputRef = useRef<HTMLInputElement>(null);
-  
   const isEditing = !!initialData;
-  
-  // 💡 FIX 1: Bloqueamos la edición de montos/tipos SOLO si es un GASTO manual desglosado.
-  // Las transferencias son desglosadas por el sistema, por lo que SÍ permitimos editar su monto base.
   const hasExistingSplit = isEditing && initialData?.type === 'expense' && initialData?.items && initialData.items.length > 0;
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { mutate: createTagOptimistic } = useSaveTag();
+  const { mutate: saveTx, isPending: isSubmitting } = useSaveTransaction();
+  const { mutate: deleteTx, isPending: isDeleting } = useDeleteTransaction();
   
   const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
   
-  // 💡 FIX 2: Si es transferencia, cargamos el monto PURO (target_amount).
   const initialAmount = initialData?.type === 'transfer' 
     ? (initialData.target_amount || initialData.amount) 
     : initialData?.amount;
     
   const [amount, setAmount] = useState(initialAmount?.toString() || '');
-  
   const [accountId, setAccountId] = useState(initialData?.account_id || defaultAccountId || '');
   const [note, setNote] = useState(initialData?.note || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
@@ -77,7 +71,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     initialData?.tags?.map((t: any) => t.tag?.id) || []
   );
 
-  // Limpiamos el isSplit si cambiamos el tipo
   useEffect(() => {
     if (type !== 'expense') setIsSplit(false);
   }, [type]);
@@ -89,10 +82,14 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     return { id: c.id, label: c.name, subLabel: c.parent_id ? `Dentro de ${parentName}` : 'Categoría Principal' };
   });
 
-  const handleCustomTagCreate = async (newTagName: string) => {
-    const tempId = `temp-${Date.now()}`;
-    setAvailableTags(prev => [...prev, { id: tempId, name: newTagName } as Tag]);
-    setSelectedTags(prev => [...prev, tempId]);
+  const handleCustomTagCreate = (newTagName: string) => {
+    // Disparamos la mutación hacia Supabase
+    createTagOptimistic(newTagName, {
+      onSuccess: (response) => {
+        setSelectedTags(prev => [...prev, response.data.id]);
+        setAvailableTags(prev => [...prev, response.data]); 
+      }
+    });
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,60 +113,43 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       }
     }
 
-    setIsSubmitting(true);
-    
     const payload: any = { 
       id: initialData?.id, 
       type, 
-      account_id: accountId, // 💡 Corregido para que coincida con tu backend
+      account_id: accountId, 
       date, 
       note, 
-      tags: selectedTags // 💡 Corregido para que el backend lo reciba como 'tags'
+      tags: selectedTags 
     };
 
     if (!hasExistingSplit) {
       payload.amount = amount;
       if (type === 'transfer') {
-        payload.transfer_to_account_id = destinationAccountId; // 💡 Ajuste de nomenclatura
+        payload.transfer_to_account_id = destinationAccountId; 
       } else {
         payload.category_id = (type === 'expense' && isSplit) ? null : categoryId;
       }
       payload.items = (type === 'expense' && isSplit) ? items : [];
     }
 
-    try {
-      const result = await saveTransaction(payload);
-      
-      if (result.success) {
-        toast.success(isEditing ? 'Transacción actualizada' : 'Transacción creada');
-        onSuccess(); 
-      } else {
-        toast.error(result.error || 'Ocurrió un error');
-        setIsSubmitting(false); 
+    // 💡 3. Disparamos la mutación. TanStack Query se encarga del resto.
+    saveTx(payload, {
+      onSuccess: () => {
+        // Al tener éxito (incluso optimista), cerramos el modal al instante.
+        onSuccess();
       }
-    } catch (error) {
-      toast.error('Error de conexión con el servidor');
-      setIsSubmitting(false); 
-    } 
+    });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!initialData?.id) return;
     if (!window.confirm('¿Estás seguro de que deseas eliminar esta transacción completa, incluyendo todo su desglose?')) return;
-    setIsDeleting(true);
-    try {
-      const result = await deleteTransaction(initialData.id);
-      if (result.success) {
-        toast.success('Transacción eliminada correctamente');
-        onSuccess(); 
-      } else { 
-        toast.error(result.error || 'No se pudo eliminar');
-        setIsDeleting(false);
+    
+    deleteTx(initialData.id, {
+      onSuccess: () => {
+        onSuccess();
       }
-    } catch {
-      toast.error('Error al conectar con el servidor');
-      setIsDeleting(false);
-    } 
+    });
   };
 
   return (
@@ -204,7 +184,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             />
           </div>
           
-          {/* 💡 FIX 3: Feedback visual de que la DGII está siendo calculada y protegida por el sistema */}
           {type === 'transfer' && Number(amount) > 0 && (
             <motion.div initial={{opacity: 0, y: -5}} animate={{opacity: 1, y: 0}} className="mt-3 flex flex-col items-center">
                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">

@@ -8,7 +8,7 @@ import ClientTransactionTable from '@/components/Transactions/ClientTransactionT
 export default async function DashboardPage() {
   return (
     <div className="max-w-[1400px] mx-auto sm:px-4 md:px-8 sm:py-6 space-y-8 md:space-y-10">
-      
+      {/*
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-auto">
         <div className="md:col-span-12 lg:col-span-8"> 
           <HeroBalance /> 
@@ -22,7 +22,6 @@ export default async function DashboardPage() {
       <div>
         <AccountCarousel />
       </div>
-
       <section className="Transacciones">
         <div className="flex items-center gap-2 mb-4">
            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -33,6 +32,7 @@ export default async function DashboardPage() {
         <TransactionFilterBar />
         <ClientTransactionTable /> 
       </section>
+      */}
     </div>
   );
 }

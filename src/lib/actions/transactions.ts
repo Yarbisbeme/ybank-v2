@@ -1,8 +1,7 @@
 'use server'
 
+import { DGII_CATEGORY_ID, DGII_TAX_RATE } from '@/constants/constants'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { revalidatePath } from 'next/cache'
-import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
 import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
 
@@ -109,12 +108,10 @@ export async function createTransaction(input: any) {
     const cleanInput = { ...input }
 
     const tagsIds = input.tags || []
-    // 💡 Usamos 'let' para reescribir los items si es transferencia
     let items = input.items || [] 
     delete cleanInput.tags 
     delete cleanInput.items 
 
-    // 💡 MAGIA YBANK: Cálculo DGII (0.15%) al CREAR
     const originalTransferAmount = parseFloat(input.amount);
 
     if (input.type !== 'transfer') {
@@ -124,7 +121,8 @@ export async function createTransaction(input: any) {
     } else {
         delete cleanInput.category_id 
 
-        const dgiiTax = Number((originalTransferAmount * 0.0015).toFixed(2));
+        // 💡 Uso de la constante
+        const dgiiTax = Number((originalTransferAmount * DGII_TAX_RATE).toFixed(2));
 
         cleanInput.amount = originalTransferAmount + dgiiTax;
         cleanInput.target_amount = originalTransferAmount;
@@ -137,15 +135,14 @@ export async function createTransaction(input: any) {
                 category_id: null
             },
             {
-                name: 'Comisión DGII (0.15%)',
+                name: `Comisión DGII (${(DGII_TAX_RATE * 100).toFixed(2)}%)`,
                 unit_price: dgiiTax,
                 quantity: 1,
-                category_id: '79986a0a-f285-4e76-ac6e-a5833d836a87'
+                category_id: DGII_CATEGORY_ID // 💡 Uso de la constante
             }
         ];
     }
   
-  // LÓGICA DE DIVISAS (Ajustada para usar originalTransferAmount)
   if (input.type === 'transfer' && input.transfer_to_account_id) {
     const { data: accounts } = await supabase.from('accounts').select('id, currency, institution_id').in('id', [input.account_id, input.transfer_to_account_id])
     if (accounts && accounts.length === 2) {
@@ -166,7 +163,8 @@ export async function createTransaction(input: any) {
   const { data: newTx, error } = await supabase
     .from('transactions')
     .insert({ user_id: user.id, ...cleanInput, status: 'posted' })
-    .select('id')
+    // 💡 MEJORA 2: Pedimos que nos devuelva el registro completo insertado
+    .select('*') 
     .single()
 
   if (error) return { success: false, error: error.message }
@@ -177,7 +175,7 @@ export async function createTransaction(input: any) {
     await supabase.from('transaction_tags').insert(tagInserts)
   }
 
-  // 3. VINCULAMOS LOS ÍTEMS (CON ERROR HANDLING Y ROLLBACK)
+  // 3. VINCULAMOS LOS ÍTEMS
   if (items.length > 0 && newTx) {
     const itemInserts = items.map((item: any) => ({
       transaction_id: newTx.id,
@@ -196,9 +194,8 @@ export async function createTransaction(input: any) {
     }
   }
 
-  revalidatePath('/dashboard') 
-  revalidatePath('/accounts') 
-  return { success: true }
+  // 💡 Devolvemos la data real para que TanStack actualice su caché con el ID correcto
+  return { success: true, data: newTx }
 }
 
 // ==========================================
@@ -215,7 +212,6 @@ export async function updateTransaction(id: string, input: any) {
     delete cleanInput.tags; 
     delete cleanInput.items; 
 
-    // 💡 MAGIA YBANK: Cálculo DGII (0.15%) al EDITAR
     const originalTransferAmount = parseFloat(input.amount);
 
     if (cleanInput.type !== 'transfer') {
@@ -225,7 +221,7 @@ export async function updateTransaction(id: string, input: any) {
     } else {
         delete cleanInput.category_id;
 
-        const dgiiTax = Number((originalTransferAmount * 0.0015).toFixed(2));
+        const dgiiTax = Number((originalTransferAmount * DGII_TAX_RATE).toFixed(2));
 
         cleanInput.amount = originalTransferAmount + dgiiTax;
         cleanInput.target_amount = originalTransferAmount;
@@ -238,15 +234,14 @@ export async function updateTransaction(id: string, input: any) {
                 category_id: null
             },
             {
-                name: 'Comisión DGII (0.15%)',
+                name: `Comisión DGII (${(DGII_TAX_RATE * 100).toFixed(2)}%)`,
                 unit_price: dgiiTax,
                 quantity: 1,
-                category_id: '79986a0a-f285-4e76-ac6e-a5833d836a87'
+                category_id: DGII_CATEGORY_ID 
             }
         ];
     }
 
-    // LÓGICA DE DIVISAS (Ajustada para usar originalTransferAmount)
     if (cleanInput.type === 'transfer' && cleanInput.transfer_to_account_id) {
         const { data: accounts } = await supabase
             .from('accounts')
@@ -270,7 +265,13 @@ export async function updateTransaction(id: string, input: any) {
     }
 
     // 1. ACTUALIZAMOS LA TRANSACCIÓN PADRE
-    const { error } = await supabase.from('transactions').update(cleanInput).eq('id', id);
+    const { data: updatedTx, error } = await supabase
+      .from('transactions')
+      .update(cleanInput)
+      .eq('id', id)
+      .select('*') // 💡 Pedimos la data actualizada
+      .single();
+
     if (error) return { success: false, error: error.message };
 
     // 2. ACTUALIZAMOS LOS TAGS
@@ -304,9 +305,7 @@ export async function updateTransaction(id: string, input: any) {
         }
     }
 
-    revalidatePath('/dashboard');
-    revalidatePath('/accounts'); 
-    return { success: true };
+    return { success: true, data: updatedTx }; // 💡 Devolvemos la data
 }
 
 // ==========================================
@@ -335,7 +334,6 @@ export async function updateSubTransaction(itemId: string, input: {
 
   if (error) return { success: false, error: error.message };
 
-  revalidatePath('/accounts');
   return { success: true };
 }
 
@@ -352,7 +350,5 @@ export async function deleteTransaction(id: string) {
 
     if (error) return { success: false, error: error.message }
 
-    revalidatePath('/dashboard')
-    revalidatePath('/accounts')
     return { success: true }
 }

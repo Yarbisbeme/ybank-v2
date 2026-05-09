@@ -1,18 +1,7 @@
 'use server'
 
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { revalidatePath } from 'next/cache'
-
-// Definimos el tipo basado en tu esquema YBANK
-export interface ProfileUpdateInput {
-  full_name?: string;
-  avatar_url?: string | null;
-  currency_preference?: string;
-  primary_account_id?: string;
-  theme_preference?: string;
-  monthly_savings_goal?: string | number;
-  onboarding_completed?: boolean;
-}
+import { ProfileUpdateInput } from '@/types'
 
 export async function getProfile() {
   const supabase = await createSupabaseClient()
@@ -36,20 +25,17 @@ export async function updateProfile(payload: ProfileUpdateInput) {
   
   if (!user) return { success: false, error: 'No autorizado' }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .update({ 
       ...payload, 
-      updated_at: new Date().toISOString() // Sello de tiempo automático
+      updated_at: new Date().toISOString()
     })
     .eq('id', user.id)
+    .select('*') 
+    .single()
 
   if (error) return { success: false, error: error.message }
   
-  // Revalidamos las rutas clave para que la UI se entere del cambio
-  revalidatePath('/')
-  revalidatePath('/accounts')
-  revalidatePath('/dashboard')
-  
-  return { success: true }
+  return { success: true, data: JSON.parse(JSON.stringify(data)) }
 }

@@ -282,3 +282,13 @@ export interface FilterState {
   setFilter: (key: keyof Omit<FilterState, 'setFilter' | 'clearFilters'>, value: string | null) => void;
   clearFilters: () => void;
 }
+
+export interface ProfileUpdateInput {
+  full_name?: string;
+  avatar_url?: string | null;
+  currency_preference?: string;
+  primary_account_id?: string;
+  theme_preference?: string;
+  monthly_savings_goal?: string | number;
+  onboarding_completed?: boolean;
+}
