@@ -7,11 +7,10 @@ interface UniversalModalProps {
   children: React.ReactNode;
   title?: string; 
   maxWidth?: string;
-  onClose: () => void; // 💡 Ahora es OBLIGATORIO para que Zustand tome el control
+  onClose: () => void;
 }
 
 export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl', onClose }: UniversalModalProps) {
-  // 💡 Usamos isVisible solo para manejar la animación de salida de Framer Motion
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => { 
@@ -21,10 +20,8 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
   const handleClose = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     
-    // 1. Iniciamos la animación de salida
     setIsVisible(false);
     
-    // 2. Esperamos a que termine la animación (300ms) y le avisamos a Zustand
     setTimeout(() => {
       onClose(); 
     }, 300); 
