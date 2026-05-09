@@ -1,14 +1,43 @@
 "use client";
 import React from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-// 💡 Eliminamos 'Server' de aquí porque ahora viene dinámico
-import { Search, Receipt, Tag as TagIcon, X, Command } from 'lucide-react';
-import Link from 'next/link';
+import { Search, Tag as TagIcon, X, Command } from 'lucide-react';
+import { useRouter } from 'next/navigation'; // 💡 Importamos el router
 import { GlobalSearchProps } from '@/types';
 import { getNodeIcon, getCategoryIcon } from '@/lib/utils'; 
 
+// 💡 Importamos nuestros stores
+import { useModalStore } from '@/store/useModalStore'; 
+import { useFilterStore } from '@/store/useFilterStore';
+
 export default function GlobalSearch({ isOpen, onClose, query, setQuery, results, expanded, onToggleSection }: GlobalSearchProps) {
+  const router = useRouter();
+  const openModal = useModalStore((state) => state.openModal);
+  const { setFilter } = useFilterStore();
+
+  // === HANDLERS MÁGICOS DE ZUSTAND ===
   
+  const handleAccountClick = (accId: string) => {
+    setFilter('accountId', accId); // 1. Actualizamos el estado global
+    onClose();                     // 2. Cerramos el buscador
+    router.push(`/accounts?accountId=${accId}`); // 3. Navegamos (para actualizar la URL por si la comparten)
+  };
+
+  const handleTransactionClick = (tx: any) => {
+    openModal('transaction', {     // 1. Abrimos el modal con la data instantánea
+      transactionId: tx.id, 
+      accountId: tx.account_id,
+      initialData: tx 
+    });
+    onClose();                     // 2. Cerramos el buscador
+  };
+
+  const handleTagClick = (tagId: string) => {
+    setFilter('tagId', tagId);     // 1. Filtramos por tag a nivel global
+    onClose();                     // 2. Cerramos el buscador
+    router.push(`/dashboard?tagId=${tagId}`); // 3. Navegamos
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -30,7 +59,7 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
             className="relative w-full max-w-2xl bg-card rounded-[10px] shadow-2xl border border-border overflow-hidden flex flex-col"
           >
             
-            {/* Header del Buscador (Terminal Input) */}
+            {/* Header del Buscador */}
             <div className="p-4 border-b border-border flex items-center gap-3 bg-surface-2/50">
               <Search className="text-muted-foreground" size={18} strokeWidth={2.5} />
               <input 
@@ -79,12 +108,10 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ delay: idx * 0.03 }}
                           >
-                            <Link 
-                              href={`/accounts?accountId=${acc.id}`}
-                              onClick={onClose}
-                              className="flex items-center gap-3 p-3 rounded-[8px] hover:bg-surface-2 border border-transparent hover:border-border transition-colors group"
+                            <button 
+                              onClick={() => handleAccountClick(acc.id)}
+                              className="w-full text-left flex items-center gap-3 p-3 rounded-[8px] hover:bg-surface-2 border border-transparent hover:border-border transition-colors group"
                             >
-                              {/* 💡 AQUÍ ESTÁ LA MAGIA: Llamamos a getNodeIcon pasando el tipo de cuenta y el tamaño */}
                               <div className="p-2 bg-surface-2 border border-border text-muted-foreground rounded-[6px] group-hover:text-primary transition-colors flex items-center justify-center">
                                 {getNodeIcon(acc.type, 16)}
                               </div>
@@ -93,7 +120,7 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{acc.currency} • ****{acc.last_4_digits}</p>
                               </div>
                               <p className="text-sm font-mono font-bold text-foreground shrink-0">${acc.current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                            </Link>
+                            </button>
                           </motion.div>
                         ))}
                       </AnimatePresence>
@@ -116,17 +143,15 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ delay: idx * 0.03 }}
                           >
-                            <Link 
-                              href={`/dashboard?editTx=${tx.id}`}
-                              onClick={onClose}
-                              className="flex items-center gap-3 p-3 rounded-[8px] hover:bg-surface-2 border border-transparent hover:border-border transition-colors group"
+                            <button 
+                              onClick={() => handleTransactionClick(tx)}
+                              className="w-full text-left flex items-center gap-3 p-3 rounded-[8px] hover:bg-surface-2 border border-transparent hover:border-border transition-colors group"
                             >
                               <div className={`p-2 rounded-[6px] border transition-colors bg-surface-2 flex items-center justify-center
                                 ${tx.type === 'expense' ? 'border-border text-rose-500 group-hover:bg-rose-500/10' : 
                                   tx.type === 'income' ? 'border-border text-emerald-500 group-hover:bg-emerald-500/10' : 
                                   'border-border text-primary group-hover:bg-primary/10'}`}
                               >
-                                {/* 💡 YBANK Telemetry: Ícono real de la base de datos mapeado a Lucide */}
                                 {getCategoryIcon(tx.category?.icon)} 
                               </div>
                               <div className="flex-1 min-w-0">
@@ -138,7 +163,7 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                               <p className={`text-sm font-mono font-bold shrink-0 ${tx.type === 'expense' ? 'text-foreground' : 'text-emerald-500'}`}>
                                 {tx.type === 'expense' ? '-' : '+'}${Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                               </p>
-                            </Link>
+                            </button>
                           </motion.div>
                         ))}
                       </AnimatePresence>
@@ -162,14 +187,13 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                               exit={{ opacity: 0, scale: 0.9 }}
                               transition={{ delay: idx * 0.02 }}
                             >
-                              <Link 
-                                href={`/dashboard?tagId=${tag.id}`}
-                                onClick={onClose}
+                              <button 
+                                onClick={() => handleTagClick(tag.id)}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] hover:border-primary/50 transition-all text-muted-foreground hover:text-foreground text-[10px] uppercase tracking-widest font-bold"
                               >
                                 <TagIcon size={12} strokeWidth={2.5} />
                                 {tag.name}
-                              </Link>
+                              </button>
                             </motion.div>
                           ))}
                         </div>
@@ -192,7 +216,7 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
   );
 }
 
-// 💡 SUB-COMPONENTE CON ANIMACIÓN DE TÍTULO
+// 💡 SUB-COMPONENTE CON ANIMACIÓN DE TÍTULO (Sin cambios)
 function SearchSection({ title, count, children, isExpanded, onToggle }: any) {
   if (count === 0) return null;
   return (

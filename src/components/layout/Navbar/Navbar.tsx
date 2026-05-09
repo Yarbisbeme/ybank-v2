@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle
 } from 'lucide-react';
 import { NavbarProps } from '@/types';
+import { useModalStore } from '@/store/useModalStore'; 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import GlobalSearch from './GlobalSearch';
@@ -19,6 +20,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   const [avatarError, setAvatarError] = useState(false); 
   const [searchQuery, setSearchQuery] = useState('');
+  const openModal = useModalStore(state => state.openModal);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     accounts: false, transactions: false, tags: false
   });
@@ -65,7 +67,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   return (
     <>
-      {/* 💡 CABECERA SUPERIOR YBANK: Temas Dinámicos y Bordes Rígidos */}
       <header className="sticky top-0 z-[60] h-16 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8 lg:px-12 border-b border-border transition-colors">
 
         <div className="flex items-center gap-3">
@@ -84,15 +85,14 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               width={24}
               height={24}
               priority
-              className="w-[24px] h-auto object-contain dark:invert"
+              className="w-[26px] h-auto object-contain dark:invert"
             />
-            <span className="text-foreground font-bold text-[20px] tracking-tighter ml-1.5 mt-0.5">
+            <span className="text-foreground font-bold text-[24px] tracking-tighter">
                 Bank
             </span>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            {/* 💡 Avatar Inteligente Desktop: Flat y sin bordes llamativos */}
             <div className="w-9 h-9 rounded-[10px] overflow-hidden border border-border bg-surface-2 flex items-center justify-center text-primary font-bold text-sm shrink-0">
               {user?.avatarUrl && !avatarError ? (
                 <img 
@@ -109,7 +109,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               <h1 className="text-xs font-bold text-foreground tracking-tight leading-none">
                 {user?.name || 'Operador'}
               </h1>
-              {/* 💡 Tipografía Forense YBANK para la fecha */}
               <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">
                 {new Date().toLocaleDateString('es-DO', { weekday: 'long', day: '2-digit', month: 'short' }).replace(',', '')}
               </p>
@@ -120,7 +119,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
         <div className="flex items-center gap-3 flex-1 justify-end">
           
-          {/* 💡 Buscador Global: Estilo de comando de terminal */}
           <button onClick={() => setIsSearchOpen(true)} className="hidden md:flex relative items-center gap-2 bg-surface-2 border border-border rounded-[8px] py-1.5 px-3 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all w-full max-w-[220px]">
             <Search size={14} />
             <span className="text-xs font-medium">Búsqueda Global...</span>
@@ -133,13 +131,13 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
             <Search size={18} strokeWidth={2.5} />
           </button>
           
-          <Link 
-            href="/accounts?newAccount=true" 
-            // 💡 Botón YBANK: Rounded-[8px], contraste alto
-            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-[8px] text-xs font-bold hover:opacity-90 transition-opacity"
+          {/* 💡 FIX 1: Cambiamos de <Link href="..."> a <button onClick={() => openModal(...)}> en el header Desktop */}
+          <button 
+            onClick={() => openModal('account')}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-[8px] text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Plus size={14} strokeWidth={2.5} /> Nuevo Nodo
-          </Link>
+          </button>
 
           <button className="flex items-center justify-center w-8 h-8 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors relative">
             <Bell size={18} strokeWidth={2.5} />
@@ -148,10 +146,8 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         </div>
       </header>
 
-      {/* 📱 MENÚ LATERAL MÓVIL YBANK */}
       {isMobileMenuOpen && (
         <div 
-          // 💡 Fondo negro translúcido para que combine con dark mode
           className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm md:hidden transition-opacity" 
           onClick={closeMenu} 
         />
@@ -159,7 +155,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
       <div className={`fixed top-0 left-0 z-[210] h-[100dvh] w-[85%] max-w-[320px] bg-card border-r border-border transform transition-transform duration-300 ease-out md:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
-        {/* 📦 BLOQUE 1: HEADER */}
         <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex flex-row items-center cursor-pointer" onClick={closeMenu}> 
             <Image 
@@ -168,9 +163,9 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               width={24}
               height={24}
               priority
-              className="w-[24px] h-auto object-contain dark:invert"
+              className="w-[26px] h-auto object-contain dark:invert"
             />
-            <span className="text-foreground font-bold text-[20px] tracking-tighter ml-1.5 mt-0.5">
+            <span className="text-foreground font-bold text-[24px] tracking-tighter">
                 Bank
             </span>
           </div>
@@ -179,7 +174,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
           </button>
         </div>
 
-        {/* 📦 BLOQUE 2: NAVEGACIÓN */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-4">
             Módulos Core
@@ -194,7 +188,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
           <SidebarLink 
             href="/accounts" 
             label="Nodos" 
-            // 💡 Cambiamos WalletCards por Server
             icon={Server} 
             isActive={pathname === '/accounts'} 
             onClick={closeMenu} 
@@ -208,22 +201,26 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
           />
         </nav>
 
-        {/* 📦 BLOQUE 3: FOOTER Y PERFIL */}
         <div className="p-5 border-t border-border flex flex-col gap-4 shrink-0 bg-card pb-safe">
           
-          <div className="grid grid-cols-2 gap-3" onClick={closeMenu}>
-            <Link 
-              href={`${pathname}?newTx=true`} 
+          {/* 💡 FIX 2: Quitamos onClick={closeMenu} del div contenedor para evitar que cierre antes de abrir el modal */}
+          <div className="grid grid-cols-2 gap-3">
+            
+            {/* 💡 FIX 3: Reemplazamos <Link> por <button> en el menú móvil para Operación */}
+            <button 
+              onClick={() => { closeMenu(); openModal('transaction'); }} 
               className="flex items-center justify-center gap-2 bg-foreground text-background font-bold rounded-[10px] transition-transform active:scale-95 text-xs py-2.5 shadow-sm"
             >
               <PlusCircle size={14} /> Operación
-            </Link>
-            <Link 
-              href="/accounts?newAccount=true" 
+            </button>
+            
+            {/* 💡 FIX 4: Reemplazamos <Link> por <button> en el menú móvil para Nodo */}
+            <button 
+              onClick={() => { closeMenu(); openModal('account'); }} 
               className="flex items-center justify-center gap-2 bg-surface-2 border border-border text-foreground font-bold rounded-[10px] hover:border-primary/50 transition-all active:scale-95 text-xs py-2.5"
             >
               <Plus size={14} /> Nodo
-            </Link>
+            </button>
           </div>
           
           <div className="flex flex-row items-center justify-between bg-surface-2 p-3 rounded-[10px] border border-border">
@@ -271,10 +268,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
     </>
   );
 }
-
-/* =========================================================
-   🧩 COMPONENTE DE NAVEGACIÓN YBANK: Minimalista y Técnico
-   ========================================================= */
 
 interface SidebarLinkProps {
   href: string;

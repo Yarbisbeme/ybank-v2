@@ -20,7 +20,7 @@ export async function getTags() {
     console.error('Error fetching tags:', error)
     return []
   }
-  return data as Tag[]
+  return JSON.parse(JSON.stringify(data)) as Tag[]
 }
 
 // =========================================================
@@ -42,7 +42,7 @@ export async function createTag(name: string) {
   revalidatePath('/dashboard')
   
   // 💡 Devolvemos el tag completo (con su ID real)
-  return { success: true, tag: data } 
+  return { success: true, tag: JSON.parse(JSON.stringify(data)) }
 }
 // =========================================================
 // 3. UPDATE TAG (¡Agregado para correcciones de ortografía!)

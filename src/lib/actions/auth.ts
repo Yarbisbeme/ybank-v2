@@ -47,7 +47,7 @@ export async function signUpWithEmail({ email, password, fullName }: any) {
   });
 
   if (error) return { success: false, error: error.message };
-  return { success: true, user: data.user };
+  return { success: true, user: JSON.parse(JSON.stringify(data.user)) }
 }
 
 /**

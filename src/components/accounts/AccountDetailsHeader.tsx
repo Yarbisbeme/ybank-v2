@@ -1,58 +1,60 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Account } from '@/types';
+import { useMemo } from 'react';
 import { Share2, Edit, Plus, Loader2 } from 'lucide-react';
+import { useModalStore } from '@/store/useModalStore';
+import { useFilterStore } from '@/store/useFilterStore'; // 💡 Importamos el filtro
+import { useAccounts } from '@/hooks/useCatalogs';     // 💡 Importamos el hook de caché
 
-export default function AccountDetailsHeader({ account }: { account: Account }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function AccountDetailsHeader() {
+  const openModal = useModalStore((state) => state.openModal);
+  const { accountId } = useFilterStore(); // Obtenemos el ID de la cuenta activa desde Zustand
   
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  // 1. Obtenemos las cuentas de la caché
+  const { data: accounts = [], isLoading } = useAccounts();
 
-  useEffect(() => {
-    setLoadingAction(null);
-  }, [searchParams]);
+  // 2. Determinamos qué cuenta mostrar (La seleccionada o la primera por defecto)
+  const activeAccount = useMemo(() => {
+    if (accounts.length === 0) return null;
+    return accounts.find(a => a.id === accountId) || accounts[0];
+  }, [accounts, accountId]);
 
-  const handleAction = (type: string, url: string) => {
-    if (loadingAction) return;
+  // 3. Estado de carga discreto para el header
+  if (isLoading) {
+    return (
+      <div className="flex justify-center gap-4 pt-2 opacity-50">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col items-center gap-2 animate-pulse">
+            <div className="w-14 h-14 rounded-[10px] border border-border bg-surface-2" />
+            <div className="h-2 w-8 bg-surface-2 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
-    setLoadingAction(type);
-    router.push(url, { scroll: false });
+  if (!activeAccount) return null;
 
-    setTimeout(() => {
-      setLoadingAction(prev => prev === type ? null : prev);
-    }, 2000);
-  };
-  
   return (
-    // 💡 Redujimos el contenedor a solo agrupar los botones
     <div className="flex justify-center gap-4 pt-2">
       <ActionButton 
         icon={<Plus size={20} />} 
         label="Add" 
-        isLoading={loadingAction === 'add'}
-        disabled={!!loadingAction}
-        onClick={() => handleAction('add', `?accountId=${account.id}&newTx=true`)}
+        onClick={() => openModal('transaction', { accountId: activeAccount.id })}
       />
       
       <ActionButton 
         icon={<Edit size={20} />} 
         label="Edit" 
-        isLoading={loadingAction === 'edit'}
-        disabled={!!loadingAction}
-        onClick={() => handleAction('edit', `?accountId=${account.id}&editAccountId=${account.id}`)}
+        onClick={() => openModal('account', { accountId: activeAccount.id })}
       />
       
       <ActionButton 
         icon={<Share2 size={20} />} 
         label="Share" 
-        isLoading={loadingAction === 'share'}
-        disabled={!!loadingAction}
         onClick={() => {
-          setLoadingAction('share');
-          setTimeout(() => setLoadingAction(null), 1000);
+          // Lógica futura para compartir (ej. navigator.share o copiar al portapapeles)
+          console.log("Compartir cuenta:", activeAccount.name);
         }}
       />
     </div>
@@ -78,7 +80,6 @@ function ActionButton({
       disabled={disabled || isLoading}
       className="flex flex-col items-center gap-2 group cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 transition-all"
     >
-      {/* 💡 Identidad YBANK: rounded-[10px], shadow-sm y bordes sutiles */}
       <div className={`w-14 h-14 rounded-[10px] border flex items-center justify-center transition-all duration-300 shadow-sm
         ${isLoading 
           ? 'bg-blue-50/50 border-blue-200 text-blue-600' 

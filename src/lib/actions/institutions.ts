@@ -14,5 +14,5 @@ export async function getInstitutions() {
     .order('name')
 
   if (error) return []
-  return data
+  return JSON.parse(JSON.stringify(data))
 }

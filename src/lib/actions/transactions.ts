@@ -52,7 +52,10 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         return { transactions: [], total: 0 }
     }
 
-    return { transactions: data as unknown as Transaction[], total: count || 0 }
+    return JSON.parse(JSON.stringify({ 
+      transactions: data, 
+      total: count || 0 
+  }));
 }
 
 export async function getTransactionById(id: string) {
@@ -67,8 +70,8 @@ export async function getTransactionById(id: string) {
       .eq('id', id)
       .single();
 
-  if (error) throw error;
-  return data;
+  if (error) throw new Error(error.message);
+  return JSON.parse(JSON.stringify(data));
 }
 
 // ==========================================
@@ -84,7 +87,7 @@ export async function saveTransaction(payload: any) {
         category_id: payload.categoryId || null,
         transfer_to_account_id: payload.destinationAccountId || null,
         tags: payload.tagIds || [], 
-        items: payload.items || [], // 💡 1. Pasamos los ítems del desglose
+        items: payload.items || [], 
     };
 
     if (payload.id) {
@@ -106,9 +109,13 @@ export async function createTransaction(input: any) {
     const cleanInput = { ...input }
 
     const tagsIds = input.tags || []
-    const items = input.items || []
+    // 💡 Usamos 'let' para reescribir los items si es transferencia
+    let items = input.items || [] 
     delete cleanInput.tags 
     delete cleanInput.items 
+
+    // 💡 MAGIA YBANK: Cálculo DGII (0.15%) al CREAR
+    const originalTransferAmount = parseFloat(input.amount);
 
     if (input.type !== 'transfer') {
         delete cleanInput.transfer_to_account_id
@@ -116,9 +123,29 @@ export async function createTransaction(input: any) {
         delete cleanInput.exchange_rate
     } else {
         delete cleanInput.category_id 
+
+        const dgiiTax = Number((originalTransferAmount * 0.0015).toFixed(2));
+
+        cleanInput.amount = originalTransferAmount + dgiiTax;
+        cleanInput.target_amount = originalTransferAmount;
+
+        items = [
+            {
+                name: 'Monto Transferido',
+                unit_price: originalTransferAmount,
+                quantity: 1,
+                category_id: null
+            },
+            {
+                name: 'Comisión DGII (0.15%)',
+                unit_price: dgiiTax,
+                quantity: 1,
+                category_id: '79986a0a-f285-4e76-ac6e-a5833d836a87'
+            }
+        ];
     }
   
-  // LÓGICA DE DIVISAS (Mantenida intacta)
+  // LÓGICA DE DIVISAS (Ajustada para usar originalTransferAmount)
   if (input.type === 'transfer' && input.transfer_to_account_id) {
     const { data: accounts } = await supabase.from('accounts').select('id, currency, institution_id').in('id', [input.account_id, input.transfer_to_account_id])
     if (accounts && accounts.length === 2) {
@@ -129,7 +156,7 @@ export async function createTransaction(input: any) {
         const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation)
         if (rateInfo) {
           cleanInput.exchange_rate = rateInfo.rate; 
-          cleanInput.target_amount = Number((operation === 'buy' ? input.amount * rateInfo.rate : input.amount / rateInfo.rate).toFixed(2));
+          cleanInput.target_amount = Number((operation === 'buy' ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
         }
       }
     }
@@ -150,26 +177,21 @@ export async function createTransaction(input: any) {
     await supabase.from('transaction_tags').insert(tagInserts)
   }
 
-  // 3. 💡 VINCULAMOS LOS ÍTEMS (CON ERROR HANDLING Y ROLLBACK)
+  // 3. VINCULAMOS LOS ÍTEMS (CON ERROR HANDLING Y ROLLBACK)
   if (items.length > 0 && newTx) {
     const itemInserts = items.map((item: any) => ({
       transaction_id: newTx.id,
       name: item.name,
       quantity: 1, 
       unit_price: parseFloat(item.unit_price),
-      // 💡 ELIMINAMOS total_price para que PostgreSQL lo genere automáticamente
       category_id: item.category_id || null
     }))
     
-    // 💡 AHORA SÍ CAPTURAMOS EL ERROR
     const { error: itemsError } = await supabase.from('transaction_items').insert(itemInserts)
     
     if (itemsError) {
       console.error('Error insertando subtransacciones:', itemsError);
-      
-      // 🚨 ROLLBACK MANUAL: Si fallan los hijos, borramos al padre para no dejar data corrupta
       await supabase.from('transactions').delete().eq('id', newTx.id);
-      
       return { success: false, error: 'No se pudo guardar el desglose: ' + itemsError.message }
     }
   }
@@ -188,9 +210,13 @@ export async function updateTransaction(id: string, input: any) {
     const cleanInput = { ...input };
     
     const tagsIds = cleanInput.tags; 
-    const items = cleanInput.items;
+    let items = cleanInput.items; 
+    
     delete cleanInput.tags; 
     delete cleanInput.items; 
+
+    // 💡 MAGIA YBANK: Cálculo DGII (0.15%) al EDITAR
+    const originalTransferAmount = parseFloat(input.amount);
 
     if (cleanInput.type !== 'transfer') {
         delete cleanInput.transfer_to_account_id;
@@ -198,13 +224,56 @@ export async function updateTransaction(id: string, input: any) {
         delete cleanInput.exchange_rate;
     } else {
         delete cleanInput.category_id;
+
+        const dgiiTax = Number((originalTransferAmount * 0.0015).toFixed(2));
+
+        cleanInput.amount = originalTransferAmount + dgiiTax;
+        cleanInput.target_amount = originalTransferAmount;
+
+        items = [
+            {
+                name: 'Monto Transferido',
+                unit_price: originalTransferAmount,
+                quantity: 1,
+                category_id: null
+            },
+            {
+                name: 'Comisión DGII (0.15%)',
+                unit_price: dgiiTax,
+                quantity: 1,
+                category_id: '79986a0a-f285-4e76-ac6e-a5833d836a87'
+            }
+        ];
     }
 
-    // 1. Actualizamos el padre
+    // LÓGICA DE DIVISAS (Ajustada para usar originalTransferAmount)
+    if (cleanInput.type === 'transfer' && cleanInput.transfer_to_account_id) {
+        const { data: accounts } = await supabase
+            .from('accounts')
+            .select('id, currency, institution_id')
+            .in('id', [cleanInput.account_id, cleanInput.transfer_to_account_id]);
+            
+        if (accounts && accounts.length === 2) {
+            const sourceAcc = accounts.find(a => a.id === cleanInput.account_id);
+            const targetAcc = accounts.find(a => a.id === cleanInput.transfer_to_account_id);
+
+            if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
+                let operation: 'buy' | 'sell' = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? 'buy' : 'sell';
+                const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation);
+                
+                if (rateInfo) {
+                    cleanInput.exchange_rate = rateInfo.rate;
+                    cleanInput.target_amount = Number((operation === 'buy' ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
+                }
+            }
+        }
+    }
+
+    // 1. ACTUALIZAMOS LA TRANSACCIÓN PADRE
     const { error } = await supabase.from('transactions').update(cleanInput).eq('id', id);
     if (error) return { success: false, error: error.message };
 
-    // 2. ACTUALIZAMOS TAGS
+    // 2. ACTUALIZAMOS LOS TAGS
     if (tagsIds !== undefined) {
         await supabase.from('transaction_tags').delete().eq('transaction_id', id);
         if (tagsIds.length > 0) {
@@ -213,19 +282,16 @@ export async function updateTransaction(id: string, input: any) {
         }
     }
 
-    // 3. 💡 ACTUALIZAMOS ITEMS CON ERROR HANDLING
+    // 3. ACTUALIZAMOS EL DESGLOSE (ITEMS)
     if (items !== undefined) {
-        // A. Borramos los viejos
         await supabase.from('transaction_items').delete().eq('transaction_id', id);
         
-        // B. Insertamos los nuevos
         if (items.length > 0) {
             const itemInserts = items.map((item: any) => ({
                 transaction_id: id,
                 name: item.name,
                 quantity: 1,
                 unit_price: parseFloat(item.unit_price),
-                // 💡 ELIMINAMOS total_price aquí también
                 category_id: item.category_id || null
             }));
             
@@ -233,7 +299,7 @@ export async function updateTransaction(id: string, input: any) {
             
             if (itemsError) {
                 console.error('Error actualizando subtransacciones:', itemsError);
-                return { success: false, error: 'La transacción se actualizó, pero hubo un error con el desglose.' };
+                return { success: false, error: 'Transacción actualizada, pero falló el desglose de DGII.' };
             }
         }
     }
@@ -254,7 +320,6 @@ export async function updateSubTransaction(itemId: string, input: {
 }) {
   const supabase = await createSupabaseClient();
   
-  // Calculamos el total price para que la BD esté feliz
   const total_price = input.quantity * input.unit_price;
 
   const { error } = await supabase
@@ -270,7 +335,6 @@ export async function updateSubTransaction(itemId: string, input: {
 
   if (error) return { success: false, error: error.message };
 
-  // Revalidar para que se actualice la vista
   revalidatePath('/accounts');
   return { success: true };
 }

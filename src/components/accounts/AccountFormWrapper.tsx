@@ -25,8 +25,17 @@ export default function AccountFormWrapper({
   const router = useRouter(); 
   const [isSubmitting, setIsSubmitting] = useState(false); 
 
-  const [accountData, setAccountData] = useState<EditCreateAccount>(
-    initialData || {
+  const [accountData, setAccountData] = useState<EditCreateAccount>(() => {
+    if (initialData) {
+      return {
+        ...initialData,
+        color: initialData.color || initialData.institution?.brand_color_primary || '#0f172a',
+        custom_pattern: initialData.custom_pattern || initialData.institution?.card_pattern || 'geometric',
+        custom_text_theme: initialData.custom_text_theme || initialData.institution?.text_theme || 'light',
+      };
+    }
+    
+    return {
       name: '',
       type: 'checking',
       currency: 'DOP',
@@ -38,8 +47,8 @@ export default function AccountFormWrapper({
       institution: emptyInstitution,
       is_active: true,
       initial_balance: 0
-    }
-  );
+    };
+  });
 
   const handleChange = (field: keyof EditCreateAccount, value: any) => {
     setAccountData(prev => {

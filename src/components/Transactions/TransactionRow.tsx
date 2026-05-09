@@ -2,50 +2,92 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ShoppingCart, Home } from 'lucide-react';
+import { ChevronDown, ShoppingCart } from 'lucide-react';
+import { useModalStore } from '@/store/useModalStore';
+import { getCategoryIcon } from '@/lib/utils';
 
-// Imagina que este es el componente que renderiza UNA sola fila de tu tabla
-export function TransactionRow({ tx }: { tx: any }) {
-  // 💡 Controla si el desglose está abierto o cerrado
+export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccountId?: string | null }) {
+
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // 💡 1. EVALUACIÓN DE CONTEXTO
+  const isTransfer = tx.type === 'transfer';
+  const isReceiver = isTransfer && tx.transfer_to_account_id === activeAccountId;
+  
+  // 💡 2. VALORES MUTADOS SEGÚN EL ROL
+  const displayAmount = isReceiver ? (tx.target_amount || tx.amount) : tx.amount;
+  const displayType = isTransfer 
+    ? (isReceiver ? 'income' : (tx.account_id === activeAccountId ? 'expense' : 'transfer')) 
+    : tx.type;
+  
+  // Si soy receptor, no veo el desglose (DGII).
+  const displayItems = isReceiver ? [] : (tx.items || []);
 
-  // Simulación de sub-transacciones (Esto vendría de tu base de datos)
-  const hasSubTransactions = tx.subTransactions && tx.subTransactions.length > 0;
+  const openModal = useModalStore((state) => state.openModal);
+
+  const isPositive = displayType === 'income';
+  const amountColor = isPositive ? 'text-emerald-500' : (displayType === 'expense' ? 'text-foreground' : 'text-blue-500');
+  const amountPrefix = isPositive ? '+' : (displayType === 'expense' ? '-' : '');
+  
+  // 💡 3. USAR DISPLAY ITEMS EN VEZ DE TX.ITEMS
+  const items = displayItems;
+  const hasSubTransactions = items.length > 0;
+
+  const handleOpenEditModal = () => {
+    openModal('transaction', { 
+      transactionId: tx.id, 
+      accountId: tx.account_id,
+      initialData: tx // Pasamos la data cruda original para que el formulario la entienda
+    });
+  };
 
   return (
-    <div className="flex flex-col border-b border-slate-100 last:border-0">
+    <div className="flex flex-col border-b border-border last:border-0">
       
-      {/* === FILA PRINCIPAL (Siempre visible) === */}
+      {/* === FILA PRINCIPAL === */}
       <div 
-        // 💡 Solo es clickeable si tiene sub-transacciones (o para abrir el modal de edición)
-        onClick={() => hasSubTransactions ? setIsExpanded(!isExpanded) : null}
-        className={`flex items-center justify-between py-4 ${hasSubTransactions ? 'cursor-pointer active:bg-slate-50' : ''}`}
+        onClick={handleOpenEditModal}
+        className="flex items-center justify-between py-4 px-2 md:px-4 transition-colors cursor-pointer active:bg-surface-2 hover:bg-surface-2/50 group"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-             {/* Tu ícono de categoría aquí */}
-             <ShoppingCart size={18} />
+        <div className="flex items-center gap-3 min-w-0 pr-2">
+          {/* 💡 4. Usar displayType para los colores del ícono */}
+          <div className={`w-9 h-9 rounded-[6px] flex items-center justify-center shrink-0 border transition-colors
+            ${displayType === 'expense' ? 'bg-surface-2 border-border text-rose-500 group-hover:bg-rose-500/10' : 
+              displayType === 'income' ? 'bg-surface-2 border-border text-emerald-500 group-hover:bg-emerald-500/10' : 
+              'bg-surface-2 border-border text-primary group-hover:bg-primary/10'}`}
+          >
+              {getCategoryIcon(tx.category?.icon)}
           </div>
-          <div>
-            <p className="text-sm font-bold text-slate-800">{tx.description}</p>
-            <p className="text-xs text-slate-400">{tx.categoryName} • {tx.date}</p>
+          <div className="min-w-0"> 
+            <p className="text-sm font-bold text-foreground line-clamp-1">{tx.description || 'Operación Genérica'}</p>
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate mt-0.5">
+              {/* 💡 5. Ajustar texto si es transferencia recibida */}
+              {isReceiver ? `Desde ${tx.account?.name || 'Otra Cuenta'}` : (tx.category?.name || (hasSubTransactions ? 'Desglosado' : 'Transferencia'))} • {new Date(tx.date).toLocaleDateString('es-DO', { month: 'short', day: '2-digit' }).replace(',', '')}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <p className="text-sm font-black text-slate-800">
-            -${tx.amount}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* 💡 6. Usar amountColor, amountPrefix y displayAmount */}
+          <p className={`text-sm font-mono font-bold tracking-tight ${amountColor}`}>
+            {amountPrefix}${Number(displayAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          {/* 💡 Indicador visual de que se puede expandir */}
+          
           {hasSubTransactions && (
-            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
-              <ChevronDown size={16} className="text-slate-400" />
+            <motion.div 
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              onClick={(e) => {
+                e.stopPropagation(); 
+                setIsExpanded(!isExpanded);
+              }}
+              className="p-1 rounded-[4px] hover:bg-surface-2 text-muted-foreground transition-colors"
+            >
+              <ChevronDown size={16} strokeWidth={2.5} />
             </motion.div>
           )}
         </div>
       </div>
-
-      {/* === ÁREA EXPANDIBLE (Las sub-transacciones) === */}
+        
       <AnimatePresence initial={false}>
         {isExpanded && hasSubTransactions && (
           <motion.div
@@ -53,25 +95,39 @@ export function TransactionRow({ tx }: { tx: any }) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="overflow-hidden" // 💡 Vital para que el height: 0 funcione limpio
+            className="overflow-hidden"
           >
-            <div className="pl-12 pr-4 pb-4 space-y-3 bg-slate-50/50 rounded-b-xl mb-2">
-              {/* Lista de sub-transacciones */}
-              {tx.subTransactions.map((sub: any, i: number) => (
-                <div key={i} className="flex justify-between items-center text-xs">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                    <span>{sub.categoryName}</span>
-                    {sub.note && <span className="text-slate-400 italic">({sub.note})</span>}
+            <div className="ml-[44px] mr-4 mb-4 pl-3 border-l border-border/60 space-y-2.5">
+              
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Desglose Contable</p>
+                <p 
+                  onClick={handleOpenEditModal}
+                  className="text-[8px] font-bold text-primary cursor-pointer hover:underline uppercase tracking-[0.2em]"
+                >
+                  Auditar
+                </p>
+              </div>
+              
+              {items.map((sub: any, i: number) => (
+                <div key={sub.id || i} className="flex justify-between items-start text-xs group/sub">
+                  <div className="flex items-start gap-2 text-foreground truncate pr-2">
+                    <span className="text-muted-foreground opacity-50 mt-[-2px]">↳</span>
+                    <div className="flex flex-col">
+                      <span className="font-bold uppercase tracking-wide text-[10px] leading-tight text-foreground">{sub.category?.name || 'CATEGORÍA'}</span>
+                      {sub.name && <span className="text-muted-foreground text-[10px] truncate leading-tight">{sub.name}</span>}
+                    </div>
                   </div>
-                  <span className="font-bold text-slate-600">-${sub.amount}</span>
+                  <span className="font-mono font-medium text-muted-foreground shrink-0 text-[11px] mt-0.5">
+                    ${Number(sub.unit_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               ))}
+              
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-      
     </div>
   );
 }

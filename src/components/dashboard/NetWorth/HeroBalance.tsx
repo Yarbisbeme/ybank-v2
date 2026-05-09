@@ -3,24 +3,38 @@
 import { useState, useMemo } from 'react';
 import { useYBankStore } from '@/store/useYBankStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, TrendingUp, TrendingDown, CreditCard, Wallet } from 'lucide-react';
-import { Account, Transaction } from '@/types';
+import { RefreshCw, TrendingUp, TrendingDown, CreditCard, Wallet, Loader2 } from 'lucide-react';
+import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs';
 import { AnimatedNumber } from './AnimatedNumber';
 import WeeklyActivityChart from './WeeklyActivityChart';
+import { Account, Transaction } from '@/types'; 
 
-interface HeroBalanceProps {
-  accounts: Account[];
-  transactions: Transaction[];
-  baseLiquidDOP: number; 
-  baseDebtDOP: number;   
-}
-
-export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }: HeroBalanceProps) {
+export default function HeroBalance() {
   const { currency, preferredRate, isCalculatingRate, setCurrency } = useYBankStore();
   const [includeCredit, setIncludeCredit] = useState(false);
 
-  // 1. LÓGICA FINANCIERA
-  const totalDOP = includeCredit ? (baseLiquidDOP - Math.abs(baseDebtDOP)) : baseLiquidDOP;
+  const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
+  
+  // 💡 FIX 1: Renombramos la salida del hook a `queryData`
+  const { data: queryData, isLoading: isLoadingTx } = useTransactionsList();
+
+  // 💡 FIX 2: Extraemos el arreglo real de transacciones de forma segura
+  const transactions = Array.isArray(queryData) ? queryData : (queryData?.transactions || []);
+
+  const totals = useMemo(() => {
+    const liquid = accounts
+      .filter((a: Account) => a.type !== 'credit_card')
+      .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
+    
+    const debt = accounts
+      .filter((a: Account) => a.type === 'credit_card')
+      .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
+
+    return { liquid, debt };
+  }, [accounts]);
+
+  const totalDOP = includeCredit ? (totals.liquid - Math.abs(totals.debt)) : totals.liquid;
+  
   const displayBalance = currency === 'USD' && preferredRate
     ? totalDOP / preferredRate.rate
     : totalDOP;
@@ -28,22 +42,22 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
   const isNegative = displayBalance < 0;
   const absoluteBalance = Math.abs(displayBalance);
 
-  // 2. TENDENCIA MENSUAL
   const trend = useMemo(() => {
+    // 💡 Ahora transactions SÍ es un arreglo válido
     if (transactions.length === 0) return { percentage: 0, isUp: true };
     const now = new Date();
     const currentMonth = now.getMonth();
     
     const currentMonthTotal = transactions
-      .filter(tx => new Date(tx.date).getMonth() === currentMonth)
-      .reduce((sum, tx) => sum + tx.amount, 0);
+      .filter((tx: Transaction) => new Date(tx.date).getMonth() === currentMonth)
+      .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
 
     const lastMonthTotal = transactions
-      .filter(tx => {
+      .filter((tx: Transaction) => {
         const d = new Date(tx.date);
         return d.getMonth() === (currentMonth === 0 ? 11 : currentMonth - 1);
       })
-      .reduce((sum, tx) => sum + tx.amount, 0);
+      .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
 
     if (lastMonthTotal === 0) return { percentage: 0, isUp: currentMonthTotal >= 0 };
     const diff = ((currentMonthTotal - lastMonthTotal) / Math.abs(lastMonthTotal)) * 100;
@@ -52,9 +66,16 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
 
   const TrendIcon = trend.isUp ? TrendingUp : TrendingDown;
 
+  if (isLoadingAccs || isLoadingTx) {
+    return (
+      <div className="w-full h-[320px] bg-card animate-pulse rounded-[10px] border border-border flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary/30" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full bg-card p-6 md:p-10 rounded-[10px] border border-border shadow-sm overflow-hidden group flex flex-col md:flex-row gap-8">
-      
       {/* Glow Background - Muy sutil */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
 
@@ -63,14 +84,13 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
         
         {/* Header y Toggle de Crédito */}
         <div className="flex items-center justify-between md:gap-4">
-          <div className="text-[10px] md:text-xs font-bold  uppercase tracking-widest text-muted-foreground flex items-center h-6 overflow-hidden">
-            {/* 💡 ANIMACIÓN: Crossfade del Título al cambiar */}
+          <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center h-6 overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.span
                 key={includeCredit ? 'net' : 'liquid'}
-                initial={{ y: 0, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -10, opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
                 {includeCredit ? "Patrimonio Neto Total" : "Capital Líquido"}
@@ -87,7 +107,6 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
               : 'bg-background text-muted-foreground border-border hover:border-blue-500/30'
             }`}
           >
-            {/* 💡 ANIMACIÓN: Icono que rota al hacer click */}
             <motion.div
               key={includeCredit ? 'credit' : 'wallet'}
               initial={{ rotate: -90, opacity: 0 }}
@@ -102,12 +121,10 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
 
         {/* Balance Numérico */}
         <div className="space-y-3">
-          {/* 💡 ANIMACIÓN: Layout prop para que se ajuste suavemente si cambia de tamaño */}
           <motion.h2 
             layout
             className={`text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-mono tracking-tight flex items-baseline gap-1 md:gap-2 ${isNegative ? 'text-destructive' : 'text-foreground'}`}
           >
-            {/* 💡 ACENTO AZUL: El signo de dólar es el ancla visual de la marca */}
             <motion.span layout className="text-blue-600 font-sans text-3xl md:text-5xl shrink-0">
               {isNegative ? '-$' : '$'}
             </motion.span>
@@ -117,8 +134,6 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
           </motion.h2>
           
           <div className="flex items-center gap-4">
-            
-            {/* Toggle DOP / USD */}
             <div className="flex items-center bg-surface-2 p-1 rounded-lg border border-border relative">
               {(['DOP', 'USD'] as const).map((curr) => (
                 <button
@@ -128,7 +143,6 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
                     currency === curr ? 'text-white' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {/* 💡 ACENTO AZUL Y ANIMACIÓN: La píldora ahora es azul con un leve glow */}
                   {currency === curr && (
                     <motion.div
                       layoutId="currency-toggle-pill"
@@ -141,13 +155,12 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
               ))}
             </div>
 
-            {/* Etiqueta de Tasa Inteligente */}
             <AnimatePresence>
               {currency === 'USD' && preferredRate && (
                 <motion.span 
-                  initial={{ opacity: 0, x: -10, filter: 'blur(4px)' }} 
-                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }} 
-                  exit={{ opacity: 0, x: -10, filter: 'blur(4px)' }}
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  exit={{ opacity: 0, x: -10 }}
                   className="text-[10px] font-mono text-blue-600 bg-blue-500/10 px-2 py-1 rounded-md whitespace-nowrap"
                 >
                   Rate: {preferredRate.rate} ({preferredRate.institutionName})
@@ -157,7 +170,7 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
           </div>
         </div>
 
-        {/* Indicador de Tendencia Orgánico */}
+        {/* Indicador de Tendencia */}
         <div className="flex items-center gap-2 mt-1 opacity-90">
           <span className={`flex items-center gap-1 font-mono text-sm font-bold tracking-tight ${
             trend.isUp ? 'text-emerald-500' : 'text-rose-500'
@@ -175,6 +188,7 @@ export default function HeroBalance({ transactions, baseLiquidDOP, baseDebtDOP }
       <div className="hidden md:flex w-72 flex-col justify-end border-l border-border pl-8">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Actividad Semanal</p>
         <div className="h-40 w-full">
+          {/* 💡 FIX 3: Ahora le pasamos el arreglo limpio al gráfico semanal */}
           <WeeklyActivityChart transactions={transactions} />
         </div>
       </div>
