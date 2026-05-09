@@ -8,10 +8,8 @@ import { getCategories } from '@/lib/actions/categories';
 import { getInstitutions } from '@/lib/actions/institutions';
 import { redirect } from 'next/navigation';
 
-// Providers
-import StoreInitializer from '@/components/providers/StoreInitializer';
-import ModalProvider from '@/components/providers/ModalProvider';
-import QueryProvider from '@/components/providers/QueryProvider';
+// 💡 1. Importamos el nuevo contenedor unificado (ajusta la ruta si es necesario)
+import DashboardProviders from '@/components/providers/DashboardProviders';
 import PWAFooter from '@/components/layout/PWAFooter';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/onboarding');
   }
 
+
   const [accounts, transactionsData, tags, categoriesTree, institutions] = await Promise.all([
     getAccounts(),
     getTransactions({}),
@@ -51,16 +50,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const institutionId = (profile.accounts as any)?.institution_id || null;
 
   return (
-    <QueryProvider>
+    <DashboardProviders 
+      primaryAccountId={profile.primary_account_id}
+      institutionId={institutionId}
+    >
       <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
         
-        <StoreInitializer 
-          primaryAccountId={profile.primary_account_id} 
-          institutionId={institutionId} 
-        />
-
-        <ModalProvider />
-
         <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-border bg-card">
           <Sidebar />
         </aside>
@@ -81,6 +76,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </main>
         </div>
       </div>
-    </QueryProvider>
+    </DashboardProviders>
   );
 }

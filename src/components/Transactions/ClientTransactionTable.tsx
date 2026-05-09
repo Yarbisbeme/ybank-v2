@@ -1,51 +1,62 @@
-// ClientTransactionTable.tsx
 'use client'
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useTransactionsList } from '@/hooks/useCatalogs';
-import TransactionTable from './TransactionTable'; // Asegúrate de que el nombre importe el correcto
+import { useTransactionsList, useAccounts } from '@/hooks/useCatalogs';
+import TransactionTable from './TransactionTable'; 
 import { useSearchParams } from 'next/navigation';
 
 export default function ClientTransactionTable() {
-  // 💡 1. Estado para controlar la página actual
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // 💡 2. Obtenemos el ID de la cuenta activa desde la URL (si existe)
   const searchParams = useSearchParams();
-  const activeAccountId = searchParams.get('accountId');
+  
+  // 1. Intentamos leer el ID de la URL
+  const urlAccountId = searchParams.get('accountId');
 
-  // 💡 3. Le pasamos la página al hook de TanStack Query
-  const { data, isLoading, isFetching } = useTransactionsList(currentPage);
+  // 2. Traemos las cuentas desde la caché local IndexedDB (0ms si está offline)
+  const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
 
-  // Extraemos las transacciones y el total desde el objeto 'data'
+  // 3. 💡 ESTRATEGIA DE RESPALDO:
+  // Si no hay un ID en la URL, adoptamos síncronamente el primer nodo de la caché local.
+  // Esto evita que la tabla se quede colgada esperando la redirección en páginas secundarias.
+  const activeAccountId = useMemo(() => {
+    if (urlAccountId) return urlAccountId;
+    if (accounts.length > 0) return accounts[0].id;
+    return null;
+  }, [urlAccountId, accounts]);
+
+  // 4. El hook de TanStack Query se ejecuta siempre con un ID garantizado
+  const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
+
   const transactions = data?.transactions || [];
   const totalItems = data?.total || 0;
 
-  return (
-    <div className={`relative transition-opacity duration-300 ${isFetching && !isLoading ? 'opacity-80' : 'opacity-100'}`}>
-      
-      {/* 💡 4. Pasamos todas las props necesarias a la tabla */}
-      <TransactionTable 
-        transactions={transactions} 
-        activeAccountId={activeAccountId} // Pasamos el contexto
-        currentPage={currentPage}
-        totalItems={totalItems}
-        onPageChange={setCurrentPage} // Permitimos que la tabla cambie la página
-      />
+  // Combinamos los estados de carga
+  const isQueryLoading = isLoadingTx || isLoadingAccounts || !activeAccountId;
 
-      {/* Indicador sutil superior cuando cambia de página */}
-      {isFetching && !isLoading && (
+  return (
+    <div className={`relative transition-opacity duration-300 ${isFetching && !isQueryLoading ? 'opacity-80' : 'opacity-100'}`}>
+      
+      {isQueryLoading ? (
+        <p className="flex justify-center items-center gap-2 text-center text-[9px] font-bold uppercase tracking-widest text-primary animate-pulse mt-4 py-8">
+          <RefreshCw size={12} className="animate-spin" />
+          Sincronizando Telemetría...
+        </p>
+      ) : (
+        <TransactionTable 
+          transactions={transactions} 
+          activeAccountId={activeAccountId} 
+          currentPage={currentPage}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage} 
+        />
+      )}
+
+      {/* Indicador de actualización en segundo plano */}
+      {isFetching && !isQueryLoading && (
          <div className="absolute top-2 right-2 flex items-center justify-center p-1 bg-surface-2 rounded-full shadow-sm">
             <RefreshCw size={14} className="animate-spin text-blue-500" />
          </div>
-      )}
-
-      {isLoading && (
-        <p className="flex justify-center items-center gap-2 text-center text-[9px] font-bold uppercase tracking-widest text-primary animate-pulse mt-4 py-8">
-          <RefreshCw size={12} className="animate-spin" />
-          Cargando Telemetría...
-        </p>
       )}
     </div>
   );

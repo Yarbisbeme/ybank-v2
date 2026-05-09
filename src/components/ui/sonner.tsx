@@ -7,7 +7,8 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
+// 💡 Importamos solo useTheme de la librería corregida
+import { useTheme } from "@teispace/next-themes" 
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {

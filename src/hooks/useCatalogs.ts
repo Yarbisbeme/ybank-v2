@@ -12,12 +12,16 @@ import { getProfile, updateProfile } from '@/lib/actions/profile';
 import { toast } from 'sonner';
 import { ProfileUpdateInput } from '@/types';
 
+// Helper para comprobar si el navegador está offline de manera síncrona
+const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
+
 // 🏦 1. Hook para Instituciones (Bancos)
 export function useInstitutions() {
   return useQuery({
     queryKey: ['institutions'],
     queryFn: async () => await getInstitutions(),
     staleTime: 24 * 60 * 60 * 1000, 
+    networkMode: 'offlineFirst', // 💡 TanStack Query resolverá desde caché de inmediato si no hay red
   });
 }
 
@@ -27,6 +31,7 @@ export function useCategories() {
     queryKey: ['categories'],
     queryFn: async () => await getCategories(),
     staleTime: 24 * 60 * 60 * 1000, 
+    networkMode: 'offlineFirst',
   });
 }
 
@@ -36,6 +41,7 @@ export function useTags() {
     queryKey: ['tags'],
     queryFn: async () => await getTags(),
     staleTime: 10 * 60 * 1000, 
+    networkMode: 'offlineFirst',
   });
 }
 
@@ -45,18 +51,26 @@ export function useAccounts() {
     queryKey: ['accounts'],
     queryFn: async () => await getAccounts(),
     staleTime: 60 * 1000, 
+    networkMode: 'offlineFirst',
   });
 }
 
-// 💳 5. Hook para Transacciones (Paginación Real)
+// 💳 5. Hook para Transacciones (Paginación Real adaptada a Offline)
 export function useTransactionsList(page: number = 1) {
   const filters = useFilterStore();
   const searchParams = useSearchParams();
-  
-  const urlAccountId = searchParams.get('accountId');
+  const { data: accounts = [] } = useAccounts(); // 💡 Acceso rápido a la caché de cuentas
+
+  // 💡 Resolvemos el ID de cuenta de la misma forma flexible
+  const urlAccountId = searchParams.get('accountId') || (accounts[0]?.id) || '';
+
+  const filterType = filters.type || '';
+  const filterCategoryId = filters.categoryId || '';
+  const filterStartDate = filters.startDate || '';
+  const filterEndDate = filters.endDate || '';
 
   return useQuery({
-    queryKey: ['transactions', urlAccountId, filters.type, filters.categoryId, filters.startDate, filters.endDate, page],
+    queryKey: ['transactions', urlAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, page],
     queryFn: async () => {
       const activeFilters = {
         ...(filters.type && { type: filters.type }), 
@@ -73,6 +87,13 @@ export function useTransactionsList(page: number = 1) {
       });
     },
     placeholderData: keepPreviousData, 
+    networkMode: 'offlineFirst',
+    // Se habilita si hay un ID en la URL o si ya pudimos rescatar una cuenta por defecto de la caché
+    enabled: !!urlAccountId, 
+    retry: (failureCount) => {
+      if (typeof window !== 'undefined' && !navigator.onLine) return false;
+      return failureCount < 2;
+    }
   });
 }
 
@@ -84,6 +105,7 @@ export function useProfile() {
       return await getProfile();
     },
     staleTime: 1000 * 60 * 15, 
+    networkMode: 'offlineFirst',
   });
 }
 
@@ -95,17 +117,16 @@ export function useUpdateProfile() {
     mutationFn: async (data: ProfileUpdateInput) => {
       const response = await updateProfile(data);
       if (!response.success) throw new Error(response.error);
-      return response; // 💡 Ahora esto incluye response.data
+      return response;
     },
     onSuccess: (response) => {
-      // 💡 En vez de invalidar y gastar internet, inyectamos la data nueva directamente
       queryClient.setQueryData(['user-profile'], response.data);
     },
   });
 }
 
 // ============================================================================
-// 🚀 NUEVOS HOOKS OPTIMISTAS (FASE 2)
+// 🚀 HOOKS CON INTERRUPCIÓN DE RED OFFLINE
 // ============================================================================
 
 export function useSaveTransaction() {
@@ -113,26 +134,27 @@ export function useSaveTransaction() {
 
   return useMutation({
     mutationFn: async (payload: any) => {
+      // 💡 Si el usuario está offline, podemos optar por guardar localmente o alertarle,
+      // evitando rebotar peticiones rotas al backend.
+      if (isOffline()) {
+        throw new Error("Estás offline. Los cambios de transacciones se sincronizarán al recuperar la conexión.");
+      }
       const response = await saveTransaction(payload);
       if (!response.success) throw new Error(response.error);
       return response;
     },
     
     onMutate: async (newTx) => {
-      // 1. Cancelamos peticiones en vuelo
       await queryClient.cancelQueries({ queryKey: ['transactions'] });
-
-      // 2. Tomamos una "foto" de TODAS las cachés de transacciones (todas las páginas)
       const previousState = queryClient.getQueriesData({ queryKey: ['transactions'] });
 
-      // 3. Modificamos los datos en pantalla instantáneamente usando setQueriesData (plural)
       queryClient.setQueriesData({ queryKey: ['transactions'] }, (old: any) => {
         if (!old || !old.transactions) return old;
 
         const optimisticTx = {
           ...newTx,
           id: newTx.id || `temp-id-${Date.now()}`,
-          status: 'pending', // Para darle un feedback visual si quieres
+          status: 'pending', 
         };
 
         const updatedTransactions = newTx.id
@@ -150,7 +172,6 @@ export function useSaveTransaction() {
     },
 
     onError: (err, newTx, context) => {
-      // Si falla, restauramos la foto anterior
       if (context?.previousState) {
         context.previousState.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -160,9 +181,7 @@ export function useSaveTransaction() {
     },
 
     onSettled: () => {
-      // Sincronizamos silenciosamente con la base de datos real
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      // Invalidamos las cuentas para que el Dashboard actualice los balances
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
 
@@ -178,6 +197,9 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (isOffline()) {
+        throw new Error("No puedes eliminar transacciones en modo offline.");
+      }
       const response = await deleteTransaction(id);
       if (!response.success) throw new Error(response.error);
       return response;
@@ -240,7 +262,7 @@ export function useUpdateSubTransaction() {
   });
 }
 
-// 🏦 HOOK PARA CREAR/EDITAR CUENTAS (Añadir al final)
+// 🏦 HOOK PARA CREAR/EDITAR CUENTAS
 export function useSaveAccount() {
   const queryClient = useQueryClient();
 
@@ -270,7 +292,6 @@ export function useSaveTag() {
       return response;
     },
     onSuccess: (response) => {
-      // 💡 Inyectamos el nuevo tag en la lista existente sin recargar
       queryClient.setQueryData(['tags'], (old: any) => {
         return old ? [...old, response.data] : [response.data];
       });

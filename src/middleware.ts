@@ -1,7 +1,6 @@
 import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { updateSession } from "./lib/supabase/middleware"; // O la ruta correcta donde tengas updateSession
 
-// Esta es la función exportada que Next.js estaba buscando y no encontraba
 export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }
@@ -9,12 +8,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Coincidir con todas las rutas excepto:
-     * - _next/static (archivos estáticos)
+     * Intercepta todas las rutas de la app excepto:
+     * - _next/static (archivos estáticos de Next.js)
      * - _next/image (optimización de imágenes)
-     * - favicon.ico (icono del navegador)
-     * - Imágenes públicas (svg, png, jpg, etc.)
+     * - favicon.ico, manifest.json, sw.js (archivos de la PWA)
+     * - Cualquier archivo con extensión de imagen, video o fuente (svg, png, jpg, woff2, etc.)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|woff2?)$).*)',
   ],
 };

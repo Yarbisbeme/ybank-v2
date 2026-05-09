@@ -5,9 +5,27 @@ import { cookies } from 'next/headers'
 
 export async function createSupabaseClient() {
   const cookieStore = await cookies()
-    return createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-    )  
+  
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { 
+      cookies: { 
+        getAll() { 
+          return cookieStore.getAll() 
+        }, 
+        // 💡 CLAVE: Permitimos que las Server Actions guarden las cookies de autenticación
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => 
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // El Middleware se encargará de refrescar/escribir si esta función 
+            // es llamada desde un Server Component de solo lectura.
+          }
+        } 
+      } 
+    }
+  )  
 }

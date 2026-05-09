@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import UniversalCard from '../Tarjetas/UniversalCard';
 import { useAccounts } from '@/hooks/useCatalogs'; 
+import { useFilterStore } from '@/store/useFilterStore';
 // 💡 ELIMINAMOS useFilterStore de aquí. La URL es el único jefe ahora.
 
 function useIsMobile() {
@@ -26,18 +27,21 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
   const { data: accounts = [], isLoading } = useAccounts();
   const [ activeIdx, setActiveIdx ] = useState(0);
 
-  // 💡 MOTOR DE SINCRONIZACIÓN VISUAL (Corregido)
+  const setFilter = useFilterStore((state) => state.setFilter);
+
   useEffect(() => {
     if (accounts.length === 0) return;
     
-    // El objetivo principal es la URL (initialAccountId). Si no hay, usa el primero.
     const targetId = initialAccountId || accounts[0].id;
     const newIdx = accounts.findIndex(acc => acc.id === targetId);
     
-    if (newIdx !== -1 && newIdx !== activeIdx) {
-      setActiveIdx(newIdx);
+    if (newIdx !== -1) {
+      if (newIdx !== activeIdx) {
+        setActiveIdx(newIdx);
+      }
+      setFilter('accountId', targetId);
     }
-  }, [accounts, initialAccountId]); // Solo reacciona cuando cargan las cuentas o cambia la URL
+  }, [accounts, initialAccountId, setFilter]);
 
   // 4. Definición de Variantes de Animación optimizadas
   const variants = useMemo(() => {
