@@ -21,6 +21,7 @@ export function useInstitutions() {
     queryKey: ['institutions'],
     queryFn: async () => await getInstitutions(),
     staleTime: 24 * 60 * 60 * 1000, 
+    gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst', // 💡 TanStack Query resolverá desde caché de inmediato si no hay red
   });
 }
@@ -31,6 +32,7 @@ export function useCategories() {
     queryKey: ['categories'],
     queryFn: async () => await getCategories(),
     staleTime: 24 * 60 * 60 * 1000, 
+    gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
   });
 }
@@ -41,6 +43,7 @@ export function useTags() {
     queryKey: ['tags'],
     queryFn: async () => await getTags(),
     staleTime: 10 * 60 * 1000, 
+    gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
   });
 }
@@ -51,6 +54,7 @@ export function useAccounts() {
     queryKey: ['accounts'],
     queryFn: async () => await getAccounts(),
     staleTime: 60 * 1000, 
+    gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
   });
 }
@@ -105,6 +109,7 @@ export function useProfile() {
       return await getProfile();
     },
     staleTime: 1000 * 60 * 15, 
+    gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
   });
 }

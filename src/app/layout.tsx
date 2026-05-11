@@ -3,7 +3,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Metadata, Viewport } from "next";
-// 💡 1. Importamos el componente Script de Next.js
 import Script from "next/script"; 
 
 export const viewport: Viewport = {
