@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { 
-  ArrowDownCircle, ArrowUpCircle, RefreshCw, Calendar, 
+  ArrowDownRight, ArrowUpRight, ArrowRightLeft, Calendar, 
   Grid as GridIcon, CreditCard, AlignLeft, Send, Trash2,
-  Info 
+  Info, CheckCircle2, RefreshCw, SplitSquareHorizontal
 } from 'lucide-react';
 import { Account, Tag, Category } from '@/types'; 
 import TagInput from './TagInput';
@@ -12,7 +12,8 @@ import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
 import { useSaveTransaction, useDeleteTransaction, useSaveTag } from '@/hooks/useCatalogs'; 
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
 
@@ -37,16 +38,14 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const dateInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!initialData;
   const hasExistingSplit = isEditing && initialData?.type === 'expense' && initialData?.items && initialData.items.length > 0;
+  
   const { mutate: createTagOptimistic } = useSaveTag();
   const { mutate: saveTx, isPending: isSubmitting } = useSaveTransaction();
   const { mutate: deleteTx, isPending: isDeleting } = useDeleteTransaction();
   
   const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
   
-  const initialAmount = initialData?.type === 'transfer' 
-    ? (initialData.target_amount || initialData.amount) 
-    : initialData?.amount;
-    
+  const initialAmount = initialData?.type === 'transfer' ? (initialData.target_amount || initialData.amount) : initialData?.amount;
   const [amount, setAmount] = useState(initialAmount?.toString() || '');
   const [accountId, setAccountId] = useState(initialData?.account_id || defaultAccountId || '');
   const [note, setNote] = useState(initialData?.note || '');
@@ -60,16 +59,9 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     : [{ _id: crypto.randomUUID(), name: '', unit_price: '', quantity: 1, category_id: '' }]
   );
 
-  const [date, setDate] = useState(
-    initialData?.date 
-    ? initialData.date.split('T')[0].split(' ')[0] 
-    : new Date().toISOString().split('T')[0]
-  );
-  
+  const [date, setDate] = useState(initialData?.date ? initialData.date.split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0]);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags || []);
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    initialData?.tags?.map((t: any) => t.tag?.id) || []
-  );
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags?.map((t: any) => t.tag?.id) || []);
 
   useEffect(() => {
     if (type !== 'expense') setIsSplit(false);
@@ -83,7 +75,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   });
 
   const handleCustomTagCreate = (newTagName: string) => {
-    // Disparamos la mutación hacia Supabase
     createTagOptimistic(newTagName, {
       onSuccess: (response) => {
         setSelectedTags(prev => [...prev, response.data.id]);
@@ -113,159 +104,178 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       }
     }
 
-    const payload: any = { 
-      id: initialData?.id, 
-      type, 
-      account_id: accountId, 
-      date, 
-      note, 
-      tags: selectedTags 
-    };
+    const payload: any = { id: initialData?.id, type, account_id: accountId, date, note, tags: selectedTags };
 
     if (!hasExistingSplit) {
       payload.amount = amount;
-      if (type === 'transfer') {
-        payload.transfer_to_account_id = destinationAccountId; 
-      } else {
-        payload.category_id = (type === 'expense' && isSplit) ? null : categoryId;
-      }
+      if (type === 'transfer') payload.transfer_to_account_id = destinationAccountId; 
+      else payload.category_id = (type === 'expense' && isSplit) ? null : categoryId;
       payload.items = (type === 'expense' && isSplit) ? items : [];
     }
 
-    // 💡 3. Disparamos la mutación. TanStack Query se encarga del resto.
-    saveTx(payload, {
-      onSuccess: () => {
-        // Al tener éxito (incluso optimista), cerramos el modal al instante.
-        onSuccess();
-      }
-    });
+    saveTx(payload, { onSuccess: () => onSuccess() });
   };
 
   const handleDelete = () => {
     if (!initialData?.id) return;
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta transacción completa, incluyendo todo su desglose?')) return;
-    
-    deleteTx(initialData.id, {
-      onSuccess: () => {
-        onSuccess();
-      }
-    });
+    if (!window.confirm('ALERTA: ¿Confirmas la eliminación permanente de este registro contable?')) return;
+    deleteTx(initialData.id, { onSuccess: () => onSuccess() });
   };
 
+  const activeColor = type === 'expense' ? 'text-rose-600' : type === 'income' ? 'text-emerald-600' : 'text-primary';
+  const activeBg = type === 'expense' ? 'bg-rose-600' : type === 'income' ? 'bg-emerald-600' : 'bg-primary';
+
   return (
-    <div className="w-full bg-white rounded-3xl overflow-hidden pb-4">
+    <div className="w-full bg-card rounded-[8px] border border-border shadow-sm flex flex-col font-sans overflow-hidden">
       
-      {/* SELECTOR DE TIPO */}
-      <div className="flex p-2 bg-slate-50 border-b border-slate-100">
-        <button type="button" disabled={hasExistingSplit} onClick={() => setType('expense')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 ${type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><ArrowDownCircle size={18} /> Gasto</button>
-        <button type="button" disabled={hasExistingSplit} onClick={() => setType('income')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 ${type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><ArrowUpCircle size={18} /> Ingreso</button>
-        <button type="button" disabled={hasExistingSplit} onClick={() => setType('transfer')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50 ${type === 'transfer' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><RefreshCw size={18} /> Transferir</button>
+      {/* TABS (Más delgados y rectangulares) */}
+      <div className="p-1.5 border-b border-border bg-surface-2/30">
+        <div className="flex bg-surface-2 p-1 rounded-[6px] relative">
+          {(['expense', 'income', 'transfer'] as const).map((t) => {
+            const isActive = type === t;
+            return (
+              <button 
+                key={t} type="button" disabled={hasExistingSplit} onClick={() => setType(t)} 
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors relative z-10 disabled:opacity-50",
+                  isActive ? activeColor : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isActive && (
+                  <motion.div layoutId="activeTabIndicator" className="absolute inset-0 bg-background shadow-sm rounded-[4px] border border-border/50 -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                )}
+                {t === 'expense' ? <ArrowDownRight size={14} /> : t === 'income' ? <ArrowUpRight size={14} /> : <ArrowRightLeft size={14} />}
+                <span>{t === 'expense' ? 'Salida' : t === 'income' ? 'Entrada' : 'Traspaso'}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <form id="tx-form" onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5">
+      <form id="tx-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
         
-        {/* INPUT DE MONTO */}
-        <div className="flex flex-col items-center justify-center py-2">
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
-            {hasExistingSplit ? 'Monto Total Desglosado' : `Monto a ${type === 'transfer' ? 'transferir' : 'registrar'}`}
-          </p>
-          <div className="flex items-center text-5xl font-black text-slate-800 relative">
-            <span className={`text-3xl mr-1 ${type === 'expense' ? 'text-rose-500' : type === 'income' ? 'text-emerald-500' : 'text-blue-500'}`}>$</span>
-            <input 
-              type="text" 
-              inputMode="decimal" 
-              placeholder="0.00" 
-              value={amount} 
-              onChange={handleAmountChange} 
-              disabled={hasExistingSplit}
-              required 
-              className="w-full max-w-[300px] bg-transparent border-none outline-none text-center placeholder:text-slate-200 focus:ring-0 p-0 tracking-tighter disabled:opacity-60 disabled:cursor-not-allowed" 
-              autoFocus={!isEditing} 
-            />
+        <div className="flex flex-col p-4 gap-4">
+          {/* HERO AMOUNT INPUT (Mucho más compacto) */}
+          <div className="flex flex-col items-center justify-center py-4 px-4 rounded-[8px] bg-surface-2/30 border border-border/50 focus-within:border-primary/30 focus-within:bg-background transition-all">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
+              {hasExistingSplit ? 'Monto Desglosado' : 'Importe Operativo'}
+            </p>
+            <div className="flex items-center text-4xl sm:text-5xl font-mono font-black text-foreground relative">
+              <span className={cn("text-2xl sm:text-3xl mr-1.5 -mt-1 transition-colors", activeColor)}>$</span>
+              <input 
+                type="text" inputMode="decimal" placeholder="0.00" value={amount} onChange={handleAmountChange} disabled={hasExistingSplit} required 
+                className={cn("w-full max-w-[280px] bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30 focus:ring-0 p-0 tracking-tighter disabled:opacity-60 transition-colors", amount ? "text-foreground" : "text-muted-foreground/30")}
+                autoFocus={!isEditing} 
+              />
+            </div>
+            <AnimatePresence>
+              {type === 'transfer' && Number(amount) > 0 && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <div className="mt-2 flex items-center gap-1.5 px-2 py-1 bg-primary/10 border border-primary/20 rounded-[4px]">
+                    <Info size={10} className="text-primary" />
+                    <span className="text-[9px] font-mono font-bold text-primary tracking-wide">
+                      + ${(Number(amount) * 0.0015).toLocaleString('en-US', { minimumFractionDigits: 2 })} DOP (0.15% DGII)
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          
-          {type === 'transfer' && Number(amount) > 0 && (
-            <motion.div initial={{opacity: 0, y: -5}} animate={{opacity: 1, y: 0}} className="mt-3 flex flex-col items-center">
-               <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">
-                 + ${ (Number(amount) * 0.0015).toLocaleString('en-US', { minimumFractionDigits: 2 }) } DOP (Comisión DGII 0.15% Auto)
-               </span>
+
+          {/* GRID DE CAMPOS (Paddings reducidos, sin gaps internos grandes) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            
+            {/* NODO ORIGEN */}
+            <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <CreditCard size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+                {type === 'transfer' ? 'Nodo Origen' : 'Nodo Operativo'}
+              </label>
+              <SearchableDropdown options={accountOptions} value={accountId} onChange={setAccountId} placeholder="Seleccionar Nodo..." />
+            </div>
+
+            {/* NODO DESTINO / CLASIFICACIÓN / TOGGLE DESGLOSE */}
+            <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+              {hasExistingSplit ? (
+                <div className="h-full flex items-center gap-2 p-1">
+                  <Info size={14} className="text-muted-foreground shrink-0" />
+                  <p className="text-[10px] font-medium text-muted-foreground leading-tight">Desglose activo. Modifique ítems desde la tabla.</p>
+                </div>
+              ) : type === 'transfer' ? (
+                <>
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <Send size={10} /> Nodo Destino
+                  </label>
+                  <SearchableDropdown options={accountOptions.filter(acc => acc.id !== accountId)} value={destinationAccountId} onChange={setDestinationAccountId} placeholder="Seleccionar Destino..." />
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <label className={cn("text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors", isSplit ? "text-primary" : "text-muted-foreground")}>
+                      <GridIcon size={10} className={isSplit ? "text-primary" : "text-emerald-500"} /> Clasificación
+                    </label>
+                    {type === 'expense' && (
+                      <button type="button" onClick={() => setIsSplit(!isSplit)} className="text-[9px] font-bold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors bg-primary/10 px-1.5 py-0.5 rounded-[4px]">
+                        <SplitSquareHorizontal size={10} /> {isSplit ? 'Cerrar Desglose' : 'Desglosar Recibo'}
+                      </button>
+                    )}
+                  </div>
+                  {!isSplit ? (
+                    <SearchableDropdown options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Buscar categoría..." />
+                  ) : (
+                    <div className="flex-1 flex items-center px-2 py-1 mt-0.5 bg-primary/5 border border-primary/20 rounded-[4px]">
+                       <p className="text-[10px] font-medium text-primary/80">Modo desglose activo (tabla inferior).</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* FECHA */}
+            <div onClick={() => dateInputRef.current?.showPicker()} className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all cursor-pointer">
+              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 cursor-pointer"><Calendar size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Fecha Valor</label>
+              <input ref={dateInputRef} type="date" className="w-full bg-transparent border-none outline-none text-xs font-medium text-foreground p-0 focus:ring-0 cursor-pointer [color-scheme:light_dark] [&::-webkit-calendar-picker-indicator]:hidden" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+
+            {/* ETIQUETAS */}
+            <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+               <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">Etiquetas Analíticas</label>
+               <TagInput availableTags={availableTags} selectedTagIds={selectedTags} onChange={setSelectedTags} onCustomTagCreate={handleCustomTagCreate} />
+            </div>
+
+            {/* NOTAS */}
+            <div className="md:col-span-2 group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
+              <textarea rows={1} placeholder="Nota u observación opcional..." className="w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {/* EXPANSION DE DESGLOSE */}
+        <AnimatePresence>
+          {type === 'expense' && isSplit && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="border-t border-border bg-surface-2/10 overflow-visible"
+            >
+              <ExpenseSplitSection items={items} setItems={setItems} categoryOptions={categoryOptions} amount={amount} />
             </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
-          <div className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus-within:border-blue-500 transition-all">
-            <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-500"><CreditCard size={18} /></div>
-            <div className="flex-1 min-w-0">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">{type === 'transfer' ? 'Desde Cuenta' : 'Cuenta'}</label>
-              <SearchableDropdown options={accountOptions} value={accountId} onChange={setAccountId} placeholder="Buscar cuenta..." />
-            </div>
-          </div>
-
-          {hasExistingSplit ? (
-            <div className="col-span-1 md:col-span-2 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-start gap-3">
-              <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-800 font-medium leading-relaxed">
-                Esta transacción tiene sub-categorías. Puedes modificar la cuenta, la fecha y las notas aquí. Para editar montos y categorías, utiliza la vista de detalles.
-              </p>
-            </div>
-          ) : type === 'transfer' ? (
-            <div className="flex items-center gap-3 p-3 rounded-2xl border border-blue-200 bg-blue-50/30 focus-within:border-blue-500 transition-all">
-              <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-blue-500"><Send size={18} /></div>
-              <div className="flex-1 min-w-0">
-                <label className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-0.5">Hacia Cuenta</label>
-                <SearchableDropdown options={accountOptions.filter(acc => acc.id !== accountId)} value={destinationAccountId} onChange={setDestinationAccountId} placeholder="Buscar destino..." />
-              </div>
-            </div>
-          ) : type === 'income' ? (
-            <div className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus-within:border-blue-500 transition-all">
-              <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-500"><GridIcon size={18} /></div>
-              <div className="flex-1 min-w-0">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Categoría</label>
-                <SearchableDropdown options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Buscar categoría..." />
-              </div>
-            </div>
-          ) : (
-            <ExpenseSplitSection 
-              isSplit={isSplit} setIsSplit={setIsSplit} 
-              categoryId={categoryId} setCategoryId={setCategoryId} 
-              items={items} setItems={setItems} 
-              categoryOptions={categoryOptions} amount={amount} 
-            />
-          )}
-
-          <div onClick={() => dateInputRef.current?.showPicker()} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all cursor-pointer">
-            <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-500"><Calendar size={18} /></div>
-            <div className="flex-1 min-w-0">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 cursor-pointer">Fecha</label>
-              <input ref={dateInputRef} type="date" className="w-full bg-transparent border-none outline-none text-sm text-slate-800 font-bold p-0 focus:ring-0 cursor-pointer" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
-          </div>
-
-          <div className="col-span-1 md:col-span-1 flex flex-col justify-center">
-             <TagInput availableTags={availableTags} selectedTagIds={selectedTags} onChange={setSelectedTags} onCustomTagCreate={handleCustomTagCreate} />
-          </div>
-
-          <div className="col-span-1 md:col-span-2 flex items-start gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus-within:border-blue-500 transition-all">
-            <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-500 mt-0.5"><AlignLeft size={18} /></div>
-            <div className="flex-1">
-              <textarea rows={1} placeholder="Nota o descripción (Opcional)" className="w-full bg-transparent border-none outline-none text-sm text-slate-700 font-medium p-0 focus:ring-0 resize-none pt-1.5" value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
-          </div>
-        </div>
-
-        {/* BOTONES DE ACCIÓN */}
-        <div className="flex items-center gap-3 mt-2">
+        {/* ACTION BAR (Seria, sin bordes de burbuja) */}
+        <div className="flex items-center gap-3 p-4 pt-3 border-t border-border/50 bg-background mt-auto">
           {isEditing && (
-            <button type="button" onClick={handleDelete} disabled={isSubmitting || isDeleting} className="p-4 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-50">
-              {isDeleting ? <RefreshCw className="animate-spin" size={20} /> : <Trash2 size={20} />}
+            <button type="button" onClick={handleDelete} disabled={isSubmitting || isDeleting} className="px-3 py-2.5 rounded-[6px] bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-colors disabled:opacity-50 border border-transparent hover:border-destructive/20" title="Suprimir">
+              {isDeleting ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />}
             </button>
           )}
-          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={`flex-1 py-4 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${type === 'expense' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>
-            {isSubmitting ? <div className="flex items-center justify-center gap-2"><RefreshCw className="animate-spin" size={18} />Procesando...</div> : `${isEditing ? 'Actualizar Detalles' : 'Guardar'} ${type === 'expense' ? 'Gasto' : type === 'income' ? 'Ingreso' : 'Transferencia'}`}
+
+          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={cn("flex-1 py-2.5 rounded-[6px] text-xs font-bold uppercase tracking-widest text-white transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm flex items-center justify-center gap-2", activeBg)}>
+            {isSubmitting ? <><RefreshCw className="animate-spin" size={14} /> Procesando...</> : <><CheckCircle2 size={14} /> {isEditing ? 'Actualizar Ledger' : 'Asentar Operación'}</>}
           </button>
         </div>
+
       </form>
     </div>
   );

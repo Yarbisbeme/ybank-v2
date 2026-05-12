@@ -35,8 +35,9 @@ export default function CreditHealthBento() {
     return { utilization, nearestCutoff, totalAvailable, cardCount: cards.length };
   }, [accounts]);
 
-  // 💡 3. Estado de carga elegante (Skeleton)
-  if (isLoading) {
+  const isActuallyLoading = isLoading && accounts.length === 0;
+
+  if (isActuallyLoading) {
     return (
       <div className="bg-card p-6 rounded-[10px] border border-border h-full animate-pulse flex flex-col justify-center items-center">
         <Loader2 className="animate-spin text-primary/20" size={24} />
@@ -44,7 +45,15 @@ export default function CreditHealthBento() {
     );
   }
 
-  if (!creditStats) return null;
+  if (!creditStats) {
+    return (
+      <div className="bg-card p-6 rounded-[10px] border border-dashed border-border h-full flex flex-col justify-center items-center text-center opacity-70">
+        <ShieldCheck size={32} className="text-muted-foreground mb-3 opacity-50" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Score Shield</p>
+        <p className="text-[10px] text-muted-foreground mt-1">No se detectaron tarjetas de crédito activas.</p>
+      </div>
+    );
+  }
 
   // Conversión de moneda
   const displayAvailable = currency === 'USD' && preferredRate 

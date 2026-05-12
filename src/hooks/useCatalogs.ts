@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation';
 import { getProfile, updateProfile } from '@/lib/actions/profile';
 import { toast } from 'sonner';
 import { ProfileUpdateInput } from '@/types';
+import { useYBankStore } from '@/store/useYBankStore';
 
 // Helper para comprobar si el navegador está offline de manera síncrona
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
@@ -23,6 +24,7 @@ export function useInstitutions() {
     staleTime: 24 * 60 * 60 * 1000, 
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst', // 💡 TanStack Query resolverá desde caché de inmediato si no hay red
+    enabled: typeof window !== 'undefined'
   });
 }
 
@@ -34,6 +36,7 @@ export function useCategories() {
     staleTime: 24 * 60 * 60 * 1000, 
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
+    enabled: typeof window !== 'undefined'
   });
 }
 
@@ -45,6 +48,7 @@ export function useTags() {
     staleTime: 10 * 60 * 1000, 
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
+    enabled: typeof window !== 'undefined'
   });
 }
 
@@ -56,6 +60,9 @@ export function useAccounts() {
     staleTime: 60 * 1000, 
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
+    enabled: typeof window !== 'undefined',
+    // 💡 AÑADIDO: Mantiene la data en pantalla mientras hace fetch de fondo
+    placeholderData: keepPreviousData, 
   });
 }
 
@@ -63,10 +70,13 @@ export function useAccounts() {
 export function useTransactionsList(page: number = 1) {
   const filters = useFilterStore();
   const searchParams = useSearchParams();
-  const { data: accounts = [] } = useAccounts(); // 💡 Acceso rápido a la caché de cuentas
+  const { preferredAccountId } = useYBankStore();
+  const { data: accounts = [] } = useAccounts(); 
+  
+  // 💡 Necesitamos el queryClient para leer la caché general como si fuera nuestra base de datos
+  const queryClient = useQueryClient();
 
-  // 💡 Resolvemos el ID de cuenta de la misma forma flexible
-  const urlAccountId = searchParams.get('accountId') || (accounts[0]?.id) || '';
+  const urlAccountId = searchParams.get('accountId') || preferredAccountId || (accounts[0]?.id) || '';
 
   const filterType = filters.type || '';
   const filterCategoryId = filters.categoryId || '';
@@ -76,6 +86,41 @@ export function useTransactionsList(page: number = 1) {
   return useQuery({
     queryKey: ['transactions', urlAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, page],
     queryFn: async () => {
+      // 🛑 MODO OFFLINE: Filtrado Inteligente en el Cliente
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        console.log("⚡ [Filtro Offline] Interceptando red. Calculando filtros localmente...");
+
+        // 1. Buscamos el "Tanque Principal" de datos (la query sin filtros)
+        const baseKey = ['transactions', urlAccountId, '', '', '', '', 1];
+        const cachedBaseData: any = queryClient.getQueryData(baseKey);
+
+        if (!cachedBaseData || !cachedBaseData.transactions) {
+          console.log("⚠️ [Filtro Offline] No se encontró caché base.");
+          return { transactions: [], total: 0 };
+        }
+
+        // 2. Clonamos las transacciones y las filtramos a mano con Javascript
+        let localTx = [...cachedBaseData.transactions];
+
+        if (filterType) {
+          localTx = localTx.filter((tx: any) => tx.type === filterType);
+        }
+        if (filterCategoryId) {
+          localTx = localTx.filter((tx: any) => tx.category_id === filterCategoryId);
+        }
+        if (filterStartDate) {
+          localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
+        }
+        if (filterEndDate) {
+          const endOfDay = filterEndDate.includes('T') ? filterEndDate : `${filterEndDate}T23:59:59.999Z`;
+          localTx = localTx.filter((tx: any) => tx.date <= endOfDay);
+        }
+
+        // 3. Devolvemos el resultado emulando la respuesta exacta del servidor
+        return { transactions: localTx, total: localTx.length };
+      }
+
+      // 🟢 MODO ONLINE: Dejamos que Supabase haga el trabajo pesado
       const activeFilters = {
         ...(filters.type && { type: filters.type }), 
         ...(filters.categoryId && { categoryId: filters.categoryId }),
@@ -92,12 +137,7 @@ export function useTransactionsList(page: number = 1) {
     },
     placeholderData: keepPreviousData, 
     networkMode: 'offlineFirst',
-    // Se habilita si hay un ID en la URL o si ya pudimos rescatar una cuenta por defecto de la caché
     enabled: !!urlAccountId, 
-    retry: (failureCount) => {
-      if (typeof window !== 'undefined' && !navigator.onLine) return false;
-      return failureCount < 2;
-    }
   });
 }
 
@@ -111,6 +151,7 @@ export function useProfile() {
     staleTime: 1000 * 60 * 15, 
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
+    enabled: typeof window !== 'undefined'
   });
 }
 

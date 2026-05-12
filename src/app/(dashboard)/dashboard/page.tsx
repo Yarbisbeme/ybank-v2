@@ -7,7 +7,7 @@ import AccountCarousel from '@/components/accounts/AccountCarousel';
 import TransactionFilterBar from '@/components/Transactions/TransactionFilterBar';
 import ClientTransactionTable from '@/components/Transactions/ClientTransactionTable';
 
-export default async function DashboardPage() {
+export default function DashboardPage() {
   
   return (
     <div className="max-w-[1400px] mx-auto sm:px-4 md:px-8 sm:py-6 space-y-8 md:space-y-10">

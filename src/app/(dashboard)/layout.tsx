@@ -5,7 +5,6 @@ import { getTransactions } from '@/lib/actions/transactions';
 import { getTags } from '@/lib/actions/tags';
 import { getCategories } from '@/lib/actions/categories';
 import { getInstitutions } from '@/lib/actions/institutions';
-import { redirect } from 'next/navigation';
 
 import DashboardProviders from '@/components/providers/DashboardProviders';
 import PWAFooter from '@/components/layout/PWAFooter';

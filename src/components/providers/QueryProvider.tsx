@@ -1,9 +1,24 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister' 
-import { persistQueryClient } from '@tanstack/react-query-persist-client'
+import { QueryClient, useIsRestoring } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
 import { useState, useEffect } from 'react'
+
+function RestoreGatekeeper({ children }: { children: React.ReactNode }) {
+  const isRestoring = useIsRestoring();
+
+  // 🚪 LOG: Vigilar la puerta de la caché
+  useEffect(() => {
+    console.log(`🚪 [Gatekeeper] isRestoring: ${isRestoring}`);
+  }, [isRestoring]);
+
+  if (isRestoring) {
+    return null; 
+  }
+
+  return <>{children}</>;
+}
 
 export default function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -16,41 +31,51 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
     },
   }))
 
-  const [isMounted, setIsMounted] = useState(false);
+  const [persister, setPersister] = useState<any>(null);
 
   useEffect(() => {
-    setIsMounted(true);
-    
     if (typeof window !== 'undefined') {
+      console.log("💾 [IDB] Inicializando conexión con IndexedDB...");
       import('idb-keyval').then(({ get, set, del }) => {
-        const idbValidKey = (key: string) => `ybank-offline-${key}`;
-        
         const idbPersister = createAsyncStoragePersister({
           storage: {
-            getItem: async (key) => await get(idbValidKey(key)),
-            setItem: async (key, value) => await set(idbValidKey(key), value),
-            removeItem: async (key) => await del(idbValidKey(key)),
+            getItem: async (key) => {
+              console.log(`📦 [IDB-GET] Intentando leer la llave: ybank-offline-${key}`);
+              const data = await get(`ybank-offline-${key}`);
+              console.log(`📦 [IDB-GET] Resultado: ${data ? `¡Datos encontrados! (${data.length} caracteres)` : 'Vacío/Nulo'}`);
+              return data;
+            },
+            setItem: async (key, value) => {
+              console.log(`✍️ [IDB-SET] Guardando datos en: ybank-offline-${key}`);
+              await set(`ybank-offline-${key}`, value);
+            },
+            removeItem: async (key) => await del(`ybank-offline-${key}`),
           },
-        });
-        
-        persistQueryClient({
-          queryClient,
-          persister: idbPersister,
-          maxAge: 1000 * 60 * 60 * 24 * 7,
-        });
+        })
+        setPersister(idbPersister);
+        console.log("✅ [IDB] Persister configurado y listo.");
       }).catch((err) => {
-        console.error("Error al inicializar IndexedDB para offline:", err);
+        console.error("❌ [IDB] Error fatal al importar idb-keyval:", err);
       });
     }
-  }, [queryClient]);
+  }, []);
 
-  if (!isMounted) {
+  if (!persister) {
     return null; 
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ 
+        persister, 
+        maxAge: 1000 * 60 * 60 * 24 * 7 
+      }}
+      onSuccess={() => console.log("🚀 [TanStack] ¡Hidratación desde IndexedDB completada con éxito!")}
+    >
+      <RestoreGatekeeper>
+        {children}
+      </RestoreGatekeeper>
+    </PersistQueryClientProvider>
   )
 }

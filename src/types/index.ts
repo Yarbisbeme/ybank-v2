@@ -292,3 +292,17 @@ export interface ProfileUpdateInput {
   monthly_savings_goal?: string | number;
   onboarding_completed?: boolean;
 }
+
+export interface TransactionItem {
+  id: string;
+  transaction_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  tax_amount: number;
+  tax_type: 'ITBIS' | 'PROPINA' | 'NONE' | string;
+  discount_amount: number;
+  total_price: number;
+  category_id: string;
+  created_at: string;
+}

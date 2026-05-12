@@ -15,10 +15,7 @@ export default function ClientTransactionTable() {
 
   // 2. Traemos las cuentas desde la caché local IndexedDB (0ms si está offline)
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
-
-  // 3. 💡 ESTRATEGIA DE RESPALDO:
-  // Si no hay un ID en la URL, adoptamos síncronamente el primer nodo de la caché local.
-  // Esto evita que la tabla se quede colgada esperando la redirección en páginas secundarias.
+  
   const activeAccountId = useMemo(() => {
     if (urlAccountId) return urlAccountId;
     if (accounts.length > 0) return accounts[0].id;

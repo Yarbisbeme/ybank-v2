@@ -26,14 +26,14 @@ export async function getAccounts() {
       .order('created_at', { ascending: true })
 
     if (error) {
-      console.error('Error al traer cuentas:', error)
-      return []
+      console.error('Error al traer cuentas:', error);
+      throw new Error(error.message); // 💡 DEBE SER THROW
     }
     return JSON.parse(JSON.stringify(data)) as Account[]
 
   } catch (error) {
-    console.error('Error inesperado:', error)
-    return []
+    console.error('Error de red/Supabase:', error);
+    throw error; // 💡 ESTO ES VITAL: Le dice a TanStack que la petición falló, para que conserve la caché
   }
 }
 

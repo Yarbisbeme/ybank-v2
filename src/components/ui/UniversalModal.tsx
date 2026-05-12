@@ -30,7 +30,7 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-6">
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0">
           
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -51,7 +51,7 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
                 </button>
               </div>
             )}
-            <div className="max-h-[85vh] overflow-y-auto scrollbar-hide pb-8 px-2 md:px-6">
+            <div className="max-h-[85vh] overflow-y-auto scrollbar-hide">
               {children}
             </div>
           </motion.div>

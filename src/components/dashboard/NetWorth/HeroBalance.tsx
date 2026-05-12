@@ -13,13 +13,16 @@ export default function HeroBalance() {
   const { currency, preferredRate, isCalculatingRate, setCurrency } = useYBankStore();
   const [includeCredit, setIncludeCredit] = useState(false);
 
-  const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
-  
-  // 💡 FIX 1: Renombramos la salida del hook a `queryData`
-  const { data: queryData, isLoading: isLoadingTx } = useTransactionsList();
+  // Dentro de tu componente HeroBalance, justo después de los hooks:
 
-  // 💡 FIX 2: Extraemos el arreglo real de transacciones de forma segura
+  const { data: accounts = [], isLoading: isLoadingAccs, fetchStatus: fetchAccs, status: statusAccs } = useAccounts();
+  const { data: queryData, isLoading: isLoadingTx, fetchStatus: fetchTx, status: statusTx } = useTransactionsList();
+
   const transactions = Array.isArray(queryData) ? queryData : (queryData?.transactions || []);
+
+  // 📊 LOGS TÁCTICOS:
+  console.log(`💳 [Hook-Cuentas] Status: ${statusAccs} | Fetch: ${fetchAccs} | Datos: ${accounts.length}`);
+  console.log(`💸 [Hook-Transacciones] Status: ${statusTx} | Fetch: ${fetchTx} | Datos: ${transactions.length}`);
 
   const totals = useMemo(() => {
     const liquid = accounts

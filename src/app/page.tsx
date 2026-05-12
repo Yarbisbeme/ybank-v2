@@ -14,7 +14,7 @@ export default function Home() {
         <Logo/>
         
         <div className="flex items-center gap-4 text-sm font-medium">
-          <Link href="/sign-up" className="hidden text-neutral-600 hover:text-black sm:block">
+          <Link href="/sign-up" className="hidden text-md text-neutral-600 hover:text-black sm:block mr-6">
             Crear
           </Link>
           <ButtonOla href="sign-in" label={'Log In'} />

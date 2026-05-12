@@ -46,12 +46,12 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
 
     const { data, error, count } = await query
 
-    if (error) {
-        console.error('Error al traer transacciones:', error)
-        return { transactions: [], total: 0 }
-    }
+  if (error) {
+      console.error('Error al traer transacciones:', error);
+      throw new Error(error.message); // 💡 THROW, no devuelvas { transactions: [], total: 0 }
+  }
 
-    return JSON.parse(JSON.stringify({ 
+  return JSON.parse(JSON.stringify({ 
       transactions: data, 
       total: count || 0 
   }));
