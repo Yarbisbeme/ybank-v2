@@ -16,6 +16,22 @@ import { useYBankStore } from '@/store/useYBankStore';
 // Helper para comprobar si el navegador está offline de manera síncrona
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
 
+// 💡 0. EL GUARDIÁN DE ZONAS HORARIAS (Frontera Absoluta)
+// Corta cualquier hora o zona horaria, garantizando que todo sea estrictamente "YYYY-MM-DD" local.
+export const sanitizeDate = (rawDate: string | Date | null | undefined): string => {
+  if (!rawDate) return new Date().toISOString().split('T')[0];
+  
+  if (typeof rawDate === 'string') {
+    return rawDate.split('T')[0].split(' ')[0]; 
+  }
+  
+  // Si llega un objeto Date nativo
+  const year = rawDate.getFullYear();
+  const month = String(rawDate.getMonth() + 1).padStart(2, '0');
+  const day = String(rawDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // 🏦 1. Hook para Instituciones (Bancos)
 export function useInstitutions() {
   return useQuery({
@@ -23,7 +39,7 @@ export function useInstitutions() {
     queryFn: async () => await getInstitutions(),
     staleTime: 24 * 60 * 60 * 1000, 
     gcTime: 1000 * 60 * 60 * 24,
-    networkMode: 'offlineFirst', // 💡 TanStack Query resolverá desde caché de inmediato si no hay red
+    networkMode: 'offlineFirst',
     enabled: typeof window !== 'undefined'
   });
 }
@@ -61,7 +77,6 @@ export function useAccounts() {
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
     enabled: typeof window !== 'undefined',
-    // 💡 AÑADIDO: Mantiene la data en pantalla mientras hace fetch de fondo
     placeholderData: keepPreviousData, 
   });
 }
@@ -72,8 +87,6 @@ export function useTransactionsList(page: number = 1) {
   const searchParams = useSearchParams();
   const { preferredAccountId } = useYBankStore();
   const { data: accounts = [] } = useAccounts(); 
-  
-  // 💡 Necesitamos el queryClient para leer la caché general como si fuera nuestra base de datos
   const queryClient = useQueryClient();
 
   const urlAccountId = searchParams.get('accountId') || preferredAccountId || (accounts[0]?.id) || '';
@@ -90,7 +103,6 @@ export function useTransactionsList(page: number = 1) {
       if (typeof window !== 'undefined' && !navigator.onLine) {
         console.log("⚡ [Filtro Offline] Interceptando red. Calculando filtros localmente...");
 
-        // 1. Buscamos el "Tanque Principal" de datos (la query sin filtros)
         const baseKey = ['transactions', urlAccountId, '', '', '', '', 1];
         const cachedBaseData: any = queryClient.getQueryData(baseKey);
 
@@ -99,24 +111,16 @@ export function useTransactionsList(page: number = 1) {
           return { transactions: [], total: 0 };
         }
 
-        // 2. Clonamos las transacciones y las filtramos a mano con Javascript
         let localTx = [...cachedBaseData.transactions];
 
-        if (filterType) {
-          localTx = localTx.filter((tx: any) => tx.type === filterType);
-        }
-        if (filterCategoryId) {
-          localTx = localTx.filter((tx: any) => tx.category_id === filterCategoryId);
-        }
-        if (filterStartDate) {
-          localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
-        }
+        if (filterType) localTx = localTx.filter((tx: any) => tx.type === filterType);
+        if (filterCategoryId) localTx = localTx.filter((tx: any) => tx.category_id === filterCategoryId);
+        if (filterStartDate) localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
         if (filterEndDate) {
-          const endOfDay = filterEndDate.includes('T') ? filterEndDate : `${filterEndDate}T23:59:59.999Z`;
-          localTx = localTx.filter((tx: any) => tx.date <= endOfDay);
+          // Ya no necesitamos agregarle horas raras aquí, porque todo será YYYY-MM-DD
+          localTx = localTx.filter((tx: any) => tx.date <= filterEndDate);
         }
 
-        // 3. Devolvemos el resultado emulando la respuesta exacta del servidor
         return { transactions: localTx, total: localTx.length };
       }
 
@@ -128,12 +132,22 @@ export function useTransactionsList(page: number = 1) {
         ...(filters.endDate && { endDate: filters.endDate }),
       };
 
-      return await getTransactions({
+      const response = await getTransactions({
         page: page, 
         pageSize: 10, 
         accountId: urlAccountId || undefined, 
         filters: activeFilters 
       });
+
+      // 💡 INTERCEPTOR DE LECTURA (GET): Normalizamos las fechas que llegan del servidor
+      if (response && response.transactions) {
+        response.transactions = response.transactions.map((tx: any) => ({
+          ...tx,
+          date: sanitizeDate(tx.date)
+        }));
+      }
+
+      return response;
     },
     placeholderData: keepPreviousData, 
     networkMode: 'offlineFirst',
@@ -145,9 +159,7 @@ export function useTransactionsList(page: number = 1) {
 export function useProfile() {
   return useQuery({
     queryKey: ['user-profile'],
-    queryFn: async () => {
-      return await getProfile();
-    },
+    queryFn: async () => await getProfile(),
     staleTime: 1000 * 60 * 15, 
     gcTime: 1000 * 60 * 60 * 24,
     networkMode: 'offlineFirst',
@@ -180,12 +192,17 @@ export function useSaveTransaction() {
 
   return useMutation({
     mutationFn: async (payload: any) => {
-      // 💡 Si el usuario está offline, podemos optar por guardar localmente o alertarle,
-      // evitando rebotar peticiones rotas al backend.
       if (isOffline()) {
         throw new Error("Estás offline. Los cambios de transacciones se sincronizarán al recuperar la conexión.");
       }
-      const response = await saveTransaction(payload);
+
+      // 💡 INTERCEPTOR DE ESCRITURA (POST/PUT): Limpiamos la fecha antes de enviarla
+      const safePayload = {
+        ...payload,
+        date: sanitizeDate(payload.date)
+      };
+
+      const response = await saveTransaction(safePayload);
       if (!response.success) throw new Error(response.error);
       return response;
     },
@@ -197,8 +214,10 @@ export function useSaveTransaction() {
       queryClient.setQueriesData({ queryKey: ['transactions'] }, (old: any) => {
         if (!old || !old.transactions) return old;
 
+        // 💡 OPTIMISTIC UPDATE: Aseguramos que la UI instantánea tampoco cambie de día
         const optimisticTx = {
           ...newTx,
+          date: sanitizeDate(newTx.date),
           id: newTx.id || `temp-id-${Date.now()}`,
           status: 'pending', 
         };

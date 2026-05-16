@@ -120,27 +120,9 @@ export async function createTransaction(input: any) {
         delete cleanInput.exchange_rate
     } else {
         delete cleanInput.category_id 
-
-        // 💡 Uso de la constante
-        const dgiiTax = Number((originalTransferAmount * DGII_TAX_RATE).toFixed(2));
-
-        cleanInput.amount = originalTransferAmount + dgiiTax;
+        cleanInput.amount = originalTransferAmount;
         cleanInput.target_amount = originalTransferAmount;
-
-        items = [
-            {
-                name: 'Monto Transferido',
-                unit_price: originalTransferAmount,
-                quantity: 1,
-                category_id: null
-            },
-            {
-                name: `Comisión DGII (${(DGII_TAX_RATE * 100).toFixed(2)}%)`,
-                unit_price: dgiiTax,
-                quantity: 1,
-                category_id: DGII_CATEGORY_ID // 💡 Uso de la constante
-            }
-        ];
+        items = []; 
     }
   
   if (input.type === 'transfer' && input.transfer_to_account_id) {
@@ -214,32 +196,15 @@ export async function updateTransaction(id: string, input: any) {
 
     const originalTransferAmount = parseFloat(input.amount);
 
-    if (cleanInput.type !== 'transfer') {
-        delete cleanInput.transfer_to_account_id;
-        delete cleanInput.target_amount;
-        delete cleanInput.exchange_rate;
+    if (input.type !== 'transfer' || 'payment') {
+        delete cleanInput.transfer_to_account_id
+        delete cleanInput.target_amount
+        delete cleanInput.exchange_rate
     } else {
-        delete cleanInput.category_id;
-
-        const dgiiTax = Number((originalTransferAmount * DGII_TAX_RATE).toFixed(2));
-
-        cleanInput.amount = originalTransferAmount + dgiiTax;
+        delete cleanInput.category_id 
+        cleanInput.amount = originalTransferAmount;
         cleanInput.target_amount = originalTransferAmount;
-
-        items = [
-            {
-                name: 'Monto Transferido',
-                unit_price: originalTransferAmount,
-                quantity: 1,
-                category_id: null
-            },
-            {
-                name: `Comisión DGII (${(DGII_TAX_RATE * 100).toFixed(2)}%)`,
-                unit_price: dgiiTax,
-                quantity: 1,
-                category_id: DGII_CATEGORY_ID 
-            }
-        ];
+        items = []; 
     }
 
     if (cleanInput.type === 'transfer' && cleanInput.transfer_to_account_id) {
@@ -319,15 +284,12 @@ export async function updateSubTransaction(itemId: string, input: {
 }) {
   const supabase = await createSupabaseClient();
   
-  const total_price = input.quantity * input.unit_price;
-
   const { error } = await supabase
     .from('transaction_items')
     .update({
       name: input.name,
       unit_price: input.unit_price,
       quantity: input.quantity,
-      total_price: total_price,
       category_id: input.category_id
     })
     .eq('id', itemId);

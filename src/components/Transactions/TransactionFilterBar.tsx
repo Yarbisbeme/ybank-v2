@@ -130,6 +130,7 @@ export default function TransactionFilterBar() {
           <AnimatePresence>
             {isDateOpen && (
               <YBankCalendar 
+                mode='range'
                 startDate={startDate} 
                 endDate={endDate} 
                 setFilter={setFilter} 

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, KeyboardEvent } from 'react';
-import { Tag, X, Plus, Search } from 'lucide-react';
+import { Tag as TagIcon, X, Plus, Hash } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface TagType {
   id: string;
@@ -25,10 +27,8 @@ export default function TagInput({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Filtramos los tags para la vista
   const selectedTags = availableTags.filter(t => selectedTagIds.includes(t.id));
   
-  // Tags para el dropdown (excluye los ya seleccionados y filtra por el texto escrito)
   const filteredTags = availableTags.filter(tag => 
     !selectedTagIds.includes(tag.id) && 
     tag.name.toLowerCase().includes(inputValue.toLowerCase())
@@ -36,7 +36,6 @@ export default function TagInput({
 
   const exactMatchExists = availableTags.find(t => t.name.toLowerCase() === inputValue.trim().toLowerCase());
 
-  // 2. Manejadores de eventos
   const handleSelect = (tagId: string) => {
     if (!selectedTagIds.includes(tagId)) {
       onChange([...selectedTagIds, tagId]);
@@ -56,15 +55,12 @@ export default function TagInput({
       if (!trimmed) return;
 
       if (exactMatchExists && !selectedTagIds.includes(exactMatchExists.id)) {
-        // Si escribió algo que ya existe, lo seleccionamos
         handleSelect(exactMatchExists.id);
       } else if (!exactMatchExists) {
-        // Si no existe, creamos uno nuevo
         onCustomTagCreate(trimmed);
         setInputValue('');
       }
     } else if (e.key === 'Backspace' && !inputValue && selectedTagIds.length > 0) {
-      // 💡 UX Pro: Si el input está vacío y presiona borrar, elimina el último tag
       const newIds = [...selectedTagIds];
       newIds.pop();
       onChange(newIds);
@@ -74,36 +70,41 @@ export default function TagInput({
   return (
     <div className="relative w-full">
       
-      {/* CAJA PRINCIPAL (Input + Chips) */}
+      {/* CONTENEDOR DE ENTRADA */}
       <div 
         onClick={() => inputRef.current?.focus()}
-        className={`min-h-[48px] p-2 bg-slate-50/50 border rounded-2xl flex flex-wrap gap-2 items-center transition-all cursor-text ${
-          isFocused ? 'border-blue-500 ring-1 ring-blue-500 bg-white' : 'border-slate-200'
-        }`}
+        className={cn(
+          "min-h-[30px] p-1.5 bg-transparent flex flex-wrap gap-1.5 items-center transition-all cursor-text",
+          "border-b border-border/60 focus-within:border-primary/50"
+        )}
       >
-        <Tag size={16} className="text-slate-400 ml-1" />
-        
-        {/* Tags Seleccionados (Chips) */}
-        {selectedTags.map(tag => (
-          <span 
-            key={tag.id}
-            className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2.5 py-1 rounded-xl text-xs font-bold shadow-sm"
-          >
-            #{tag.name}
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemove(tag.id);
-              }}
-              className="hover:bg-blue-200 p-0.5 rounded-full transition-colors"
+        {/* Chips de Etiquetas (Neo-Terminal Style) */}
+        <AnimatePresence>
+          {selectedTags.map(tag => (
+            <motion.span 
+              key={tag.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider border border-primary/20"
             >
-              <X size={12} />
-            </button>
-          </span>
-        ))}
+              <Hash size={10} className="opacity-70" />
+              {tag.name}
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(tag.id);
+                }}
+                className="hover:bg-primary/20 ml-1 p-0.5 rounded-sm transition-colors"
+              >
+                <X size={10} />
+              </button>
+            </motion.span>
+          ))}
+        </AnimatePresence>
 
-        {/* Input Real */}
+        {/* Input de Auditoría */}
         <input
           ref={inputRef}
           type="text"
@@ -111,55 +112,57 @@ export default function TagInput({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 150)} // Delay para permitir el clic en el menú
-          placeholder={selectedTags.length === 0 ? "Buscar o crear etiqueta..." : ""}
-          className="flex-1 bg-transparent border-none outline-none min-w-[120px] text-sm text-slate-700 placeholder:text-slate-400 focus:ring-0 p-1"
+          onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+          placeholder={selectedTags.length === 0 ? "ASIGNAR ETIQUETAS..." : ""}
+          className="flex-1 bg-transparent border-none outline-none min-w-[80px] text-[11px] font-medium text-foreground placeholder:text-muted-foreground/40 focus:ring-0 p-0 uppercase tracking-widest"
         />
       </div>
 
-      {/* DROPDOWN (Buscador) */}
-      {isFocused && (inputValue || filteredTags.length > 0) && (
-        <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-white border border-slate-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] rounded-2xl z-50 overflow-hidden max-h-56 overflow-y-auto py-1">
-          
-          {/* Opciones filtradas */}
-          {filteredTags.map(tag => (
-            <div
-              key={tag.id}
-              // 💡 Usamos onMouseDown en lugar de onClick para que se dispare ANTES que el onBlur del input
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelect(tag.id);
-              }}
-              className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex items-center gap-2 text-sm text-slate-700 font-medium transition-colors"
-            >
-              <Search size={14} className="text-slate-400" />
-              {tag.name}
-            </div>
-          ))}
+      {/* DROPDOWN DE BÚSQUEDA (YBANK Dropdown Identity) */}
+      <AnimatePresence>
+        {isFocused && (inputValue || filteredTags.length > 0) && (
+          <motion.div 
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="absolute top-[calc(100%+4px)] left-0 w-full bg-card border border-border shadow-xl rounded-[6px] z-50 overflow-hidden max-h-48 overflow-y-auto py-1"
+          >
+            {filteredTags.map(tag => (
+              <div
+                key={tag.id}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelect(tag.id);
+                }}
+                className="px-3 py-2 hover:bg-surface-2 cursor-pointer flex items-center justify-between group transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Hash size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="text-[11px] font-bold text-foreground uppercase tracking-tight">{tag.name}</span>
+                </div>
+                <span className="text-[9px] font-mono text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">SELECCIONAR</span>
+              </div>
+            ))}
 
-          {/* Opción de Crear Nuevo (si no hay coincidencia exacta) */}
-          {inputValue.trim() && !exactMatchExists && (
-            <div
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onCustomTagCreate(inputValue.trim());
-                setInputValue('');
-              }}
-              className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-center gap-2 text-sm text-blue-600 font-bold transition-colors border-t border-slate-50"
-            >
-              <Plus size={16} />
-              Crear etiqueta "{inputValue.trim()}"
-            </div>
-          )}
-
-          {/* Mensaje si todo está seleccionado y no escribe nada */}
-          {filteredTags.length === 0 && !inputValue.trim() && (
-            <div className="px-4 py-3 text-sm text-slate-400 text-center italic">
-              No hay más etiquetas disponibles.
-            </div>
-          )}
-        </div>
-      )}
+            {/* CREACIÓN DE NUEVO REGISTRO */}
+            {inputValue.trim() && !exactMatchExists && (
+              <div
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onCustomTagCreate(inputValue.trim());
+                  setInputValue('');
+                }}
+                className="px-3 py-2 hover:bg-primary/5 cursor-pointer flex items-center gap-2 border-t border-border/50"
+              >
+                <Plus size={14} className="text-primary" />
+                <span className="text-[11px] font-black text-primary uppercase tracking-widest">
+                  CREAR ETIQUETA: "{inputValue.trim()}"
+                </span>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
