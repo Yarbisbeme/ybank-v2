@@ -55,7 +55,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const initialAmount = initialData?.type === 'transfer' ? (initialData.target_amount || initialData.amount) : initialData?.amount;
   const [amount, setAmount] = useState(initialAmount?.toString() || '');
   const [accountId, setAccountId] = useState(initialData?.account_id || defaultAccountId || '');
-  const [note, setNote] = useState(initialData?.note || '');
+  const [note, setNote] = useState(initialData?.description || initialData?.note || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
   const [destinationAccountId, setDestinationAccountId] = useState(initialData?.transfer_to_account_id || '');
 
@@ -103,15 +103,38 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
         toast.error('La suma del desglose no coincide con el monto total.');
         return;
       }
+      if (items.some(item => !item.category_id)) {
+        toast.error('Todas las sub-transacciones deben tener una categoría.');
+        return;
+      }
     }
 
-    const payload: any = { id: initialData?.id, type, accountId, date, note, tagIds: selectedTags };
+    // 💡 1. Construimos el payload con camelCase (como espera tu backend)
+    const payload: any = { 
+      id: initialData?.id, 
+      type, 
+      accountId: accountId, 
+      date, 
+      note,                 // 👈 ¡Volvemos a usar 'note' como esperaba tu Server Action!
+      tagIds: selectedTags  
+    };
 
     if (!hasExistingSplit) {
       payload.amount = parseFloat(amount);
-      if (type === 'transfer') payload.destinationAccountId = destinationAccountId; 
-      else payload.categoryId = (type === 'expense' && isSplit) ? null : categoryId;
-      payload.items = (type === 'expense' && isSplit) ? items.map(i => ({...i, unit_price: parseFloat(i.unit_price)})) : [];
+      
+      if (type === 'transfer') {
+        payload.destinationAccountId = destinationAccountId; // 👈 CORRECCIÓN VITAL
+      } else {
+        payload.categoryId = (type === 'expense' && isSplit) ? null : categoryId; // 👈 CORRECCIÓN VITAL
+      }
+      
+      // 💡 2. Enriquecemos los items con la matemática completa para la BD
+      payload.items = (type === 'expense' && isSplit) ? items.map(item => ({
+        ...item,
+        unit_price: parseFloat(item.unit_price),
+        quantity: parseInt(item.quantity) || 1,
+        total_price: parseFloat(item.unit_price) * (parseInt(item.quantity) || 1)
+      })) : [];
     }
 
     saveTx(payload, { onSuccess: () => onSuccess() });

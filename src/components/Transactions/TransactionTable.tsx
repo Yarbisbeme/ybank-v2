@@ -1,24 +1,29 @@
-// TransactionTable.tsx
 'use client';
 
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { TransactionRow } from './TransactionRow';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// 💡 1. Actualizamos las props para recibir la paginación controlada externamente
 export default function TransactionTable({ 
   transactions, 
   activeAccountId,
   currentPage,
   totalItems,
-  onPageChange
+  onPageChange,
+  isSelectionMode = false, // 👈 Nuevos Props
+  selectedTx = {},
+  onToggleSingle
 }: { 
   transactions: any[],
   activeAccountId?: string | null,
   currentPage: number,
   totalItems: number,
-  onPageChange: (page: number) => void
+  onPageChange: (page: number) => void,
+  isSelectionMode?: boolean,
+  selectedTx?: Record<string, any>,
+  onToggleSingle?: (tx: any) => void
 }) {
-  const itemsPerPage = 10; // Debe coincidir con el pageSize de tu hook en TanStack
+  const itemsPerPage = 10; 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   
   if (!transactions || transactions.length === 0) {
@@ -38,13 +43,35 @@ export default function TransactionTable({
   return (
     <div className="w-full flex flex-col pb-8">
       <div className="border-t border-border mt-2">
-        {/* 💡 2. Renderizamos DIRECTAMENTE las transacciones, sin .slice() */}
         {transactions.map((tx) => (
-          <TransactionRow 
-            key={tx.id} 
-            tx={tx} 
-            activeAccountId={activeAccountId} 
-          />
+          <div key={tx.id} className="flex items-center gap-1 group">
+            
+            {/* 🛑 CHECKBOX ANIMADO */}
+            <AnimatePresence>
+              {isSelectionMode && (
+                <motion.div 
+                  initial={{ width: 0, opacity: 0 }} 
+                  animate={{ width: 36, opacity: 1 }} 
+                  exit={{ width: 0, opacity: 0 }}
+                  className="flex justify-center overflow-hidden shrink-0"
+                >
+                  <input 
+                    type="checkbox"
+                    checked={!!selectedTx[tx.id]}
+                    onChange={() => onToggleSingle && onToggleSingle(tx)}
+                    className="w-[18px] h-[18px] rounded-[6px] border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer bg-surface-2 transition-all hover:border-primary/50"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex-1 min-w-0 transition-all">
+              <TransactionRow 
+                tx={tx} 
+                activeAccountId={activeAccountId} 
+              />
+            </div>
+          </div>
         ))}
       </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react'; // 💡 FIX 1: Añadido useEffect aquí
 import { useYBankStore } from '@/store/useYBankStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, TrendingUp, TrendingDown, CreditCard, Wallet, Loader2 } from 'lucide-react';
@@ -10,10 +10,9 @@ import WeeklyActivityChart from './WeeklyActivityChart';
 import { Account, Transaction } from '@/types'; 
 
 export default function HeroBalance() {
-  const { currency, preferredRate, isCalculatingRate, setCurrency } = useYBankStore();
+  // 💡 FIX 2: Una sola declaración limpia para Zustand y React Query
+  const { currency, preferredRate, isCalculatingRate, setCurrency, updateRateContext } = useYBankStore();
   const [includeCredit, setIncludeCredit] = useState(false);
-
-  // Dentro de tu componente HeroBalance, justo después de los hooks:
 
   const { data: accounts = [], isLoading: isLoadingAccs, fetchStatus: fetchAccs, status: statusAccs } = useAccounts();
   const { data: queryData, isLoading: isLoadingTx, fetchStatus: fetchTx, status: statusTx } = useTransactionsList();
@@ -24,29 +23,57 @@ export default function HeroBalance() {
   console.log(`💳 [Hook-Cuentas] Status: ${statusAccs} | Fetch: ${fetchAccs} | Datos: ${accounts.length}`);
   console.log(`💸 [Hook-Transacciones] Status: ${statusTx} | Fetch: ${fetchTx} | Datos: ${transactions.length}`);
 
-  const totals = useMemo(() => {
+  // =========================================================================
+  // 🔄 TRIGGER DE SINCRONIZACIÓN DINÁMICA
+  // =========================================================================
+  useEffect(() => {
+    if (isLoadingAccs || accounts.length === 0) return;
+
+    // 1. Buscamos la cuenta de enfoque (la preferida o la primera cuenta líquida que exista)
+    const focusAccount = accounts.find((a: Account) => a.id === useYBankStore.getState().preferredAccountId) 
+      || accounts.find((a: Account) => a.type !== 'credit_card') 
+      || accounts[0];
+
+    // 2. Extraemos el ID de la institución (banco) de esa cuenta
+    const institutionId = focusAccount?.institution_id;
+
+    // 3. Si tenemos el banco y la tasa aún no se ha calculado para él, disparamos la petición al servidor
+    if (institutionId && preferredRate?.institutionName !== focusAccount?.institution?.name) {
+      console.log(`📡 [YBank Engine] Detectado banco "${focusAccount?.institution?.name}". Sincronizando tasa viva...`);
+      updateRateContext(institutionId);
+    }
+  }, [accounts, isLoadingAccs, preferredRate, updateRateContext]);
+
+  // =========================================================================
+  // 🧮 MATEMÁTICA MULTIMONEDA NORMALIZADA
+  // =========================================================================
+  const displayBalance = useMemo(() => {
+    const rate = preferredRate?.rate || 1;
+
+    const convertToActiveCurrency = (acc: Account) => {
+      const balance = Number(acc.current_balance) || 0;
+      if (currency === 'USD') {
+        return acc.currency === 'DOP' ? balance / rate : balance;
+      } else {
+        return acc.currency === 'USD' ? balance * rate : balance;
+      }
+    };
+
     const liquid = accounts
       .filter((a: Account) => a.type !== 'credit_card')
-      .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
+      .reduce((sum: number, a: Account) => sum + convertToActiveCurrency(a), 0);
     
     const debt = accounts
       .filter((a: Account) => a.type === 'credit_card')
-      .reduce((sum: number, a: Account) => sum + (Number(a.current_balance) || 0), 0);
+      .reduce((sum: number, a: Account) => sum + convertToActiveCurrency(a), 0);
 
-    return { liquid, debt };
-  }, [accounts]);
-
-  const totalDOP = includeCredit ? (totals.liquid - Math.abs(totals.debt)) : totals.liquid;
-  
-  const displayBalance = currency === 'USD' && preferredRate
-    ? totalDOP / preferredRate.rate
-    : totalDOP;
+    return includeCredit ? (liquid - Math.abs(debt)) : liquid;
+  }, [accounts, currency, preferredRate, includeCredit]);
 
   const isNegative = displayBalance < 0;
   const absoluteBalance = Math.abs(displayBalance);
 
   const trend = useMemo(() => {
-    // 💡 Ahora transactions SÍ es un arreglo válido
     if (transactions.length === 0) return { percentage: 0, isUp: true };
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -78,33 +105,39 @@ export default function HeroBalance() {
   }
 
   return (
-    <div className="relative w-full bg-card p-6 md:p-10 rounded-[10px] border border-border shadow-sm overflow-hidden group flex flex-col md:flex-row gap-8">
-      {/* Glow Background - Muy sutil */}
+    <div className="relative w-full h-full bg-card p-6 md:p-10 rounded-[10px] border border-border shadow-sm overflow-hidden group flex flex-col md:flex-row gap-8">
       <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
 
       {/* COLUMNA IZQUIERDA: Balance y Controles */}
       <div className="relative z-10 flex flex-col justify-between flex-1 space-y-8">
-        
-        {/* Header y Toggle de Crédito */}
-        <div className="flex items-center justify-between md:gap-4">
-          <div className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center h-6 overflow-hidden">
+        {/* === FILA DE ENCABEZADO ESTABILIZADA === */}
+        {/* 💡 Añadimos 'layout' al padre para que si el botón se mueve, lo haga con una transición fluida */}
+        <motion.div layout className="flex items-center justify-between md:gap-4">
+          
+          {/* 💡 FIX 1: Añadimos 'h-6' para congelar la altura y evitar que brinque al desmontar el texto */}
+          {/* 💡 FIX 2: Añadimos 'layout' aquí también para que el ancho transicione de forma elástica */}
+          <motion.div 
+            layout
+            className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground flex items-center h-6 overflow-hidden"
+          >
             <AnimatePresence mode="wait">
               <motion.span
                 key={includeCredit ? 'net' : 'liquid'}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, y: -4 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="whitespace-nowrap" // 💡 Evita que el texto intente hacerse en dos líneas durante la animación
               >
-                {includeCredit ? "Patrimonio Neto Total" : "Capital Líquido"}
+                {includeCredit ? "Patrimonio Neto" : "Capital Líquido"}
               </motion.span>
             </AnimatePresence>
             {isCalculatingRate && <RefreshCw size={12} className="ml-2 animate-spin text-blue-500" />}
-          </div>
+          </motion.div>
           
           <button 
             onClick={() => setIncludeCredit(!includeCredit)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-[10px] font-bold uppercase tracking-tight ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border transition-all text-[10px] font-bold uppercase tracking-tight shrink-0 ${
               includeCredit 
               ? 'bg-foreground text-background border-foreground shadow-md' 
               : 'bg-background text-muted-foreground border-border hover:border-blue-500/30'
@@ -112,21 +145,20 @@ export default function HeroBalance() {
           >
             <motion.div
               key={includeCredit ? 'credit' : 'wallet'}
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
+              initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               {includeCredit ? <CreditCard size={12} /> : <Wallet size={12} />}
             </motion.div>
             <span className="hidden sm:inline">{includeCredit ? "Ocultar Deuda" : "Incluir Deuda"}</span>
           </button>
-        </div>
+        </motion.div>
 
         {/* Balance Numérico */}
         <div className="space-y-3">
           <motion.h2 
             layout
-            className={`text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-mono tracking-tight flex items-baseline gap-1 md:gap-2 ${isNegative ? 'text-destructive' : 'text-foreground'}`}
+            className={`text-4xl sm:text-5xl font-mono tracking-tight flex items-baseline gap-1 md:gap-2 ${isNegative ? 'text-destructive' : 'text-foreground'}`}
           >
             <motion.span layout className="text-blue-600 font-sans text-3xl md:text-5xl shrink-0">
               {isNegative ? '-$' : '$'}
@@ -161,29 +193,14 @@ export default function HeroBalance() {
             <AnimatePresence>
               {currency === 'USD' && preferredRate && (
                 <motion.span 
-                  initial={{ opacity: 0, x: -10 }} 
-                  animate={{ opacity: 1, x: 0 }} 
-                  exit={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
                   className="text-[10px] font-mono text-blue-600 bg-blue-500/10 px-2 py-1 rounded-md whitespace-nowrap"
                 >
-                  Rate: {preferredRate.rate} ({preferredRate.institutionName})
+                  {preferredRate.rate} ({preferredRate.institutionName})
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
-        </div>
-
-        {/* Indicador de Tendencia */}
-        <div className="flex items-center gap-2 mt-1 opacity-90">
-          <span className={`flex items-center gap-1 font-mono text-sm font-bold tracking-tight ${
-            trend.isUp ? 'text-emerald-500' : 'text-rose-500'
-          }`}>
-            <TrendIcon size={16} strokeWidth={2.5} />
-            {trend.isUp ? '+' : '-'}{trend.percentage}%
-          </span>
-          <span className="text-xs font-medium text-muted-foreground">
-            en relación al mes pasado
-          </span>
         </div>
       </div>
 
@@ -191,7 +208,6 @@ export default function HeroBalance() {
       <div className="hidden md:flex w-72 flex-col justify-end border-l border-border pl-8">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Actividad Semanal</p>
         <div className="h-40 w-full">
-          {/* 💡 FIX 3: Ahora le pasamos el arreglo limpio al gráfico semanal */}
           <WeeklyActivityChart transactions={transactions} />
         </div>
       </div>

@@ -82,14 +82,14 @@ export function useAccounts() {
 }
 
 // 💳 5. Hook para Transacciones (Paginación Real adaptada a Offline)
+// 💳 5. Hook para Transacciones (Con Interceptor de Normalización de Traspasos)
 export function useTransactionsList(page: number = 1) {
   const filters = useFilterStore();
   const searchParams = useSearchParams();
-  const { preferredAccountId } = useYBankStore();
-  const { data: accounts = [] } = useAccounts(); 
   const queryClient = useQueryClient();
 
-  const urlAccountId = searchParams.get('accountId') || preferredAccountId || (accounts[0]?.id) || '';
+  const rawAccountId = searchParams.get('accountId');
+  const queryAccountId = (!rawAccountId || rawAccountId === 'global') ? null : rawAccountId;
 
   const filterType = filters.type || '';
   const filterCategoryId = filters.categoryId || '';
@@ -97,34 +97,37 @@ export function useTransactionsList(page: number = 1) {
   const filterEndDate = filters.endDate || '';
 
   return useQuery({
-    queryKey: ['transactions', urlAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, page],
+    queryKey: ['transactions', queryAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, page],
     queryFn: async () => {
-      // 🛑 MODO OFFLINE: Filtrado Inteligente en el Cliente
+      
+      // 🛑 MODO OFFLINE
       if (typeof window !== 'undefined' && !navigator.onLine) {
-        console.log("⚡ [Filtro Offline] Interceptando red. Calculando filtros localmente...");
-
-        const baseKey = ['transactions', urlAccountId, '', '', '', '', 1];
+        const baseKey = ['transactions', queryAccountId, '', '', '', '', 1];
         const cachedBaseData: any = queryClient.getQueryData(baseKey);
 
-        if (!cachedBaseData || !cachedBaseData.transactions) {
-          console.log("⚠️ [Filtro Offline] No se encontró caché base.");
-          return { transactions: [], total: 0 };
-        }
+        if (!cachedBaseData || !cachedBaseData.transactions) return { transactions: [], total: 0 };
 
         let localTx = [...cachedBaseData.transactions];
+
+        // 💡 1. Aplicamos el disfraz también en modo offline
+        localTx = localTx.map(tx => {
+          let morphedType = tx.type;
+          if (queryAccountId && tx.type === 'transfer') {
+            if (tx.transfer_to_account_id === queryAccountId) morphedType = 'income';
+            else if (tx.account_id === queryAccountId) morphedType = 'expense';
+          }
+          return { ...tx, type: morphedType };
+        });
 
         if (filterType) localTx = localTx.filter((tx: any) => tx.type === filterType);
         if (filterCategoryId) localTx = localTx.filter((tx: any) => tx.category_id === filterCategoryId);
         if (filterStartDate) localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
-        if (filterEndDate) {
-          // Ya no necesitamos agregarle horas raras aquí, porque todo será YYYY-MM-DD
-          localTx = localTx.filter((tx: any) => tx.date <= filterEndDate);
-        }
+        if (filterEndDate) localTx = localTx.filter((tx: any) => tx.date <= filterEndDate);
 
         return { transactions: localTx, total: localTx.length };
       }
 
-      // 🟢 MODO ONLINE: Dejamos que Supabase haga el trabajo pesado
+      // 🟢 MODO ONLINE
       const activeFilters = {
         ...(filters.type && { type: filters.type }), 
         ...(filters.categoryId && { categoryId: filters.categoryId }),
@@ -135,23 +138,40 @@ export function useTransactionsList(page: number = 1) {
       const response = await getTransactions({
         page: page, 
         pageSize: 10, 
-        accountId: urlAccountId || undefined, 
+        accountId: queryAccountId || undefined, 
         filters: activeFilters 
       });
 
-      // 💡 INTERCEPTOR DE LECTURA (GET): Normalizamos las fechas que llegan del servidor
+      // 💡 2. INTERCEPTOR DE LECTURA: El Disfraz
       if (response && response.transactions) {
-        response.transactions = response.transactions.map((tx: any) => ({
-          ...tx,
-          date: sanitizeDate(tx.date)
-        }));
+        response.transactions = response.transactions.map((tx: any) => {
+          let morphedType = tx.type;
+          let finalAmount = tx.amount;
+          
+          // Solo disfrazamos si estamos viendo una cuenta en específico (No en Global)
+          if (queryAccountId && tx.type === 'transfer') {
+            if (tx.transfer_to_account_id === queryAccountId) {
+              morphedType = 'income'; // Se disfraza de Ingreso
+              finalAmount = tx.target_amount || tx.amount; // 👈 Usamos lo que llegó limpio
+            } else if (tx.account_id === queryAccountId) {
+              morphedType = 'expense'; // Se disfraza de Gasto
+            }
+          }
+
+          return {
+            ...tx,
+            type: morphedType,            // La UI ahora verá 'income' o 'expense'
+            original_type: tx.type,       // Guardamos la verdad por si la necesitamos luego
+            amount: finalAmount,          // Sobrescribimos el monto para la UI
+            date: sanitizeDate(tx.date)
+          };
+        });
       }
 
       return response;
     },
     placeholderData: keepPreviousData, 
     networkMode: 'offlineFirst',
-    enabled: !!urlAccountId, 
   });
 }
 

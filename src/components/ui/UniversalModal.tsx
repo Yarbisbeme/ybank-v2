@@ -38,35 +38,43 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
             className="absolute inset-0 bg-black/60 backdrop-blur-[2px] cursor-pointer" 
           />
 
-          {/* 💡 EL CAMBIO: overflow-visible para que el calendario respire */}
+          {/* 💡 CONTENEDOR PRINCIPAL */}
           <motion.div
             initial={{ y: "100%", opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              "relative w-full bg-card shadow-2xl flex flex-col overflow-visible",
+              // Quitamos el bg-card de aquí para que el hijo dibuje el fondo, 
+              // pero FORZAMOS el corte de esquinas con overflow-hidden
+              "relative w-full shadow-2xl flex flex-col overflow-hidden bg-background",
               "rounded-t-[20px] md:rounded-[12px] border border-border/50",
               "max-h-[95vh] md:max-h-[90vh]",
               maxWidth
             )}
+            // 💡 TRUCO NINJA: Si el calendario se abre (usualmente inyecta un popup global), 
+            // no se verá cortado porque el calendario debería usar React Portals. 
+            // Si tu calendario no usa Portals, me avisas y usamos un truco con padding.
           >
             {/* HEADER ESTILO TERMINAL */}
             {title && (
-              <div className="pt-6 px-6 pb-4 border-b border-border shrink-0 flex justify-between items-center bg-surface-2/30">
-                <h2 className="text-[14px] font-black uppercase tracking-[0.2em] text-foreground">
+              // 💡 FIX: Quitamos el "absolute top-0..." y agregamos "relative"
+              // Esto empujará el contenido hacia abajo correctamente sin encimarse.
+              <div className="pt-6 px-6 pb-2 shrink-0 flex justify-between items-center bg-transparent relative z-50">
+                <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-foreground drop-shadow-md">
                   {title}
                 </h2>
                 <button 
                   onClick={handleClose} 
-                  className="p-1.5 rounded-[6px] hover:bg-surface-2 text-muted-foreground transition-all active:scale-90"
+                  className="p-1.5 rounded-[6px] bg-surface-2/50 hover:bg-surface-2 text-foreground backdrop-blur-md transition-all active:scale-90 shadow-sm border border-border/50"
                 >
                   <X size={18} />
                 </button>
               </div>
             )}
 
-            <div className="relative flex-1 overflow-y-auto scrollbar-hide overflow-x-visible">
+            {/* CONTENEDOR DEL HIJO */}
+            <div className="relative flex-1 overflow-y-auto scrollbar-hide">
               {children}
             </div>
             

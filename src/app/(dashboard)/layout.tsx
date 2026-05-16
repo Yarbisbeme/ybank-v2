@@ -104,7 +104,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             tags={initialData.tags} 
           />
           
-          <main className="flex-1 overflow-y-auto p-6 md:px-4 scrollbar-hide">
+          {/* 💡 AÑADIMOS overflow-x-hidden AQUÍ */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
             <div className="max-w-[1400px] mx-auto w-full">
               {children}
             </div>

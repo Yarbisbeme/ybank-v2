@@ -34,8 +34,22 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         .order('created_at', { ascending: false })
         .range(from, to)
     
-    if (accountId) query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
-    if (filters?.type) query = query.eq('type', filters.type)
+    if (accountId) {
+        if (filters?.type === 'income') {
+            // Es un INGRESO si: (Es tipo income en esta cuenta) O (Es tipo transfer y el destino es esta cuenta)
+            query = query.or(`and(type.eq.income,account_id.eq.${accountId}),and(type.eq.transfer,transfer_to_account_id.eq.${accountId})`)
+        } else if (filters?.type === 'expense') {
+            // Es un GASTO si: (Es tipo expense en esta cuenta) O (Es tipo transfer y el origen es esta cuenta)
+            query = query.or(`and(type.eq.expense,account_id.eq.${accountId}),and(type.eq.transfer,account_id.eq.${accountId})`)
+        } else {
+            // Si el filtro es 'transfer' o no hay filtro, traemos todo lo que toque esta cuenta
+            query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
+            if (filters?.type) query = query.eq('type', filters.type)
+        }
+    } else {
+        // MODO GLOBAL (Sin cuenta específica): El filtro aplica de forma estricta al tipo original
+        if (filters?.type) query = query.eq('type', filters.type)
+    }
     if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
     if (filters?.startDate) query = query.gte('date', filters.startDate)
     if (filters?.tagId) query = query.eq('transaction_tags.tag_id', filters.tagId)

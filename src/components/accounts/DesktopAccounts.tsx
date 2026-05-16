@@ -1,7 +1,7 @@
 'use client'
 
 import { RefObject } from 'react';
-import { useRouter } from 'next/navigation'; // 💡 1. Importamos el enrutador de Next.js
+import { useRouter } from 'next/navigation';
 import { Account } from '@/types';
 import UniversalCard from '../Tarjetas/UniversalCard';
 
@@ -12,7 +12,7 @@ interface DesktopAccountsProps {
 }
 
 export default function DesktopAccounts({ accounts, scrollRef, activeId }: DesktopAccountsProps) {
-  const router = useRouter(); // 💡 2. Inicializamos el router
+  const router = useRouter();
 
   return (
     <div 
@@ -27,7 +27,9 @@ export default function DesktopAccounts({ accounts, scrollRef, activeId }: Deskt
           <div
             key={account.id}
             onClick={() => router.push(`/accounts?accountId=${account.id}`)}
-            className={`snap-start shrink-0 w-[calc((100%-40px)/3)] aspect-[1.58/1] cursor-pointer transition-all duration-300 ease-out origin-bottom
+            className={`snap-start shrink-0 aspect-[1.58/1] cursor-pointer transition-all duration-300 ease-out origin-bottom
+              /* 💡 El cambio está aquí: */
+              w-[calc((100%-20px)/2)] lg:w-[calc((100%-40px)/3)]
               ${isSelected ? 'scale-[1.02] -translate-y-2' : 'hover:-translate-y-2 hover:shadow-xl'}
             `}
           >
