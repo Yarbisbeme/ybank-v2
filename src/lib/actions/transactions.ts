@@ -1,8 +1,7 @@
 'use server'
 
+import { DGII_CATEGORY_ID, DGII_TAX_RATE } from '@/constants/constants'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { revalidatePath } from 'next/cache'
-import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
 import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
 
@@ -35,8 +34,22 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         .order('created_at', { ascending: false })
         .range(from, to)
     
-    if (accountId) query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
-    if (filters?.type) query = query.eq('type', filters.type)
+    if (accountId) {
+        if (filters?.type === 'income') {
+            // Es un INGRESO si: (Es tipo income en esta cuenta) O (Es tipo transfer y el destino es esta cuenta)
+            query = query.or(`and(type.eq.income,account_id.eq.${accountId}),and(type.eq.transfer,transfer_to_account_id.eq.${accountId})`)
+        } else if (filters?.type === 'expense') {
+            // Es un GASTO si: (Es tipo expense en esta cuenta) O (Es tipo transfer y el origen es esta cuenta)
+            query = query.or(`and(type.eq.expense,account_id.eq.${accountId}),and(type.eq.transfer,account_id.eq.${accountId})`)
+        } else {
+            // Si el filtro es 'transfer' o no hay filtro, traemos todo lo que toque esta cuenta
+            query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
+            if (filters?.type) query = query.eq('type', filters.type)
+        }
+    } else {
+        // MODO GLOBAL (Sin cuenta específica): El filtro aplica de forma estricta al tipo original
+        if (filters?.type) query = query.eq('type', filters.type)
+    }
     if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
     if (filters?.startDate) query = query.gte('date', filters.startDate)
     if (filters?.tagId) query = query.eq('transaction_tags.tag_id', filters.tagId)
@@ -47,12 +60,12 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
 
     const { data, error, count } = await query
 
-    if (error) {
-        console.error('Error al traer transacciones:', error)
-        return { transactions: [], total: 0 }
-    }
+  if (error) {
+      console.error('Error al traer transacciones:', error);
+      throw new Error(error.message); // 💡 THROW, no devuelvas { transactions: [], total: 0 }
+  }
 
-    return JSON.parse(JSON.stringify({ 
+  return JSON.parse(JSON.stringify({ 
       transactions: data, 
       total: count || 0 
   }));
@@ -109,12 +122,10 @@ export async function createTransaction(input: any) {
     const cleanInput = { ...input }
 
     const tagsIds = input.tags || []
-    // 💡 Usamos 'let' para reescribir los items si es transferencia
     let items = input.items || [] 
     delete cleanInput.tags 
     delete cleanInput.items 
 
-    // 💡 MAGIA YBANK: Cálculo DGII (0.15%) al CREAR
     const originalTransferAmount = parseFloat(input.amount);
 
     if (input.type !== 'transfer') {
@@ -123,29 +134,11 @@ export async function createTransaction(input: any) {
         delete cleanInput.exchange_rate
     } else {
         delete cleanInput.category_id 
-
-        const dgiiTax = Number((originalTransferAmount * 0.0015).toFixed(2));
-
-        cleanInput.amount = originalTransferAmount + dgiiTax;
+        cleanInput.amount = originalTransferAmount;
         cleanInput.target_amount = originalTransferAmount;
-
-        items = [
-            {
-                name: 'Monto Transferido',
-                unit_price: originalTransferAmount,
-                quantity: 1,
-                category_id: null
-            },
-            {
-                name: 'Comisión DGII (0.15%)',
-                unit_price: dgiiTax,
-                quantity: 1,
-                category_id: '79986a0a-f285-4e76-ac6e-a5833d836a87'
-            }
-        ];
+        items = []; 
     }
   
-  // LÓGICA DE DIVISAS (Ajustada para usar originalTransferAmount)
   if (input.type === 'transfer' && input.transfer_to_account_id) {
     const { data: accounts } = await supabase.from('accounts').select('id, currency, institution_id').in('id', [input.account_id, input.transfer_to_account_id])
     if (accounts && accounts.length === 2) {
@@ -166,7 +159,8 @@ export async function createTransaction(input: any) {
   const { data: newTx, error } = await supabase
     .from('transactions')
     .insert({ user_id: user.id, ...cleanInput, status: 'posted' })
-    .select('id')
+    // 💡 MEJORA 2: Pedimos que nos devuelva el registro completo insertado
+    .select('*') 
     .single()
 
   if (error) return { success: false, error: error.message }
@@ -177,7 +171,7 @@ export async function createTransaction(input: any) {
     await supabase.from('transaction_tags').insert(tagInserts)
   }
 
-  // 3. VINCULAMOS LOS ÍTEMS (CON ERROR HANDLING Y ROLLBACK)
+  // 3. VINCULAMOS LOS ÍTEMS
   if (items.length > 0 && newTx) {
     const itemInserts = items.map((item: any) => ({
       transaction_id: newTx.id,
@@ -196,9 +190,8 @@ export async function createTransaction(input: any) {
     }
   }
 
-  revalidatePath('/dashboard') 
-  revalidatePath('/accounts') 
-  return { success: true }
+  // 💡 Devolvemos la data real para que TanStack actualice su caché con el ID correcto
+  return { success: true, data: newTx }
 }
 
 // ==========================================
@@ -215,38 +208,19 @@ export async function updateTransaction(id: string, input: any) {
     delete cleanInput.tags; 
     delete cleanInput.items; 
 
-    // 💡 MAGIA YBANK: Cálculo DGII (0.15%) al EDITAR
     const originalTransferAmount = parseFloat(input.amount);
 
-    if (cleanInput.type !== 'transfer') {
-        delete cleanInput.transfer_to_account_id;
-        delete cleanInput.target_amount;
-        delete cleanInput.exchange_rate;
+    if (input.type !== 'transfer' || 'payment') {
+        delete cleanInput.transfer_to_account_id
+        delete cleanInput.target_amount
+        delete cleanInput.exchange_rate
     } else {
-        delete cleanInput.category_id;
-
-        const dgiiTax = Number((originalTransferAmount * 0.0015).toFixed(2));
-
-        cleanInput.amount = originalTransferAmount + dgiiTax;
+        delete cleanInput.category_id 
+        cleanInput.amount = originalTransferAmount;
         cleanInput.target_amount = originalTransferAmount;
-
-        items = [
-            {
-                name: 'Monto Transferido',
-                unit_price: originalTransferAmount,
-                quantity: 1,
-                category_id: null
-            },
-            {
-                name: 'Comisión DGII (0.15%)',
-                unit_price: dgiiTax,
-                quantity: 1,
-                category_id: '79986a0a-f285-4e76-ac6e-a5833d836a87'
-            }
-        ];
+        items = []; 
     }
 
-    // LÓGICA DE DIVISAS (Ajustada para usar originalTransferAmount)
     if (cleanInput.type === 'transfer' && cleanInput.transfer_to_account_id) {
         const { data: accounts } = await supabase
             .from('accounts')
@@ -270,7 +244,13 @@ export async function updateTransaction(id: string, input: any) {
     }
 
     // 1. ACTUALIZAMOS LA TRANSACCIÓN PADRE
-    const { error } = await supabase.from('transactions').update(cleanInput).eq('id', id);
+    const { data: updatedTx, error } = await supabase
+      .from('transactions')
+      .update(cleanInput)
+      .eq('id', id)
+      .select('*') // 💡 Pedimos la data actualizada
+      .single();
+
     if (error) return { success: false, error: error.message };
 
     // 2. ACTUALIZAMOS LOS TAGS
@@ -304,9 +284,7 @@ export async function updateTransaction(id: string, input: any) {
         }
     }
 
-    revalidatePath('/dashboard');
-    revalidatePath('/accounts'); 
-    return { success: true };
+    return { success: true, data: updatedTx }; // 💡 Devolvemos la data
 }
 
 // ==========================================
@@ -320,22 +298,18 @@ export async function updateSubTransaction(itemId: string, input: {
 }) {
   const supabase = await createSupabaseClient();
   
-  const total_price = input.quantity * input.unit_price;
-
   const { error } = await supabase
     .from('transaction_items')
     .update({
       name: input.name,
       unit_price: input.unit_price,
       quantity: input.quantity,
-      total_price: total_price,
       category_id: input.category_id
     })
     .eq('id', itemId);
 
   if (error) return { success: false, error: error.message };
 
-  revalidatePath('/accounts');
   return { success: true };
 }
 
@@ -352,7 +326,5 @@ export async function deleteTransaction(id: string) {
 
     if (error) return { success: false, error: error.message }
 
-    revalidatePath('/dashboard')
-    revalidatePath('/accounts')
     return { success: true }
 }

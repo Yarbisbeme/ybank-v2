@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { ButtonOla } from '../ui/ButtonOla';
 import { useModalStore } from '@/store/useModalStore'; 
+import { useQueryClient } from '@tanstack/react-query';
+import { signOut } from '@/lib/actions/auth';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Consola', href: '/dashboard' },
@@ -20,6 +22,12 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const openModal = useModalStore(state => state.openModal); 
+  const queryClient = useQueryClient();
+
+  const handleSecureLogout = async () => {
+    queryClient.clear(); 
+    await signOut(); 
+  };
 
   return (
     <div className="flex flex-col h-full p-6 bg-card border-r border-border transition-colors">
@@ -67,7 +75,10 @@ export default function Sidebar() {
       </div>
 
       <div className="pt-6 border-t border-border">
-        <button className="flex items-center gap-3 px-4 py-3 w-full rounded-[10px] text-muted-foreground font-bold text-sm hover:text-destructive hover:bg-destructive/10 transition-colors">
+        <button 
+          onClick={handleSecureLogout} 
+          className="flex items-center gap-3 px-4 py-3 w-full rounded-[10px] text-muted-foreground font-bold text-sm hover:text-destructive hover:bg-destructive/10 transition-colors"
+        >
           <LogOut size={18} strokeWidth={2} />
           Cerrar Sesión
         </button>

@@ -3,23 +3,26 @@
 import { useMemo } from 'react';
 import { Share2, Edit, Plus, Loader2 } from 'lucide-react';
 import { useModalStore } from '@/store/useModalStore';
-import { useFilterStore } from '@/store/useFilterStore'; // 💡 Importamos el filtro
-import { useAccounts } from '@/hooks/useCatalogs';     // 💡 Importamos el hook de caché
+import { useSearchParams } from 'next/navigation'; // 💡 Reemplazamos useFilterStore por useSearchParams
+import { useAccounts } from '@/hooks/useCatalogs'; 
+import { toast } from 'sonner';
 
 export default function AccountDetailsHeader() {
   const openModal = useModalStore((state) => state.openModal);
-  const { accountId } = useFilterStore(); // Obtenemos el ID de la cuenta activa desde Zustand
   
-  // 1. Obtenemos las cuentas de la caché
+  // 💡 Obtenemos el ID directamente de la URL de forma síncrona
+  const searchParams = useSearchParams();
+  const urlAccountId = searchParams.get('accountId'); 
+  
   const { data: accounts = [], isLoading } = useAccounts();
 
-  // 2. Determinamos qué cuenta mostrar (La seleccionada o la primera por defecto)
+  // Determinamos qué cuenta mostrar de manera ultra-segura
   const activeAccount = useMemo(() => {
     if (accounts.length === 0) return null;
-    return accounts.find(a => a.id === accountId) || accounts[0];
-  }, [accounts, accountId]);
+    // Si hay un ID en la URL, lo usamos; si no, por defecto mostramos la primera cuenta de la caché
+    return accounts.find(a => a.id === urlAccountId) || accounts[0];
+  }, [accounts, urlAccountId]);
 
-  // 3. Estado de carga discreto para el header
   if (isLoading) {
     return (
       <div className="flex justify-center gap-4 pt-2 opacity-50">
@@ -53,13 +56,23 @@ export default function AccountDetailsHeader() {
         icon={<Share2 size={20} />} 
         label="Share" 
         onClick={() => {
-          // Lógica futura para compartir (ej. navigator.share o copiar al portapapeles)
-          console.log("Compartir cuenta:", activeAccount.name);
+          if (navigator.share) {
+            navigator.share({
+              title: `YBank - ${activeAccount.name}`,
+              text: `Revisando el balance de mi nodo financiero.`,
+              url: window.location.href,
+            }).catch(console.error);
+          } else {
+            navigator.clipboard.writeText(window.location.href);
+            toast.success("Enlace de telemetría copiado al portapapeles");
+          }
         }}
       />
     </div>
   );
 }
+
+// ... (ActionButton se queda exactamente igual)
 
 function ActionButton({ 
   icon, 

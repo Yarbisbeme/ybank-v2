@@ -168,5 +168,17 @@ export const ACCOUNT_TYPES: { id: AccountType; label: string; icon: React.Elemen
   { id: 'checking', label: 'Corriente', icon: Receipt },
   { id: 'credit_card', label: 'Crédito', icon: CreditCard },
   { id: 'cash', label: 'Efectivo', icon: Coins },
-  { id: 'investment', label: 'Inversión', icon: TrendingUp }, // 💡 Alineado con getNodeIcon
+  { id: 'investment', label: 'Inversión', icon: TrendingUp }, 
 ];
+
+export const breakdownTax = (finalPrice: number) => {
+  const TAX_RATE = 0.18;
+  const basePrice = finalPrice / (1 + TAX_RATE);
+  const taxAmount = finalPrice - basePrice;
+
+  return {
+    unit_price: Number(basePrice.toFixed(2)),
+    tax_amount: Number(taxAmount.toFixed(2)),
+    total_price: finalPrice
+  };
+};

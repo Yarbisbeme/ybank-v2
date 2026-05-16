@@ -1,4 +1,3 @@
-// @/app/actions/categories.ts (o donde tengas tus actions)
 'use server'
 
 import { Category, CategoryTree } from '@/types'

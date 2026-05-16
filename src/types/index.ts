@@ -282,3 +282,27 @@ export interface FilterState {
   setFilter: (key: keyof Omit<FilterState, 'setFilter' | 'clearFilters'>, value: string | null) => void;
   clearFilters: () => void;
 }
+
+export interface ProfileUpdateInput {
+  full_name?: string;
+  avatar_url?: string | null;
+  currency_preference?: string;
+  primary_account_id?: string;
+  theme_preference?: string;
+  monthly_savings_goal?: string | number;
+  onboarding_completed?: boolean;
+}
+
+export interface TransactionItem {
+  id: string;
+  transaction_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  tax_amount: number;
+  tax_type: 'ITBIS' | 'PROPINA' | 'NONE' | string;
+  discount_amount: number;
+  total_price: number;
+  category_id: string;
+  created_at: string;
+}

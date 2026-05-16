@@ -1,7 +1,7 @@
 {
   "name": "YBank",
   "short_name": "YBank",
-  "description": "Sistema de Telemetría Financiera Personal",
+  "description": "Sistema Financiero Personal",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -10,13 +10,15 @@
     {
       "src": "/icons/logoYSmall.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/logoYMedium.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+      
     }
   ]
 }

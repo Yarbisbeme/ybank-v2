@@ -41,6 +41,8 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
     });
   };
 
+  const [year, month, day] = tx.date.split('T')[0].split('-');
+  const safeDate = new Date(Number(year), Number(month) - 1, Number(day));
   return (
     <div className="flex flex-col border-b border-border last:border-0">
       
@@ -62,7 +64,7 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
             <p className="text-sm font-bold text-foreground line-clamp-1">{tx.description || 'Operación Genérica'}</p>
             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate mt-0.5">
               {/* 💡 5. Ajustar texto si es transferencia recibida */}
-              {isReceiver ? `Desde ${tx.account?.name || 'Otra Cuenta'}` : (tx.category?.name || (hasSubTransactions ? 'Desglosado' : 'Transferencia'))} • {new Date(tx.date).toLocaleDateString('es-DO', { month: 'short', day: '2-digit' }).replace(',', '')}
+              {isReceiver ? `Desde ${tx.account?.name || 'Otra Cuenta'}` : (tx.category?.name || (hasSubTransactions ? 'Desglosado' : 'Transferencia'))} • {safeDate.toLocaleDateString('es-DO', { month: 'short', day: '2-digit' }).replace(',', '')}
             </p>
           </div>
         </div>

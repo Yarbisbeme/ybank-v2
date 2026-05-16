@@ -2,23 +2,20 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse = NextResponse.next({ request });
+
+  const cookies = request.cookies.getAll();
+  const authCookie = cookies.find(c => c.name.includes("-auth-token"));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+        getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -27,29 +24,32 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // 💡 IMPORTANTE: En el middleware, a veces getUser() falla si la red es inestable.
-  // Intentamos obtener la sesión primero, que es menos pesada que getUser().
-  const {
-    data: { user },
-    error
-  } = await supabase.auth.getUser();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
 
-  // Si hay un error de red (como el fetch failed), loguealo para debuguear pero no rompas la app
-  if (error) {
-    console.error("Supabase Auth Error en Middleware:", error.message);
+    if (user) {
+      if (request.nextUrl.pathname.startsWith("/sign-in")) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      return supabaseResponse;
+    }
+  } catch (error) {
+    if (authCookie) {
+      console.log("📡 [YBank Proxy] Modo Offline: Acceso permitido por cookie local.");
+      
+      if (request.nextUrl.pathname.startsWith("/sign-in")) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      return supabaseResponse;
+    }
   }
 
-  // Protección de rutas
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && (request.nextUrl.pathname.startsWith("/sign-in") || request.nextUrl.pathname.startsWith("/sign-up"))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  if (request.nextUrl.pathname.startsWith("/dashboard") || request.nextUrl.pathname.startsWith("/accounts")) {
+    const authCookieExists = request.cookies.getAll().some(c => c.name.includes("-auth-token"));
+    
+    if (!authCookieExists) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
   }
 
   return supabaseResponse;

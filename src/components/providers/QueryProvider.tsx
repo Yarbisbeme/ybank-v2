@@ -1,30 +1,81 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { useState } from 'react'
+import { QueryClient, useIsRestoring } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
+import { useState, useEffect } from 'react'
+
+function RestoreGatekeeper({ children }: { children: React.ReactNode }) {
+  const isRestoring = useIsRestoring();
+
+  // 🚪 LOG: Vigilar la puerta de la caché
+  useEffect(() => {
+    console.log(`🚪 [Gatekeeper] isRestoring: ${isRestoring}`);
+  }, [isRestoring]);
+
+  if (isRestoring) {
+    return null; 
+  }
+
+  return <>{children}</>;
+}
 
 export default function QueryProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // 💡 ESTA ES LA MAGIA: Los datos se considerarán "frescos" por 5 minutos.
-            // Si abres un modal y lo cierras en menos de 5 mins, no hará una nueva petición a la BD.
-            staleTime: 5 * 60 * 1000, 
-            refetchOnWindowFocus: false, // No recargar la BD solo porque cambies de pestaña en Chrome
-            retry: 1, // Si falla la red, reintenta 1 vez silenciosamente
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 60, 
+        gcTime: 1000 * 60 * 60 * 24 * 7, 
+        networkMode: 'offlineFirst',
+      },
+    },
+  }))
+
+  const [persister, setPersister] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log("💾 [IDB] Inicializando conexión con IndexedDB...");
+      import('idb-keyval').then(({ get, set, del }) => {
+        const idbPersister = createAsyncStoragePersister({
+          storage: {
+            getItem: async (key) => {
+              console.log(`📦 [IDB-GET] Intentando leer la llave: ybank-offline-${key}`);
+              const data = await get(`ybank-offline-${key}`);
+              console.log(`📦 [IDB-GET] Resultado: ${data ? `¡Datos encontrados! (${data.length} caracteres)` : 'Vacío/Nulo'}`);
+              return data;
+            },
+            setItem: async (key, value) => {
+              console.log(`✍️ [IDB-SET] Guardando datos en: ybank-offline-${key}`);
+              await set(`ybank-offline-${key}`, value);
+            },
+            removeItem: async (key) => await del(`ybank-offline-${key}`),
           },
-        },
-      })
-  )
+        })
+        setPersister(idbPersister);
+        console.log("✅ [IDB] Persister configurado y listo.");
+      }).catch((err) => {
+        console.error("❌ [IDB] Error fatal al importar idb-keyval:", err);
+      });
+    }
+  }, []);
+
+  if (!persister) {
+    return null; 
+  }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      {/* 💡 Las Devtools son una maravilla visual. Solo aparecerán en tu entorno local (desarrollo) */}
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ 
+        persister, 
+        maxAge: 1000 * 60 * 60 * 24 * 7 
+      }}
+      onSuccess={() => console.log("🚀 [TanStack] ¡Hidratación desde IndexedDB completada con éxito!")}
+    >
+      <RestoreGatekeeper>
+        {children}
+      </RestoreGatekeeper>
+    </PersistQueryClientProvider>
   )
 }

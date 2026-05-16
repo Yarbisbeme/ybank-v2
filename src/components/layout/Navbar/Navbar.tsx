@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import GlobalSearch from './GlobalSearch';
 import { signOut } from '@/lib/actions/auth'; 
 import Image from 'next/image';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Navbar({ user, accounts = [], transactions = [], tags = [] }: NavbarProps) {
   
@@ -21,6 +22,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const [avatarError, setAvatarError] = useState(false); 
   const [searchQuery, setSearchQuery] = useState('');
   const openModal = useModalStore(state => state.openModal);
+  const queryClient = useQueryClient();
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     accounts: false, transactions: false, tags: false
   });
@@ -63,6 +65,12 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleSecureLogout = async () => {
+    closeMenu(); 
+    queryClient.clear()
+    await signOut(); 
   };
 
   return (
@@ -244,7 +252,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
             </div>
 
             <button 
-              onClick={() => { closeMenu(); signOut(); }} 
+              onClick={handleSecureLogout} 
               className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-[6px] transition-colors shrink-0"
               title="Cerrar Sesión"
             >

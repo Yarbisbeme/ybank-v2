@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface UniversalModalProps {
   children: React.ReactNode;
@@ -17,11 +19,8 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
     setIsVisible(true); 
   }, []);
 
-  const handleClose = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    
+  const handleClose = () => {
     setIsVisible(false);
-    
     setTimeout(() => {
       onClose(); 
     }, 300); 
@@ -30,30 +29,55 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-6">
+        <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4">
           
+          {/* Backdrop con Blur YBANK */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={handleClose} 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer" 
+            className="absolute inset-0 bg-black/60 backdrop-blur-[2px] cursor-pointer" 
           />
 
+          {/* 💡 CONTENEDOR PRINCIPAL */}
           <motion.div
-            initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`relative w-full ${maxWidth} bg-white rounded-t-[32px] md:rounded-[22px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] md:max-h-[90vh]`}
+            initial={{ y: "100%", opacity: 0 }} 
+            animate={{ y: 0, opacity: 1 }} 
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className={cn(
+              // Quitamos el bg-card de aquí para que el hijo dibuje el fondo, 
+              // pero FORZAMOS el corte de esquinas con overflow-hidden
+              "relative w-full shadow-2xl flex flex-col overflow-hidden bg-background",
+              "rounded-t-[20px] md:rounded-[12px] border border-border/50",
+              "max-h-[95vh] md:max-h-[90vh]",
+              maxWidth
+            )}
+            // 💡 TRUCO NINJA: Si el calendario se abre (usualmente inyecta un popup global), 
+            // no se verá cortado porque el calendario debería usar React Portals. 
+            // Si tu calendario no usa Portals, me avisas y usamos un truco con padding.
           >
+            {/* HEADER ESTILO TERMINAL */}
             {title && (
-              <div className="pt-8 px-8 pb-5 border-b border-slate-100 shrink-0 flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{title}</h2>
-                <button onClick={handleClose} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              // 💡 FIX: Quitamos el "absolute top-0..." y agregamos "relative"
+              // Esto empujará el contenido hacia abajo correctamente sin encimarse.
+              <div className="pt-6 px-6 pb-2 shrink-0 flex justify-between items-center bg-transparent relative z-50">
+                <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-foreground drop-shadow-md">
+                  {title}
+                </h2>
+                <button 
+                  onClick={handleClose} 
+                  className="p-1.5 rounded-[6px] bg-surface-2/50 hover:bg-surface-2 text-foreground backdrop-blur-md transition-all active:scale-90 shadow-sm border border-border/50"
+                >
+                  <X size={18} />
                 </button>
               </div>
             )}
-            <div className="max-h-[85vh] overflow-y-auto scrollbar-hide pb-8 px-2 md:px-6">
+
+            {/* CONTENEDOR DEL HIJO */}
+            <div className="relative flex-1 overflow-y-auto scrollbar-hide">
               {children}
             </div>
+            
           </motion.div>
         </div>
       )}

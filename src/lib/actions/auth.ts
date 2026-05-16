@@ -1,38 +1,14 @@
 'use server'
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-
-/**
- * 🛠️ HELPER: Crea el cliente de Supabase con persistencia de cookies
- */
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch { /* Silent error */ }
-        }
-      }
-    }
-  );
-}
+import { createSupabaseClient } from '../supabase/createServerClient';
 
 /**
  * 📝 REGISTRO CON EMAIL
  * Crea el usuario en auth.users y dispara el flujo de onboarding.
  */
 export async function signUpWithEmail({ email, password, fullName }: any) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createSupabaseClient();
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -41,7 +17,6 @@ export async function signUpWithEmail({ email, password, fullName }: any) {
       data: {
         full_name: fullName,
       },
-      // Redirige al callback para procesar la sesión después de confirmar email
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
     },
   });
@@ -50,11 +25,9 @@ export async function signUpWithEmail({ email, password, fullName }: any) {
   return { success: true, user: JSON.parse(JSON.stringify(data.user)) }
 }
 
-/**
- * 🔐 LOGIN CON EMAIL Y CONTRASEÑA
- */
+//🔐 LOGIN CON EMAIL Y CONTRASEÑA
 export async function loginWithEmail({ email, password }: any) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createSupabaseClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -65,11 +38,9 @@ export async function loginWithEmail({ email, password }: any) {
   return { success: true };
 }
 
-/**
- * 🌐 SIGN IN CON GOOGLE (OAuth con Scopes de Gmail)
- */
+//🌐 SIGN IN CON GOOGLE (OAuth con Scopes de Gmail)
 export async function signInWithGoogle() {
-  const supabase = await getSupabaseClient();
+  const supabase = await createSupabaseClient();
 
   const getURL = () => {
     let url = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL ?? 'http://localhost:3000/';
@@ -100,7 +71,7 @@ export async function completeOnboarding(formData: {
   currency: string;
   primaryAccountId?: string;
 }) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, error: "Sesión no encontrada" };
@@ -122,27 +93,27 @@ export async function completeOnboarding(formData: {
       return { success: false, error: `Error de seguridad: ${pwdError.message}` };
     }
   } else if (isGoogleUser) {
-    // 💡 Solo obligamos a poner contraseña si viene de Google
     return { success: false, error: "Los usuarios de Google deben establecer una contraseña." };
   }
 
-  // 3. 📝 ACTUALIZACIÓN DE PERFIL (Ahora sí llegará aquí)
-  const { error: profileError } = await supabase.from('profiles').upsert({
+  const { data: profileData, error: profileError } = await supabase.from('profiles').upsert({
     id: user.id,
     full_name: formData.fullName,
     currency_preference: formData.currency,
-    onboarding_completed: true, // 👈 ¡ESTO ES LA LLAVE!
+    onboarding_completed: true,
     updated_at: new Date().toISOString(),
-    primary_account_id:formData.primaryAccountId,
-  });
+    primary_account_id: formData.primaryAccountId,
+  })
+  .select('*') // 💡 Pedimos el perfil completo
+  .single();
 
   if (profileError) return { success: false, error: profileError.message };
 
-  return { success: true };
+  return { success: true, data: profileData }; 
 }
 
 export async function signOut() {
-  const supabase = await getSupabaseClient();
+  const supabase = await createSupabaseClient();
 
   // Cerramos sesión en Supabase
   await supabase.auth.signOut();

@@ -1,4 +1,3 @@
-import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import Navbar from "@/components/layout/Navbar/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import { getAccounts } from '@/lib/actions/accounts';
@@ -6,61 +5,93 @@ import { getTransactions } from '@/lib/actions/transactions';
 import { getTags } from '@/lib/actions/tags';
 import { getCategories } from '@/lib/actions/categories';
 import { getInstitutions } from '@/lib/actions/institutions';
-import { redirect } from 'next/navigation';
 
-// Providers
-import StoreInitializer from '@/components/providers/StoreInitializer';
-import ModalProvider from '@/components/providers/ModalProvider';
-import QueryProvider from '@/components/providers/QueryProvider';
+import DashboardProviders from '@/components/providers/DashboardProviders';
 import PWAFooter from '@/components/layout/PWAFooter';
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
+
+interface DashboardInitialData {
+  accounts: any[];
+  tags: any[];
+  categories: any[];
+  institutions: any[];
+  transactions: any[];
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) redirect('/sign-in');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select(`
-      onboarding_completed, 
-      primary_account_id,
-      accounts ( institution_id ) 
-    `) 
-    .eq('id', user.id)
-    .single(); 
-
-  if (!profile || profile.onboarding_completed === false) {
-    redirect('/onboarding');
+  
+  // 1. Auth Blindado
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (e) {
+    // Si falla el fetch a Supabase, confiamos en el Middleware. 
+    // No redirigimos aquí para evitar el bucle offline.
+    console.log("📡 Layout: Fallo de red en Auth, permitiendo renderizado de shell.");
   }
 
-  const [accounts, transactionsData, tags, categoriesTree, institutions] = await Promise.all([
-    getAccounts(),
-    getTransactions({}),
-    getTags(),
-    getCategories(),
-    getInstitutions()
-  ]);
+  // 🚨 Solo redirigir si estamos SEGUROS de que no hay usuario Y hay red
+  // En localhost/offline, es mejor dejar que el cliente maneje la sesión.
+  if (!user && process.env.NODE_ENV === 'production') {
+    // Opcional: podrías chequear la cookie aquí también si quieres ser extra estricto
+  }
 
-  const navbarUser = {
-    name: user.user_metadata?.full_name || user.email || 'Usuario',
-    email: user.email!,
-    avatarUrl: user.user_metadata?.avatar_url
+  // 2. Datos Iniciales con Fallback
+  let profile = { onboarding_completed: true, primary_account_id: null };
+  let initialData: DashboardInitialData = { 
+    accounts: [], 
+    tags: [], 
+    categories: [], 
+    institutions: [], 
+    transactions: [] 
   };
 
-  const institutionId = (profile.accounts as any)?.institution_id || null;
+  try {
+    // Intentamos traer el perfil
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('onboarding_completed, primary_account_id')
+      .single();
+    
+    if (profileData) profile = profileData as any;
+
+    // Intentamos la hidratación masiva
+    const [accounts, txData, tags, categoriesTree, institutions] = await Promise.all([
+      getAccounts(),
+      getTransactions({}),
+      getTags(),
+      getCategories(),
+      getInstitutions()
+    ]);
+
+    initialData = {
+      accounts,
+      tags,
+      categories: categoriesTree,
+      institutions,
+      transactions: txData.transactions
+    };
+  } catch (error) {
+    console.warn("📡 Layout: Modo Offline. Se enviará un initialData vacío.");
+  }
+
+  // 3. Preparar UI básica (Navbar)
+  const navbarUser = {
+    name: user?.user_metadata?.full_name || user?.email || 'Usuario',
+    email: user?.email || '',
+    avatarUrl: user?.user_metadata?.avatar_url
+  };
 
   return (
-    <QueryProvider>
-      <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
+    <DashboardProviders 
+      initialData={initialData}
+      primaryAccountId={profile.primary_account_id}
+      institutionId={null} // Se puede calcular en el cliente
+    >
+      <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
         
-        <StoreInitializer 
-          primaryAccountId={profile.primary_account_id} 
-          institutionId={institutionId} 
-        />
-
-        <ModalProvider />
-
         <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-border bg-card">
           <Sidebar />
         </aside>
@@ -68,12 +99,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex flex-col flex-1 min-w-0 h-full">
           <Navbar 
             user={navbarUser} 
-            accounts={accounts} 
-            transactions={transactionsData.transactions} 
-            tags={tags} 
+            accounts={initialData.accounts} 
+            transactions={initialData.transactions} 
+            tags={initialData.tags} 
           />
           
-          <main className="flex-1 overflow-y-auto p-6 md:px-4 scrollbar-hide">
+          {/* 💡 AÑADIMOS overflow-x-hidden AQUÍ */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
             <div className="max-w-[1400px] mx-auto w-full">
               {children}
             </div>
@@ -81,6 +113,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </main>
         </div>
       </div>
-    </QueryProvider>
+    </DashboardProviders>
   );
 }
