@@ -36,13 +36,12 @@ export default function PWAFooter() {
   };
 
   return (
-    <footer className="w-full py-6 px-4 border-t border-border bg-card/50 backdrop-blur-md mt-auto">
+    <footer className="w-full pt-4 px-4 border-t border-border bg-card/50 backdrop-blur-md mt-auto">
       <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         
         {/* Info de la Compañía */}
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="md:hidden flex flex-row items-center cursor-pointer"> 
+        <div className="flex flex-col items-center md:block">
+            <div className="flex flex-row items-center cursor-pointer"> 
                 <Image 
                     src="/icons/logoY.svg" 
                     alt="YBank" 
@@ -58,10 +57,9 @@ export default function PWAFooter() {
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">
               YBank Engine <span className="text-muted-foreground ml-1">v2.0</span>
             </p>
-            <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-widest">
+            <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-widest pt-1">
               © 2026 • Powered by <span className="text-blue-600 font-bold">YBM ORG</span>
             </p>
-          </div>
         </div>
 
         {/* Botón PWA Dinámico */}

@@ -13,20 +13,16 @@ import YBankCalendarPicker from '../filters/YBankCalendarPicker';
 import { useSearchParams } from 'next/navigation';
 import { getTransactions } from '@/lib/actions/transactions';
 import { toast } from 'sonner';
-import { useYBankStore } from '@/store/useYBankStore';
 
 export default function TransactionFilterBar() {
   
   const searchParams = useSearchParams();
-  const { type, categoryId, startDate, endDate, setFilter, clearFilters } = useFilterStore();
+  const { type, categoryId, startDate, endDate, search, setFilter, clearFilters } = useFilterStore();
   const { data: categoriesTree = [] } = useCategories();
   
   const { isSelectionMode, setIsSelectionMode, selectedTx, setSelectedTx, clearSelection, totalItemsInView } = useSelectionStore();
   const [isFetchingAll, setIsFetchingAll] = useState(false);
-
-  // 💡 FIX 1: Lógica de Modo Global
-  // Si no hay ID en la URL o dice 'global', activeAccountId es estrictamente null.
-  // Ya no usamos preferredAccountId ni accounts[0]?.id como "salvavidas".
+  
   const urlAccountId = searchParams.get('accountId');
   const activeAccountId = (!urlAccountId || urlAccountId === 'global') ? null : urlAccountId;
   
@@ -66,6 +62,7 @@ export default function TransactionFilterBar() {
         ...(categoryId && { categoryId }),
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
+        ...(search && { search }),
       };
 
       const res = await getTransactions({ 

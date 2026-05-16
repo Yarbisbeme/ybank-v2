@@ -22,6 +22,7 @@ export interface TransactionFilters {
   startDate?: string | null;
   endDate?: string | null;
   color?: string;
+  search?: string | null;
 }
 
 export interface ExtendedGetTransactionsParams extends GetTransactionsParams {

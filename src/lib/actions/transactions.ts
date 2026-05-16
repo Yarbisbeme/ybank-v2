@@ -14,12 +14,16 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
+    const tagsJoin = filters?.tagId 
+      ? `tags:transaction_tags!inner(tag:tags(id, name))` 
+      : `tags:transaction_tags(tag:tags(id, name))`;      
+
     let selectString = `
       *,
       category:categories(name, icon, color),
       account:accounts!account_id(name, currency), 
       transfer_to_account:accounts!transfer_to_account_id(name, currency),
-      tags:transaction_tags(tag:tags(id, name)),
+      ${tagsJoin}, 
       items:transaction_items(*, category:categories(id, name, icon)) 
     `;
 
@@ -52,10 +56,15 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     }
     if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
     if (filters?.startDate) query = query.gte('date', filters.startDate)
-    if (filters?.tagId) query = query.eq('transaction_tags.tag_id', filters.tagId)
+    if (filters?.tagId) {
+        query = query.eq('tags.tag_id', filters.tagId)
+    }
     if (filters?.endDate) {
         const endOfDay = filters.endDate.includes('T') ? filters.endDate : `${filters.endDate}T23:59:59.999Z`;
         query = query.lte('date', endOfDay)
+    }
+    if (filters?.search) {
+        query = query.ilike('description', `%${filters.search}%`)
     }
 
     const { data, error, count } = await query
