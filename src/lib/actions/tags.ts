@@ -1,6 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { Tag } from '@/types'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 
@@ -9,8 +8,6 @@ import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 // =========================================================
 export async function getTags() {
   const supabase = await createSupabaseClient()
-
-  // 💡 Solo traemos los tags del usuario actual (Supabase RLS lo maneja en el fondo, pero es bueno recordarlo)
   const { data, error } = await supabase
     .from('tags')
     .select('*')
@@ -20,7 +17,7 @@ export async function getTags() {
     console.error('Error fetching tags:', error)
     return []
   }
-  return data as Tag[]
+  return JSON.parse(JSON.stringify(data)) as Tag[]
 }
 
 // =========================================================
@@ -35,30 +32,31 @@ export async function createTag(name: string) {
   const { data, error } = await supabase.from('tags').insert({
     user_id: user.id,
     name: name.trim() 
-  }).select().single() // 💡 LA MAGIA: Le pedimos a Supabase que nos devuelva la fila recién creada
+  })
+  .select('*') 
+  .single() 
 
   if (error) return { success: false, error: error.message }
   
-  revalidatePath('/dashboard')
-  
-  // 💡 Devolvemos el tag completo (con su ID real)
-  return { success: true, tag: data } 
+  return { success: true, data: JSON.parse(JSON.stringify(data)) }
 }
+
 // =========================================================
-// 3. UPDATE TAG (¡Agregado para correcciones de ortografía!)
+// 3. UPDATE TAG 
 // =========================================================
 export async function updateTag(id: string, newName: string) {
   const supabase = await createSupabaseClient()
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('tags')
     .update({ name: newName.trim() })
     .eq('id', id)
+    .select('*') // 💡 FIX: Pedimos que nos devuelva la etiqueta actualizada
+    .single()
 
   if (error) return { success: false, error: error.message }
 
-  revalidatePath('/dashboard')
-  return { success: true }
+  return { success: true, data: JSON.parse(JSON.stringify(data)) }
 }
 
 // =========================================================
@@ -67,10 +65,14 @@ export async function updateTag(id: string, newName: string) {
 export async function deleteTag(id: string) {
   const supabase = await createSupabaseClient()
 
-  const { error } = await supabase.from('tags').delete().eq('id', id)
+  const { data, error } = await supabase
+    .from('tags')
+    .delete()
+    .eq('id', id)
+    .select('id') // 💡 Opcional: Devolver el ID borrado es buena práctica
+    .single()
   
   if (error) return { success: false, error: error.message }
   
-  revalidatePath('/dashboard')
-  return { success: true }
+  return { success: true, data }
 }

@@ -4,15 +4,18 @@ import { ReactNode } from "react";
 // 1. VALORES FIJOS Y TIPOS GLOBALES
 // ==========================================
 export type TransactionType = 'income' | 'expense' | 'transfer' | 'payment';
+export type ModalType = 'transaction' | 'account' | 'tag' | null;
 export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'cash';
 export type CurrencyCode = 'DOP' | 'USD';
 // 💡 Corrección: PascalCase
 export type CustomTextTheme = 'light' | 'dark';
 export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots';
+export type operation = 'buy' | 'sell'
 
 // ==========================================
 // 2. ENTIDADES DE LA BASE DE DATOS
 // ==========================================
+
 export interface Institution {
   id: string;
   name: string;
@@ -50,13 +53,13 @@ export interface Account {
   last_4_digits: string | null; // "4288"
   expiry_date?: string | null;  // "12/28"
   credit_limit?: number | null;
+  cutoff_day?: number | null;
   
   // Control de Estado (Borrado Lógico)
   is_active: boolean; 
   
   created_at: string;
   updated_at: string;
-
   // Relaciones
   institution: Institution; 
 }
@@ -172,7 +175,8 @@ export interface CreateAccountInput {
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
 
-  expiry_date:string;
+  expiry_date?:string;
+  cutoff_day?:string;
   is_active:boolean;
 }
 
@@ -220,6 +224,15 @@ export interface TransferInput {
   manualExchangeRate?: number; 
 }
 
+export interface YBankStore {
+  currency: CurrencyCode;
+  preferredRate: SmartRateResult | null;
+  setCurrency: (currency: 'DOP' | 'USD') => void;
+  updateRateContext: (institutionId: string) => Promise<void>;
+  preferredAccountId: string | null;
+  isCalculatingRate: boolean;
+}
+
 // ==========================================
 // 4. UI TYPES (Componentes)
 // ==========================================
@@ -238,10 +251,58 @@ export type NotificationProps = {
     duration?: number;
 }
 
-export type SmartRateResult = {
-  rate: number;
-  baseRate: number;
-  margin: number;
-  operation: 'buy' | 'sell';
-  institutionName: string;
+export interface SmartRateResult {
+  rate: number;           
+  baseRate: number;       
+  margin: number;         
+  operation: operation; 
+  institutionName: string; 
+}
+
+export interface ModalState {
+  isOpen: boolean;
+  type: ModalType;
+  payload: { 
+    accountId?: string | null; 
+    transactionId?: string | null; 
+    categoryId?: string | null; 
+    initialData?: any; 
+    forceEditMode?: boolean; 
+  } | null;
+  openModal: (type: ModalType, payload?: ModalState['payload']) => void;
+  closeModal: () => void;
+}
+
+export interface FilterState {
+  type: string | null;
+  categoryId: string | null;
+  tagId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  setFilter: (key: keyof Omit<FilterState, 'setFilter' | 'clearFilters'>, value: string | null) => void;
+  clearFilters: () => void;
+}
+
+export interface ProfileUpdateInput {
+  full_name?: string;
+  avatar_url?: string | null;
+  currency_preference?: string;
+  primary_account_id?: string;
+  theme_preference?: string;
+  monthly_savings_goal?: string | number;
+  onboarding_completed?: boolean;
+}
+
+export interface TransactionItem {
+  id: string;
+  transaction_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  tax_amount: number;
+  tax_type: 'ITBIS' | 'PROPINA' | 'NONE' | string;
+  discount_amount: number;
+  total_price: number;
+  category_id: string;
+  created_at: string;
 }

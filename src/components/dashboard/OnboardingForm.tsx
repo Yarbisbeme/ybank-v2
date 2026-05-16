@@ -2,133 +2,235 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, User, Globe, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, User, Globe, CheckCircle2, Building2 } from 'lucide-react';
 import { completeOnboarding } from '@/lib/actions/auth';
+import { createAccount } from '@/lib/actions/accounts'; 
+import { CurrencyCode } from '@/types';
 import { toast } from 'sonner';
 
-// 💡 Definimos las props que vienen del Server Component
+interface Institution {
+  id: string;
+  name: string;
+}
+
 interface OnboardingFormProps {
   initialStep: number;
   defaultName: string;
+  institutions: Institution[];
 }
 
-export default function OnboardingForm({ initialStep, defaultName }: OnboardingFormProps) {
+export default function OnboardingForm({ initialStep, defaultName, institutions }: OnboardingFormProps) {
   const [step, setStep] = useState(initialStep);
   const [loading, setLoading] = useState(false);
   
+  // 💡 CORRECCIÓN 1: Le decimos a TypeScript que 'currency' es estrictamente un CurrencyCode
   const [formData, setFormData] = useState({
-    fullName: defaultName, // Pre-cargamos el nombre si ya existe
+    fullName: defaultName,
     password: '',
-    currency: 'DOP'
+    currency: 'DOP' as CurrencyCode, 
+    accountName: '',
+    institutionId: institutions.length > 0 ? institutions[0].id : '',
+    initialBalance: ''
   });
   
   const handleNext = () => setStep(step + 1);
 
   const handleSubmit = async () => {
+    if (!formData.accountName || !formData.institutionId) {
+      toast.error("Por favor completa los datos de tu cuenta principal.");
+      return setStep(3);
+    }
+
     setLoading(true);
     try {
-      const result = await completeOnboarding(formData);
+      const accountResult = await createAccount({
+        institution_id: formData.institutionId,
+        name: formData.accountName,
+        type: 'savings', 
+        initial_balance: Number(formData.initialBalance) || 0,
+        currency: formData.currency, 
+        is_active: true,
+      });
+
+      if (!accountResult.success) {
+        throw new Error("Error creando tu cuenta bancaria. " + (accountResult.error || ""));
+      }
+
+      // 💡 CORRECCIÓN 2: Forzamos a TypeScript a reconocer que 'data' existe en el resultado exitoso
+      const resultData = (accountResult as { success: true; data: { id: string } }).data;
+      const newAccountId = resultData?.id;
+
+      if (!newAccountId) {
+        throw new Error("La cuenta se creó, pero no se pudo obtener el ID de verificación.");
+      }
+
+      const result = await completeOnboarding({
+        fullName: formData.fullName,
+        password: formData.password,
+        currency: formData.currency,
+        primaryAccountId: newAccountId 
+      });
+
       if (result.success) {
-        toast.success("¡Configuración completada!");
-        // 🚀 Redirección limpia al Dashboard
+        toast.success("¡Infraestructura lista!");
         window.location.href = '/dashboard';
       } else {
         toast.error(result.error);
       }
-    } catch (error) {
-      toast.error("Error al procesar la configuración");
+    } catch (error: any) {
+      toast.error(error.message || "Error crítico al configurar YBANK");
     } finally {
       setLoading(false);
     }
   };
 
+  const variants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 },
+  };
+
+  const cardClasses = "space-y-6 bg-card p-8 rounded-2xl shadow-lg border border-border";
+  const inputClasses = "w-full p-4 bg-background rounded-xl border border-border focus:ring-4 focus:ring-primary/10 text-foreground font-sans placeholder:text-muted-foreground outline-none transition-all";
+
   return (
     <div className="max-w-md w-full mx-auto p-6">
       <AnimatePresence mode="wait">
-        {/* PASO 1: NOMBRE (Solo si initialStep era 1) */}
+        
         {step === 1 && (
-          <motion.div 
-            key="step1"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6 bg-white p-8 rounded-3xl shadow-xl border border-slate-100"
-          >
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
+          <motion.div key="step1" {...variants} className={cardClasses}>
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4">
               <User size={24} />
             </div>
-            <h2 className="text-2xl font-black text-slate-800">¿Cómo te llamas?</h2>
+            <h2 className="text-3xl font-bold font-sans text-foreground tracking-tight">Identidad</h2>
+            <p className="text-muted-foreground">¿Cómo te llamas?</p>
             <input 
               type="text" 
               placeholder="Tu nombre completo"
-              className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500/20 text-neutral-900 placeholder:text-neutral-400"
+              className={inputClasses}
               value={formData.fullName}
               onChange={(e) => setFormData({...formData, fullName: e.target.value})}
             />
-            <button onClick={handleNext} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl active:scale-[0.98] transition-transform">
+            <button onClick={handleNext} className="btn-primary w-full py-4 font-semibold text-lg">
               Siguiente
             </button>
           </motion.div>
         )}
 
-        {/* PASO 2: CONTRASEÑA (Solo si es usuario de Google que quiere clave local) */}
         {step === 2 && (
-          <motion.div 
-            key="step2"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6 bg-white p-8 rounded-3xl shadow-xl border border-slate-100"
-          >
-            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-4">
+          <motion.div key="step2" {...variants} className={cardClasses}>
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4">
               <ShieldCheck size={24} />
             </div>
-            <h2 className="text-2xl font-black text-slate-800">Crea una contraseña</h2>
-            <p className="text-sm text-slate-500 font-medium leading-relaxed">
-              Como entraste con Google, puedes crear una clave de acceso rápido para YBank.
+            <h2 className="text-3xl font-bold font-sans text-foreground tracking-tight">Seguridad</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Define una clave maestra para YBANK.
             </p>
             <input 
               type="password" 
-              placeholder="Mínimo 8 caracteres"
-              className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-rose-500/20 text-neutral-900"
+              placeholder="Mínimo 6 caracteres"
+              className={inputClasses}
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
-            <button onClick={handleNext} className="w-full py-4 bg-rose-600 text-white font-bold rounded-2xl active:scale-[0.98] transition-transform">
-              Siguiente
-            </button>
+             <div className="flex gap-3">
+              <button onClick={() => setStep(1)} className="p-4 bg-surface-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors">
+                Atrás
+              </button>
+              <button onClick={handleNext} className="btn-primary flex-1 py-4 font-semibold text-lg">
+                Siguiente
+              </button>
+            </div>
           </motion.div>
         )}
 
-        {/* PASO 3: PREFERENCIAS (Este paso lo ven TODOS) */}
         {step === 3 && (
-          <motion.div 
-            key="step3"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6 bg-white p-8 rounded-3xl shadow-xl border border-slate-100"
-          >
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+          <motion.div key="step3" {...variants} className={cardClasses}>
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4">
+              <Building2 size={24} />
+            </div>
+            <h2 className="text-3xl font-bold font-sans text-foreground tracking-tight">Origen de Datos</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Configura tu cuenta principal para que la IA calcule tus tasas correctamente.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Institución</label>
+                <select 
+                  className={inputClasses}
+                  value={formData.institutionId}
+                  onChange={(e) => setFormData({...formData, institutionId: e.target.value})}
+                >
+                  <option value="" disabled>Selecciona un banco</option>
+                  {institutions.map(inst => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Nombre (Ej. Nómina)</label>
+                <input 
+                  type="text" 
+                  placeholder="Cuenta Principal"
+                  className={inputClasses}
+                  value={formData.accountName}
+                  onChange={(e) => setFormData({...formData, accountName: e.target.value})}
+                />
+              </div>
+
+               <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Balance Inicial</label>
+                <input 
+                  type="number" 
+                  placeholder="0.00"
+                  className={`${inputClasses} font-mono text-lg`}
+                  value={formData.initialBalance}
+                  onChange={(e) => setFormData({...formData, initialBalance: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setStep(2)} className="p-4 bg-surface-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors">
+                Atrás
+              </button>
+              <button onClick={handleNext} className="btn-primary flex-1 py-4 font-semibold text-lg">
+                Siguiente
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {step === 4 && (
+          <motion.div key="step4" {...variants} className={cardClasses}>
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4">
               <Globe size={24} />
             </div>
-            <h2 className="text-2xl font-black text-slate-800">Preferencia regional</h2>
-            <p className="text-sm text-slate-500 font-medium">¿En qué moneda quieres ver tus balances globales?</p>
+            <h2 className="text-3xl font-bold font-sans text-foreground tracking-tight">Consolidación</h2>
+            <p className="text-muted-foreground">¿En qué moneda quieres ver el resumen de tu infraestructura?</p>
             <select 
-              className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-500/20 appearance-none text-neutral-900 font-bold"
+              className={`${inputClasses} font-mono font-semibold text-xl text-center`}
               value={formData.currency}
-              onChange={(e) => setFormData({...formData, currency: e.target.value})}
+              onChange={(e) => setFormData({...formData, currency: e.target.value as CurrencyCode})}
             >
-              <option value="DOP">Peso Dominicano (DOP)</option>
-              <option value="USD">Dólar Estadounidense (USD)</option>
+              <option value="DOP">DOP - Peso Dominicano</option>
+              <option value="USD">USD - Dólar Estadounidense</option>
             </select>
-            <button 
-              onClick={handleSubmit} 
-              disabled={loading}
-              className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 disabled:opacity-70 transition-all"
-            >
-              {loading ? "Guardando..." : <><CheckCircle2 size={20} /> Finalizar Configuración</>}
-            </button>
+            
+            <div className="flex gap-3 mt-6">
+               <button onClick={() => setStep(3)} className="p-4 bg-surface-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors">
+                Atrás
+              </button>
+              <button 
+                onClick={handleSubmit} 
+                disabled={loading}
+                className="btn-primary flex-1 py-4 font-semibold text-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? "Iniciando..." : <><CheckCircle2 size={20} /> Desplegar YBANK</>}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

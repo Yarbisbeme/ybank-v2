@@ -127,6 +127,21 @@ src/
     npm run dev
     ```
 
+## 🧠 Arquitectura de Estado Híbrido (Server-to-Client)
+
+Para garantizar un rendimiento óptimo y evitar parpadeos (flickering) en la interfaz, YBANK utiliza un patrón de hidratación de estado entre **Next.js App Router (Server)** y **Zustand (Client)**.
+
+### El Flujo de "Tasa Inteligente" (Smart Rate)
+Para calcular las tasas de cambio personalizadas sin exponer lógica de negocio en el cliente, implementamos el siguiente flujo:
+
+1. **Server Layout (`DashboardLayout.tsx`):** El servidor consulta Supabase para identificar la cuenta de preferencia del usuario (`primary_account_id`) y su banco (`institution_id`) de forma segura.
+2. **El Puente (`StoreInitializer.tsx`):** Un componente de cliente invisible recibe estos IDs desde el servidor y los inyecta sincrónicamente en el Store de Zustand durante el renderizado inicial.
+3. **El Store (`useYBankStore.ts`):** Al detectar la inicialización, dispara un Server Action (`getSmartRate`) pasando el ID del banco.
+4. **Respuesta Visual:** Los componentes de la UI (como el Balance) se suscriben al Store y muestran las conversiones monetarias en tiempo real utilizando la tasa específica del banco del usuario, sin estados de carga infinitos.
+
+> **Nota para devs/QA:** `StoreInitializer` intencionalmente retorna `null`. Su único propósito es hidratar la memoria del cliente (Zustand) antes de que el DOM termine de pintarse.
+![Zustand](/public/Readme/Zustand.png)
+
 ## 📝 Roadmap
 
 - [x] Inicialización del proyecto y estructura de carpetas.
@@ -134,7 +149,3 @@ src/
 - [x] Implementación de Autenticación con Google.
 - [ ] Creación de Servicio de Adaptador de Gmail.
 - [ ] Lógica de "Auto-Discovery" de bancos.
-
-## HomePage
-
-<img width="1887" height="910" alt="image" src="https://github.com/user-attachments/assets/4a910fa9-194f-4912-8993-3bbf1a9a19fc" />

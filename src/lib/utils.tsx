@@ -22,7 +22,8 @@ import {
   Shield, Shirt, Armchair, PlaneTakeoff, Bed, Bus, Tag,
   Wallet,
   CreditCard,
-  Coins
+  Coins,
+  TrendingUp // 💡 Aseguramos de usar TrendingUp para inversiones
 } from 'lucide-react';
 
 export function cn(...inputs: ClassValue[]) {
@@ -30,55 +31,30 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const getAccountComponent = (account: Account) => {
-  // Pasamos a minúsculas para una comparación insensible a mayúsculas
   const name = account.name.toLowerCase();
 
-  /**
-   * Priorizamos por coincidencias de palabras clave.
-   * Esto cubrirá casos como "Visa Popular (DOP)", "Ahorros BHD", etc.
-   */
+  if (name.includes('popular')) return <PopularCard account={account} />;
+  if (name.includes('bhd')) return <BancoBHDCard account={account} />;
+  if (name.includes('reservas') || name.includes('banreservas')) return <BanreservasWorldElite account={account} />;
+  if (name.includes('apap')) return <ApapCard account={account} />;
+  if (name.includes('scotiabank')) return <ScotiaCard account={account} />;
+  if (name.includes('lafise')) return <LafiseCard account={account} />;
 
-  if (name.includes('popular')) {
-    return <PopularCard account={account} />;
-  }
-
-  if (name.includes('bhd')) {
-    return <BancoBHDCard account={account} />;
-  }
-
-  if (name.includes('reservas') || name.includes('banreservas')) {
-    return <BanreservasWorldElite account={account} />;
-  }
-
-  if (name.includes('apap')) {
-    return <ApapCard account={account} />;
-  }
-
-  if (name.includes('scotiabank')) {
-    return <ScotiaCard account={account} />;
-  }
-
-  if (name.includes('lafise')) {
-    return <LafiseCard account={account} />;
-  }
-  // Si tienes tarjetas de Scotiabank o Lafise pero aún no el diseño premium,
-  // la tarjeta genérica AccountCard hará el trabajo sucio.
   return <AccountCard account={account} />;
 };
 
-  // 💡 1. Estilos Base (Ajustados al diseño limpio de la imagen)
 export const getTransactionStyles = (type: string) => {
     switch (type.toLowerCase()) {
       case 'income':
         return {
-          amountColor: 'text-emerald-500', // Verde vibrante
+          amountColor: 'text-emerald-500', 
           amountPrefix: '+',
           iconColor: 'text-emerald-600',
           iconBg: 'bg-emerald-50'
         };
       case 'expense':
         return {
-          amountColor: 'text-slate-800', // Negro/Gris muy oscuro
+          amountColor: 'text-slate-800', 
           amountPrefix: '-',
           iconColor: 'text-slate-500',
           iconBg: 'bg-slate-100/80'
@@ -94,7 +70,6 @@ export const getTransactionStyles = (type: string) => {
     }
   };
 
-  // 💡 2. Traductor EXHAUSTIVO de MDI a Lucide
 export const getCategoryIcon = (iconName: string | undefined | null) => {
     if (!iconName) return <Tag size={18} strokeWidth={2.5} />;
     
@@ -161,10 +136,49 @@ export const getCategoryIcon = (iconName: string | undefined | null) => {
     return <Activity size={18} strokeWidth={2.5} />;
   };
 
+// ============================================================================
+// 💡 NUEVO: Función utilitaria unificada para obtener íconos de nodos/cuentas
+// ============================================================================
+export const getNodeIcon = (type: string | undefined | null, size: number = 16) => {
+  if (!type) return <Landmark size={size} strokeWidth={2.5} />;
+  
+  const normalizedType = type.toLowerCase();
+  
+  if (normalizedType.includes('credit') || normalizedType.includes('crédito')) {
+    return <CreditCard size={size} strokeWidth={2.5} />;
+  }
+  if (normalizedType.includes('saving') || normalizedType.includes('ahorro')) {
+    return <Wallet size={size} strokeWidth={2.5} />;
+  }
+  if (normalizedType.includes('investment') || normalizedType.includes('inversion')) {
+    return <TrendingUp size={size} strokeWidth={2.5} />; // Cambiado a TrendingUp
+  }
+  if (normalizedType.includes('cash') || normalizedType.includes('efectivo')) {
+    return <Coins size={size} strokeWidth={2.5} />;
+  }
+  if (normalizedType.includes('checking') || normalizedType.includes('corriente')) {
+    return <Receipt size={size} strokeWidth={2.5} />;
+  }
+  
+  return <Landmark size={size} strokeWidth={2.5} />;
+};
+
 export const ACCOUNT_TYPES: { id: AccountType; label: string; icon: React.ElementType }[] = [
   { id: 'savings', label: 'Ahorros', icon: Wallet },
   { id: 'checking', label: 'Corriente', icon: Receipt },
   { id: 'credit_card', label: 'Crédito', icon: CreditCard },
   { id: 'cash', label: 'Efectivo', icon: Coins },
-  { id: 'investment', label: 'Inversión', icon: Activity },
+  { id: 'investment', label: 'Inversión', icon: TrendingUp }, 
 ];
+
+export const breakdownTax = (finalPrice: number) => {
+  const TAX_RATE = 0.18;
+  const basePrice = finalPrice / (1 + TAX_RATE);
+  const taxAmount = finalPrice - basePrice;
+
+  return {
+    unit_price: Number(basePrice.toFixed(2)),
+    tax_amount: Number(taxAmount.toFixed(2)),
+    total_price: finalPrice
+  };
+};

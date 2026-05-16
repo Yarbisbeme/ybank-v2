@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateSubTransaction } from '@/lib/actions/transactions'; // Asegúrate de tener esta acción
+import { useUpdateSubTransaction } from '@/hooks/useCatalogs'; 
 import { toast } from 'sonner';
 import { Check, X, RefreshCw } from 'lucide-react';
 import SearchableDropdown from '../ui/SearchableDropdown';
@@ -23,35 +23,31 @@ export default function SubTransactionEditForm({
   const [name, setName] = useState(item.name || '');
   const [price, setPrice] = useState(item.unit_price?.toString() || '');
   const [categoryId, setCategoryId] = useState(item.category_id || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { mutate: updateItem, isPending: isSubmitting } = useUpdateSubTransaction();
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!name || !price || !categoryId) {
       toast.error('Por favor completa todos los campos del ítem.');
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const result = await updateSubTransaction(item.id, {
-        name,
-        unit_price: parseFloat(price),
-        quantity: 1, // Por defecto 1 según nuestra lógica
-        category_id: categoryId
-      });
-
-      if (result.success) {
-        toast.success('Ítem actualizado');
-        onSave(); // 💡 Llamamos a onSave para cerrar el formulario
-      } else {
-        toast.error(result.error || 'Error al actualizar el ítem');
-        setIsSubmitting(false); // Solo liberamos si hay error
+    updateItem(
+      {
+        itemId: item.id,
+        input: {
+          name,
+          unit_price: parseFloat(price),
+          quantity: 1, 
+          category_id: categoryId
+        }
+      },
+      {
+        onSuccess: () => {
+          onSave(); 
+        }
       }
-    } catch (error) {
-      toast.error('Error de conexión');
-      setIsSubmitting(false);
-    }
+    );
   };
 
   return (

@@ -8,28 +8,26 @@ interface UniversalCardProps {
   institution: any;
 }
 
-// 💡 FUNCIÓN NUEVA: Calcula si el color de la tarjeta es oscuro o claro
+// Calcula si el color de la tarjeta es oscuro o claro
 const isColorDark = (color: string) => {
-  if (!color) return true; // Asumimos oscuro por defecto
+  if (!color) return true; 
   
   const hex = color.replace('#', '');
-  if (hex.length !== 6) return true; // Fallback si no es HEX válido
+  if (hex.length !== 6) return true; 
 
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
 
-  // Fórmula YIQ para calcular el brillo (Luminance)
   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-  
-  return yiq < 128; // Si es menor a 128, es un color oscuro
+  return yiq < 128; 
 };
 
 const BankLogo = ({ 
   logoUrl, 
   bankName, 
   isDarkText,
-  cardColor // 💡 RECIBIMOS EL COLOR DE LA TARJETA
+  cardColor 
 }: { 
   logoUrl: string, 
   bankName: string, 
@@ -42,18 +40,18 @@ const BankLogo = ({
     const initial = bankName ? bankName.charAt(0).toUpperCase() : 'B';
 
     return (
-      <div className="flex items-center gap-[clamp(8px,2cqw,12px)] lg:gap-3 max-w-full">
+      <div className="flex items-center gap-2 max-w-full">
         <div 
-          className={`flex-shrink-0 flex items-center justify-center w-[clamp(32px,8cqw,36px)] h-[clamp(32px,8cqw,36px)] lg:w-10 lg:h-10 rounded-[clamp(8px,2cqw,12px)] lg:rounded-xl font-bold text-[clamp(14px,4cqw,16px)] lg:text-base backdrop-blur-sm border shadow-sm ${
+          className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-[28px] font-mono font-bold text-xs border ${
             isDarkText 
-              ? 'bg-slate-900/5 border-slate-900/10 text-slate-800' 
-              : 'bg-white/10 border-white/20 text-white shadow-white/5'
+              ? 'bg-black/5 border-black/10 text-slate-800' 
+              : 'bg-white/10 border-white/20 text-white'
           }`}
         >
           {initial}
         </div>
         <span 
-          className={`text-[clamp(11px,2.5cqw,12px)] lg:text-xs font-bold uppercase tracking-[0.25em] leading-tight line-clamp-2 ${
+          className={`text-[9px] font-bold uppercase tracking-[0.2em] leading-tight line-clamp-2 ${
             isDarkText ? 'text-slate-800' : 'text-white/90'
           }`}
         >
@@ -66,17 +64,12 @@ const BankLogo = ({
   const lowerName = bankName?.toLowerCase() || '';
 
   const getLogoScale = () => {
-    if (lowerName.includes('banreservas')) return 'scale-[1.8] @[300px]:scale-[2.2] lg:scale-[1.7] -ml-[clamp(16px,4cqw,24px)] lg:-ml-5';
-    if (lowerName.includes('scotiabank')) return 'scale-[1.8] @[300px]:scale-[1.6] lg:scale-[1.3]';
-    if (lowerName.includes('efectivo') || lowerName.includes('cartera')) return 'scale-[1.7] @[300px]:scale-[1.6] lg:scale-[1.5] -ml-1';
+    if (lowerName.includes('banreservas')) return 'scale-[2] -ml-4';
+    if (lowerName.includes('efectivo') || lowerName.includes('cartera')) return 'scale-[1.8] -ml-1';
     return 'scale-100'; 
   };
 
   const needsMonochromeFilter = lowerName.includes('efectivo') || lowerName.includes('cartera');
-
-  // 💡 LÓGICA INTELIGENTE:
-  // Si la tarjeta es Oscura -> Logo Blanco
-  // Si la tarjeta es Clara -> Logo Negro
   const isDarkCard = isColorDark(cardColor);
   const themeFilter = needsMonochromeFilter 
     ? (isDarkCard ? 'brightness-0 invert opacity-100' : 'brightness-0 opacity-80')
@@ -93,130 +86,144 @@ const BankLogo = ({
 };
 
 const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) => {
-  const finalColor = account?.color || institution?.brand_color_primary || '#1e293b';
+  const finalColor = account?.color || institution?.brand_color_primary || '#020617'; // slate-950 default
   const finalPattern = account?.custom_pattern || institution?.card_pattern || 'solid';
   const finalTextTheme = account?.custom_text_theme || institution?.text_theme || 'light';
 
   const isDarkText = finalTextTheme === 'dark';
   const textColor = isDarkText ? 'text-slate-900' : 'text-white';
-  const secondaryOpacity = isDarkText ? 'opacity-50' : 'opacity-80';
+  const secondaryOpacity = isDarkText ? 'opacity-60' : 'opacity-70';
 
   const getAccountInfo = () => {
     const type = (account?.type || '').toLowerCase();
     if (type.includes('credit') || type.includes('crédito') || type.includes('credito')) 
-      return { icon: CreditCard, label: 'Tarjeta de Crédito' };
+      return { icon: CreditCard, label: 'Crédito' };
     if (type.includes('saving') || type.includes('ahorro')) 
-      return { icon: Wallet, label: 'Cuenta de Ahorros' };
-    if (type.includes('investment') || type.includes('inversion') || type.includes('inversión')) 
+      return { icon: Wallet, label: 'Ahorro' };
+    if (type.includes('investment') || type.includes('inversion')) 
       return { icon: TrendingUp, label: 'Inversión' };
     if (type.includes('cash') || type.includes('efectivo')) 
       return { icon: Coins, label: 'Efectivo' };
-    return { icon: Receipt, label: 'Cuenta Corriente' };
+    return { icon: Receipt, label: 'Corriente' };
   };
 
   const { icon: TypeIcon, label: typeLabel } = getAccountInfo();
 
   return (
     <div 
-      className={`@container relative w-full h-full rounded-[clamp(20px,5cqw,28px)] lg:rounded-[28px] overflow-hidden shadow-xl transition-all duration-500 group ${textColor}`}
+      // 💡 YBANK Style: rounded-[16px] (Proporción tarjeta física real), borde sutil
+      className={`relative w-full h-full rounded-[10px] overflow-hidden transition-all duration-500 group border ${isDarkText ? 'border-black/5' : 'border-white/10'} ${textColor}`}
       style={{ backgroundColor: finalColor }}
     >
-      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden">
+      {/* 💡 YBANK Style: Redujimos la opacidad general de los patrones al 10% (Marca de agua) */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none overflow-hidden">
+        
+        {/* --- 🌊 WAVES: Líneas más finas --- */}
         {finalPattern === 'waves' && (
           <>
-            <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] rounded-full border border-white/10" />
-            <div className="absolute top-[10%] left-[20%] w-[100%] h-[100%] rounded-full bg-gradient-to-br from-white/20 to-transparent opacity-30" />
+            <div className="absolute -bottom-[40%] -right-[10%] w-[140%] h-[140%] rounded-full border-[8px] border-white/30" />
+            <div className="absolute -bottom-[20%] -right-[0%] w-[100%] h-[100%] rounded-full border-[4px] border-white/40" />
           </>
         )}
         
+        {/* --- 🧊 GEOMETRIC: Bordes más afilados --- */}
         {finalPattern === 'geometric' && (
           <>
-            <div className="absolute top-[10%] left-[5%] w-[clamp(60px,20cqw,96px)] lg:w-24 lg:h-24 h-[clamp(60px,20cqw,96px)] bg-white/10 rounded-xl rotate-[15deg] blur-[1px]" />
-            <div className="absolute bottom-[15%] right-[15%] w-[clamp(80px,25cqw,128px)] lg:w-32 lg:h-32 h-[clamp(80px,25cqw,128px)] border border-white/20 rounded-2xl rotate-[35deg]" />
-            <div className="absolute top-[40%] right-[10%] w-[clamp(40px,12cqw,64px)] lg:w-16 lg:h-16 h-[clamp(40px,12cqw,64px)] border border-white/10 rounded-lg -rotate-12" />
+            <div className="absolute top-[10%] left-[5%] w-24 h-24 bg-white/20 rounded-lg rotate-[15deg] backdrop-blur-sm border border-white/30" />
+            <div className="absolute bottom-[10%] right-[10%] w-32 h-32 border-[2px] border-white/30 rounded-2xl rotate-[35deg]" />
+            <div className="absolute top-[40%] right-[15%] w-16 h-16 border border-white/20 rounded-lg -rotate-12" />
           </>
         )}
 
+        {/* --- 🌌 MESH --- */}
         {finalPattern === 'mesh' && (
           <>
-            <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-white/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[80%] h-[80%] bg-black/10 rounded-full blur-3xl" />
-            <div className="absolute top-[20%] right-[20%] w-[40%] h-[40%] bg-white/10 rounded-full blur-2xl" />
+            <div className="absolute top-[-30%] left-[-10%] w-[80%] h-[80%] bg-white/40 rounded-full blur-[60px]" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[80%] bg-white/30 rounded-full blur-[50px]" />
           </>
         )}
 
+        {/* --- 🏎️ LINES: Estilo código de barras / velocidad --- */}
         {finalPattern === 'lines' && (
-          <div className="absolute inset-0 flex gap-[clamp(10px,3cqw,24px)] lg:gap-6 -skew-x-12 opacity-30 scale-150 -translate-x-10">
-            <div className="w-[clamp(40px,10cqw,64px)] lg:w-16 h-full bg-white/10" />
-            <div className="w-[clamp(20px,5cqw,32px)] lg:w-8 h-full bg-white/5" />
-            <div className="w-[clamp(80px,20cqw,128px)] lg:w-32 h-full bg-white/10" />
-            <div className="w-[clamp(10px,2cqw,16px)] lg:w-4 h-full bg-white/20" />
-            <div className="w-[clamp(30px,8cqw,48px)] lg:w-12 h-full bg-white/5" />
+          <div className="absolute inset-0 flex gap-8 -skew-x-[20deg] scale-150 -translate-x-12 opacity-80">
+            <div className="w-16 h-full bg-gradient-to-b from-white/30 to-transparent" />
+            <div className="w-8 h-full bg-gradient-to-b from-white/15 to-transparent" />
+            <div className="w-32 h-full bg-gradient-to-b from-white/40 to-white/5" />
+            <div className="w-4 h-full bg-gradient-to-b from-white/20 to-transparent" />
           </div>
         )}
 
+        {/* --- 🔘 DOTS: Grid técnico --- */}
         {finalPattern === 'dots' && (
           <div 
-            className="absolute inset-0 opacity-50"
+            className="absolute inset-0 opacity-100"
             style={{
               backgroundImage: isDarkText 
-                ? 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1px, transparent 0)' 
-                : 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
+                ? 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.4) 1px, transparent 0)' 
+                : 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.5) 1px, transparent 0)',
               backgroundSize: '16px 16px'
             }}
           />
         )}
         
-        <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
+        {/* Viñeta sutil */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/20" />
       </div>
 
-      <div className="relative z-10 h-full p-[clamp(20px,5cqw,28px)] lg:p-7 flex flex-col justify-between">
+      <div className="relative z-10 h-full p-5 lg:p-6 flex flex-col justify-between">
         
+        {/* HEADER */}
         <div className="flex justify-between items-start relative z-50">
-          <div className="w-[clamp(80px,25cqw,128px)] h-[clamp(32px,8cqw,48px)] lg:w-32 lg:h-12 flex items-center justify-start">
+          <div className="h-8 lg:h-10 flex items-center justify-start">
             <BankLogo 
               logoUrl={institution?.logo_url} 
-              bankName={institution?.name || 'Bank'} 
+              bankName={institution?.name || 'Nodo Institucional'} 
               isDarkText={isDarkText}
-              cardColor={finalColor} // 💡 LE PASAMOS EL COLOR A LA FUNCIÓN
+              cardColor={finalColor} 
             />
           </div>
 
           <div className="relative group/tooltip">
-            <div className="p-[clamp(8px,2cqw,10px)] lg:p-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 cursor-help hover:bg-white/20 transition-colors">
-              <TypeIcon size={20} className={`${secondaryOpacity} w-[clamp(16px,4cqw,18px)] h-[clamp(16px,4cqw,18px)] lg:w-[22px] lg:h-[22px]`} strokeWidth={2.5} />
+            {/* 💡 YBANK Style: Icono en caja rígida (rounded-[6px]) */}
+            <div className={`p-2 rounded-[6px] border transition-colors ${isDarkText ? 'bg-black/10 border-black/10' : 'bg-white/20 border-white/10'}`}>
+              <TypeIcon size={16} className={secondaryOpacity} strokeWidth={2.5} />
             </div>
-            <div className="absolute top-full mt-2 right-0 bg-slate-900/95 backdrop-blur-xl text-white text-[10px] font-bold px-3 py-1.5 rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all whitespace-nowrap shadow-2xl">
+            <div className="absolute top-full mt-2 right-0 bg-slate-900 text-white text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded-[4px] opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all whitespace-nowrap shadow-lg">
               {typeLabel}
             </div>
           </div>
         </div>
 
-        <div className="mt-auto mb-[clamp(16px,4cqw,24px)] lg:mb-6">
-          <p className={`text-[clamp(10px,2cqw,12px)] lg:text-[11px] font-bold uppercase tracking-[0.2em] mb-1.5 lg:mb-1.5 ${secondaryOpacity}`}>
-            {account?.name || 'Balance Total'}
+        {/* BALANCE */}
+        <div className="mt-auto mb-4">
+          <p className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-1 ${secondaryOpacity}`}>
+            {account?.name || 'Balance Operativo'}
           </p>
-          <div className="flex items-baseline gap-[clamp(6px,1cqw,8px)] lg:gap-2">
-            <span className="text-[clamp(14px,3cqw,18px)] lg:text-base font-medium opacity-80">{account?.currency}</span>
-            <p className="text-[clamp(28px,6cqw,36px)] lg:text-[40px] lg:leading-none font-bold tracking-tight truncate drop-shadow-sm">
+          <div className="flex items-baseline gap-1.5">
+            {/* 💡 YBANK Style: Tipografía Mono para divisas y números */}
+            <span className="text-xs font-mono font-medium opacity-80">{account?.currency}</span>
+            <p className="text-3xl lg:text-4xl font-mono font-bold tracking-tighter truncate drop-shadow-sm">
               {account?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           </div>
         </div>
 
+        {/* FOOTER */}
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
-            <p className={`text-[clamp(12px,2.5cqw,14px)] lg:text-[13px] font-mono tracking-[0.25em] ${secondaryOpacity}`}>
+            <p className={`text-[11px] font-mono tracking-[0.25em] font-medium ${secondaryOpacity}`}>
               •••• {account?.last_4_digits || '0000'}
             </p>
           </div>
           <div className="flex flex-col items-end">
-             <span className="text-[clamp(24px,5cqw,30px)] lg:text-3xl font-black italic tracking-tighter leading-none opacity-90">VISA</span>
+             {/* 💡 Texto más sobrio para la red (en vez de un VISA gigante en italic) */}
+             <span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+               {account?.type === 'credit_card' ? 'CREDIT' : 'DEBIT'}
+             </span>
           </div>
         </div>
       </div>
 
-      <div className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
     </div>
   );
 };

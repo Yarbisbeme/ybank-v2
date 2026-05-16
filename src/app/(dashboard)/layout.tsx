@@ -1,76 +1,118 @@
-
-import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import Navbar from "@/components/layout/Navbar/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import { getAccounts } from '@/lib/actions/accounts';
 import { getTransactions } from '@/lib/actions/transactions';
 import { getTags } from '@/lib/actions/tags';
-import { redirect } from 'next/navigation';
+import { getCategories } from '@/lib/actions/categories';
+import { getInstitutions } from '@/lib/actions/institutions';
+
+import DashboardProviders from '@/components/providers/DashboardProviders';
+import PWAFooter from '@/components/layout/PWAFooter';
+import { createSupabaseClient } from '@/lib/supabase/createServerClient'
+
+interface DashboardInitialData {
+  accounts: any[];
+  tags: any[];
+  categories: any[];
+  institutions: any[];
+  transactions: any[];
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  
   const supabase = await createSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // 1. Verificación de sesión
-  if (!user) {
-    redirect('/sign-in');
+  
+  // 1. Auth Blindado
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (e) {
+    // Si falla el fetch a Supabase, confiamos en el Middleware. 
+    // No redirigimos aquí para evitar el bucle offline.
+    console.log("📡 Layout: Fallo de red en Auth, permitiendo renderizado de shell.");
   }
 
-  // 🛡️ 2. EL PORTERO GLOBAL: Verificamos el perfil
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('onboarding_completed')
-    .eq('id', user.id)
-    .single();
-
-  // 🛡️ Ahora la condición es infalible: si no ha completado el proceso, fuera.
-  if (!profile || profile.onboarding_completed === false) {
-    redirect('/onboarding');
+  // 🚨 Solo redirigir si estamos SEGUROS de que no hay usuario Y hay red
+  // En localhost/offline, es mejor dejar que el cliente maneje la sesión.
+  if (!user && process.env.NODE_ENV === 'production') {
+    // Opcional: podrías chequear la cookie aquí también si quieres ser extra estricto
   }
 
-  // 3. Carga de datos pesados (SOLO si pasó la seguridad)
-  const [accounts, transactionsData, tags] = await Promise.all([
-    getAccounts(),
-    getTransactions({}),
-    getTags()
-  ]);
-
-  const navbarUser = {
-    name: user.user_metadata?.full_name || user.email || 'Usuario',
-    email: user.email!,
-    avatarUrl: user.user_metadata?.avatar_url
+  // 2. Datos Iniciales con Fallback
+  let profile = { onboarding_completed: true, primary_account_id: null };
+  let initialData: DashboardInitialData = { 
+    accounts: [], 
+    tags: [], 
+    categories: [], 
+    institutions: [], 
+    transactions: [] 
   };
+
+  try {
+    // Intentamos traer el perfil
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('onboarding_completed, primary_account_id')
+      .single();
+    
+    if (profileData) profile = profileData as any;
+
+    // Intentamos la hidratación masiva
+    const [accounts, txData, tags, categoriesTree, institutions] = await Promise.all([
+      getAccounts(),
+      getTransactions({}),
+      getTags(),
+      getCategories(),
+      getInstitutions()
+    ]);
+
+    initialData = {
+      accounts,
+      tags,
+      categories: categoriesTree,
+      institutions,
+      transactions: txData.transactions
+    };
+  } catch (error) {
+    console.warn("📡 Layout: Modo Offline. Se enviará un initialData vacío.");
+  }
+
+  // 3. Preparar UI básica (Navbar)
+  const navbarUser = {
+    name: user?.user_metadata?.full_name || user?.email || 'Usuario',
+    email: user?.email || '',
+    avatarUrl: user?.user_metadata?.avatar_url
+  };
+
   return (
-    /* 💡 FIX: h-screen + overflow-hidden evita que el BODY haga scroll */
-    <div className="flex h-screen w-full bg-[#F8F9FB] overflow-hidden">
-      
-      {/* 💡 SIDEBAR: Fijo para escritorio */}
-      <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-slate-100 bg-white">
-        <Sidebar />
-      </aside>
-
-      {/* 💡 CONTENEDOR DERECHO: Ocupa el resto del espacio */}
-      <div className="flex flex-col flex-1 min-w-0 h-full">
+    <DashboardProviders 
+      initialData={initialData}
+      primaryAccountId={profile.primary_account_id}
+      institutionId={null} // Se puede calcular en el cliente
+    >
+      <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
         
-        {/* El Navbar se queda arriba. Al estar fuera del scroll del main, 
-            el menú móvil que vive dentro del Navbar se posicionará relativo 
-            a la pantalla, no al contenido largo. */}
-        <Navbar 
-          user={navbarUser} 
-          accounts={accounts} 
-          transactions={transactionsData.transactions} 
-          tags={tags} 
-        />
-        
-        {/* 💡 MAIN: Este es el ÚNICO lugar donde se permite el scroll */}
-        <main className="flex-1 overflow-y-auto p-4 md:px-8 lg:px-12 scrollbar-hide">
-          <div className="max-w-[1600px] mx-auto w-full pb-20">
-            {children}
-          </div>
-        </main>
+        <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-border bg-card">
+          <Sidebar />
+        </aside>
 
+        <div className="flex flex-col flex-1 min-w-0 h-full">
+          <Navbar 
+            user={navbarUser} 
+            accounts={initialData.accounts} 
+            transactions={initialData.transactions} 
+            tags={initialData.tags} 
+          />
+          
+          {/* 💡 AÑADIMOS overflow-x-hidden AQUÍ */}
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
+            <div className="max-w-[1400px] mx-auto w-full">
+              {children}
+            </div>
+            <PWAFooter />
+          </main>
+        </div>
       </div>
-    </div>
+    </DashboardProviders>
   );
 }

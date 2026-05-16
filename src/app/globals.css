@@ -10,6 +10,7 @@
   /* Tipografías */
   --font-inter: var(--font-inter);
   --font-ibm-plex-serif: var(--font-ibm-plex-serif);
+  --font-mono: var(--font-jetbrains-mono);
 
   /* Colores base semánticos */
   --color-primary-500: #2563EB;

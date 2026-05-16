@@ -1,9 +1,12 @@
 // components/accounts/TransactionsList.tsx
 'use client'
 
+import { getCategoryIcon } from '@/lib/utils';
 import { Transaction } from '@/types';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ShoppingBag, Coffee, Utensils, Zap, Repeat, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { es } from 'date-fns/locale'; // 💡 Importamos 'es' para fechas institucionales en español
+import Link from 'next/link';
+// 💡 Importamos el mapeador maestro de íconos
 
 export default function TransactionsList({ 
   transactions, 
@@ -13,26 +16,45 @@ export default function TransactionsList({
   emptyMessage: string 
 }) {
   if (transactions.length === 0) {
-    return <div className="p-10 text-center text-slate-400 font-medium">{emptyMessage}</div>;
+    return (
+      <div className="p-10 text-center flex flex-col items-center justify-center border border-dashed border-border rounded-[10px] bg-surface-2/30 mt-4">
+        <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+          {emptyMessage}
+        </p>
+      </div>
+    );
   }
 
-  // Agrupamos transacciones por fecha
+  // Agrupamos transacciones por fecha con formato CFO
   const groups = transactions.reduce((acc, tx) => {
     const date = new Date(tx.date);
-    const label = isToday(date) ? 'Today' : isYesterday(date) ? 'Yesterday' : format(date, 'MMMM dd, yyyy');
+    let label = '';
+    
+    if (isToday(date)) {
+      label = `Hoy • ${format(date, 'dd MMM.', { locale: es })}`;
+    } else if (isYesterday(date)) {
+      label = `Ayer • ${format(date, 'dd MMM.', { locale: es })}`;
+    } else {
+      label = format(date, 'dd MMM. yyyy', { locale: es });
+    }
+    
     if (!acc[label]) acc[label] = [];
     acc[label].push(tx);
     return acc;
   }, {} as Record<string, Transaction[]>);
 
   return (
-    <div className="divide-y divide-slate-50">
+    <div className="space-y-6">
       {Object.entries(groups).map(([dateLabel, txs]) => (
-        <div key={dateLabel} className="p-4">
-          <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4 ml-2">
-            {dateLabel}
-          </h3>
-          <div className="space-y-4">
+        <div key={dateLabel} className="relative">
+          {/* 💡 YBANK Style: Etiqueta de agrupación técnica */}
+          <div className="sticky top-16 z-20 bg-background/95 backdrop-blur py-2 mb-2 border-b border-border">
+            <h3 className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
+              {dateLabel}
+            </h3>
+          </div>
+          
+          <div className="space-y-1">
             {txs.map((tx) => (
               <TransactionItem key={tx.id} tx={tx} />
             ))}
@@ -44,36 +66,46 @@ export default function TransactionsList({
 }
 
 function TransactionItem({ tx }: { tx: Transaction }) {
-  const isIncome = tx.amount > 0;
+  // 💡 Determinamos el tipo de forma segura
+  const txType = tx.type || (tx.amount < 0 ? 'expense' : 'income');
+  const isIncome = txType === 'income';
   
   return (
-    <div className="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer group">
-      <div className="flex items-center gap-4">
-        {/* Icono de Categoría Dinámico */}
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isIncome ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-900'}`}>
-          {isIncome ? <ArrowDownLeft size={20} /> : <ShoppingBag size={20} />}
+    // 💡 YBANK Style: Ahora es un Link clickeable que abre el modal de edición
+    <Link 
+      href={`?editTx=${tx.id}`}
+      scroll={false}
+      className="flex items-center justify-between p-3 rounded-[8px] hover:bg-surface-2 transition-colors cursor-pointer group border border-transparent hover:border-border"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        
+        {/* 💡 Ícono Dinámico conectado a la Base de Datos */}
+        <div className={`p-2 rounded-[6px] border transition-colors bg-surface-2 shrink-0
+            ${isIncome 
+              ? 'border-border text-emerald-500 group-hover:bg-emerald-500/10' 
+              : 'border-border text-rose-500 group-hover:bg-rose-500/10'}`}
+        >
+          {getCategoryIcon(tx.category?.icon)}
         </div>
         
-        <div>
-          <p className="text-sm font-bold text-slate-900 truncate max-w-[150px] md:max-w-xs">
-            {tx.description}
+        <div className="flex-1 min-w-0 pr-4">
+          <p className="text-xs font-bold text-foreground truncate">
+            {tx.description || 'Operación Genérica'}
           </p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-            {tx.category?.name || 'General'} • {format(new Date(tx.date), 'h:mm b')}
+          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 truncate">
+            {tx.category?.name || 'SIN CLASIFICAR'} • {format(new Date(tx.date), 'HH:mm')}
           </p>
         </div>
       </div>
 
-      <div className="text-right">
-        <p className={`text-sm font-black tracking-tight ${isIncome ? 'text-emerald-600' : 'text-slate-900'}`}>
+      <div className="text-right flex flex-col items-end shrink-0">
+        <p className={`text-sm font-mono font-bold tracking-tight ${isIncome ? 'text-emerald-500' : 'text-foreground'}`}>
           {isIncome ? '+' : '-'}${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </p>
-        <span className="text-[8px] font-black uppercase text-slate-300 tracking-widest">
-          {tx.status || 'Cleared'}
+        <span className="text-[8px] font-bold uppercase text-muted-foreground tracking-[0.2em] mt-0.5">
+          {tx.status === 'pending' ? 'PENDIENTE' : 'LIQUIDADO'}
         </span>
       </div>
-
-      
-    </div>
+    </Link>
   );
 }

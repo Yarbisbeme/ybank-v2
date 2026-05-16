@@ -1,32 +1,9 @@
 'use server'
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-
-// Puedes usar tu helper getSupabaseClient si lo tienes en un archivo compartido, 
-// o recrearlo aquí:
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch { /* Silent error */ }
-        }
-      }
-    }
-  );
-}
+import { createSupabaseClient } from '../supabase/createServerClient';
 
 export async function updatePreferences(formData: { password?: string; currency?: string }) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, error: "No autorizado" };

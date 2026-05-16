@@ -1,9 +1,8 @@
 'use server'
 
+import { DGII_CATEGORY_ID, DGII_TAX_RATE } from '@/constants/constants'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { revalidatePath } from 'next/cache'
-import { Transaction, GetTransactionsParams, CreateTransactionInput } from '@/types/index'
-import { getSmartRate } from '@/services/currency'
+import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
 
 // ==========================================
@@ -35,8 +34,22 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         .order('created_at', { ascending: false })
         .range(from, to)
     
-    if (accountId) query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
-    if (filters?.type) query = query.eq('type', filters.type)
+    if (accountId) {
+        if (filters?.type === 'income') {
+            // Es un INGRESO si: (Es tipo income en esta cuenta) O (Es tipo transfer y el destino es esta cuenta)
+            query = query.or(`and(type.eq.income,account_id.eq.${accountId}),and(type.eq.transfer,transfer_to_account_id.eq.${accountId})`)
+        } else if (filters?.type === 'expense') {
+            // Es un GASTO si: (Es tipo expense en esta cuenta) O (Es tipo transfer y el origen es esta cuenta)
+            query = query.or(`and(type.eq.expense,account_id.eq.${accountId}),and(type.eq.transfer,account_id.eq.${accountId})`)
+        } else {
+            // Si el filtro es 'transfer' o no hay filtro, traemos todo lo que toque esta cuenta
+            query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
+            if (filters?.type) query = query.eq('type', filters.type)
+        }
+    } else {
+        // MODO GLOBAL (Sin cuenta específica): El filtro aplica de forma estricta al tipo original
+        if (filters?.type) query = query.eq('type', filters.type)
+    }
     if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
     if (filters?.startDate) query = query.gte('date', filters.startDate)
     if (filters?.tagId) query = query.eq('transaction_tags.tag_id', filters.tagId)
@@ -47,12 +60,15 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
 
     const { data, error, count } = await query
 
-    if (error) {
-        console.error('Error al traer transacciones:', error)
-        return { transactions: [], total: 0 }
-    }
+  if (error) {
+      console.error('Error al traer transacciones:', error);
+      throw new Error(error.message); // 💡 THROW, no devuelvas { transactions: [], total: 0 }
+  }
 
-    return { transactions: data as unknown as Transaction[], total: count || 0 }
+  return JSON.parse(JSON.stringify({ 
+      transactions: data, 
+      total: count || 0 
+  }));
 }
 
 export async function getTransactionById(id: string) {
@@ -67,8 +83,8 @@ export async function getTransactionById(id: string) {
       .eq('id', id)
       .single();
 
-  if (error) throw error;
-  return data;
+  if (error) throw new Error(error.message);
+  return JSON.parse(JSON.stringify(data));
 }
 
 // ==========================================
@@ -84,7 +100,7 @@ export async function saveTransaction(payload: any) {
         category_id: payload.categoryId || null,
         transfer_to_account_id: payload.destinationAccountId || null,
         tags: payload.tagIds || [], 
-        items: payload.items || [], // 💡 1. Pasamos los ítems del desglose
+        items: payload.items || [], 
     };
 
     if (payload.id) {
@@ -106,9 +122,11 @@ export async function createTransaction(input: any) {
     const cleanInput = { ...input }
 
     const tagsIds = input.tags || []
-    const items = input.items || []
+    let items = input.items || [] 
     delete cleanInput.tags 
     delete cleanInput.items 
+
+    const originalTransferAmount = parseFloat(input.amount);
 
     if (input.type !== 'transfer') {
         delete cleanInput.transfer_to_account_id
@@ -116,9 +134,11 @@ export async function createTransaction(input: any) {
         delete cleanInput.exchange_rate
     } else {
         delete cleanInput.category_id 
+        cleanInput.amount = originalTransferAmount;
+        cleanInput.target_amount = originalTransferAmount;
+        items = []; 
     }
   
-  // LÓGICA DE DIVISAS (Mantenida intacta)
   if (input.type === 'transfer' && input.transfer_to_account_id) {
     const { data: accounts } = await supabase.from('accounts').select('id, currency, institution_id').in('id', [input.account_id, input.transfer_to_account_id])
     if (accounts && accounts.length === 2) {
@@ -129,7 +149,7 @@ export async function createTransaction(input: any) {
         const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation)
         if (rateInfo) {
           cleanInput.exchange_rate = rateInfo.rate; 
-          cleanInput.target_amount = Number((operation === 'buy' ? input.amount * rateInfo.rate : input.amount / rateInfo.rate).toFixed(2));
+          cleanInput.target_amount = Number((operation === 'buy' ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
         }
       }
     }
@@ -139,7 +159,8 @@ export async function createTransaction(input: any) {
   const { data: newTx, error } = await supabase
     .from('transactions')
     .insert({ user_id: user.id, ...cleanInput, status: 'posted' })
-    .select('id')
+    // 💡 MEJORA 2: Pedimos que nos devuelva el registro completo insertado
+    .select('*') 
     .single()
 
   if (error) return { success: false, error: error.message }
@@ -150,33 +171,27 @@ export async function createTransaction(input: any) {
     await supabase.from('transaction_tags').insert(tagInserts)
   }
 
-  // 3. 💡 VINCULAMOS LOS ÍTEMS (CON ERROR HANDLING Y ROLLBACK)
+  // 3. VINCULAMOS LOS ÍTEMS
   if (items.length > 0 && newTx) {
     const itemInserts = items.map((item: any) => ({
       transaction_id: newTx.id,
       name: item.name,
       quantity: 1, 
       unit_price: parseFloat(item.unit_price),
-      // 💡 ELIMINAMOS total_price para que PostgreSQL lo genere automáticamente
       category_id: item.category_id || null
     }))
     
-    // 💡 AHORA SÍ CAPTURAMOS EL ERROR
     const { error: itemsError } = await supabase.from('transaction_items').insert(itemInserts)
     
     if (itemsError) {
       console.error('Error insertando subtransacciones:', itemsError);
-      
-      // 🚨 ROLLBACK MANUAL: Si fallan los hijos, borramos al padre para no dejar data corrupta
       await supabase.from('transactions').delete().eq('id', newTx.id);
-      
       return { success: false, error: 'No se pudo guardar el desglose: ' + itemsError.message }
     }
   }
 
-  revalidatePath('/dashboard') 
-  revalidatePath('/accounts') 
-  return { success: true }
+  // 💡 Devolvemos la data real para que TanStack actualice su caché con el ID correcto
+  return { success: true, data: newTx }
 }
 
 // ==========================================
@@ -188,23 +203,57 @@ export async function updateTransaction(id: string, input: any) {
     const cleanInput = { ...input };
     
     const tagsIds = cleanInput.tags; 
-    const items = cleanInput.items;
+    let items = cleanInput.items; 
+    
     delete cleanInput.tags; 
     delete cleanInput.items; 
 
-    if (cleanInput.type !== 'transfer') {
-        delete cleanInput.transfer_to_account_id;
-        delete cleanInput.target_amount;
-        delete cleanInput.exchange_rate;
+    const originalTransferAmount = parseFloat(input.amount);
+
+    if (input.type !== 'transfer' || 'payment') {
+        delete cleanInput.transfer_to_account_id
+        delete cleanInput.target_amount
+        delete cleanInput.exchange_rate
     } else {
-        delete cleanInput.category_id;
+        delete cleanInput.category_id 
+        cleanInput.amount = originalTransferAmount;
+        cleanInput.target_amount = originalTransferAmount;
+        items = []; 
     }
 
-    // 1. Actualizamos el padre
-    const { error } = await supabase.from('transactions').update(cleanInput).eq('id', id);
+    if (cleanInput.type === 'transfer' && cleanInput.transfer_to_account_id) {
+        const { data: accounts } = await supabase
+            .from('accounts')
+            .select('id, currency, institution_id')
+            .in('id', [cleanInput.account_id, cleanInput.transfer_to_account_id]);
+            
+        if (accounts && accounts.length === 2) {
+            const sourceAcc = accounts.find(a => a.id === cleanInput.account_id);
+            const targetAcc = accounts.find(a => a.id === cleanInput.transfer_to_account_id);
+
+            if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
+                let operation: 'buy' | 'sell' = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? 'buy' : 'sell';
+                const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation);
+                
+                if (rateInfo) {
+                    cleanInput.exchange_rate = rateInfo.rate;
+                    cleanInput.target_amount = Number((operation === 'buy' ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
+                }
+            }
+        }
+    }
+
+    // 1. ACTUALIZAMOS LA TRANSACCIÓN PADRE
+    const { data: updatedTx, error } = await supabase
+      .from('transactions')
+      .update(cleanInput)
+      .eq('id', id)
+      .select('*') // 💡 Pedimos la data actualizada
+      .single();
+
     if (error) return { success: false, error: error.message };
 
-    // 2. ACTUALIZAMOS TAGS
+    // 2. ACTUALIZAMOS LOS TAGS
     if (tagsIds !== undefined) {
         await supabase.from('transaction_tags').delete().eq('transaction_id', id);
         if (tagsIds.length > 0) {
@@ -213,19 +262,16 @@ export async function updateTransaction(id: string, input: any) {
         }
     }
 
-    // 3. 💡 ACTUALIZAMOS ITEMS CON ERROR HANDLING
+    // 3. ACTUALIZAMOS EL DESGLOSE (ITEMS)
     if (items !== undefined) {
-        // A. Borramos los viejos
         await supabase.from('transaction_items').delete().eq('transaction_id', id);
         
-        // B. Insertamos los nuevos
         if (items.length > 0) {
             const itemInserts = items.map((item: any) => ({
                 transaction_id: id,
                 name: item.name,
                 quantity: 1,
                 unit_price: parseFloat(item.unit_price),
-                // 💡 ELIMINAMOS total_price aquí también
                 category_id: item.category_id || null
             }));
             
@@ -233,14 +279,12 @@ export async function updateTransaction(id: string, input: any) {
             
             if (itemsError) {
                 console.error('Error actualizando subtransacciones:', itemsError);
-                return { success: false, error: 'La transacción se actualizó, pero hubo un error con el desglose.' };
+                return { success: false, error: 'Transacción actualizada, pero falló el desglose de DGII.' };
             }
         }
     }
 
-    revalidatePath('/dashboard');
-    revalidatePath('/accounts'); 
-    return { success: true };
+    return { success: true, data: updatedTx }; // 💡 Devolvemos la data
 }
 
 // ==========================================
@@ -254,24 +298,18 @@ export async function updateSubTransaction(itemId: string, input: {
 }) {
   const supabase = await createSupabaseClient();
   
-  // Calculamos el total price para que la BD esté feliz
-  const total_price = input.quantity * input.unit_price;
-
   const { error } = await supabase
     .from('transaction_items')
     .update({
       name: input.name,
       unit_price: input.unit_price,
       quantity: input.quantity,
-      total_price: total_price,
       category_id: input.category_id
     })
     .eq('id', itemId);
 
   if (error) return { success: false, error: error.message };
 
-  // Revalidar para que se actualice la vista
-  revalidatePath('/accounts');
   return { success: true };
 }
 
@@ -288,7 +326,5 @@ export async function deleteTransaction(id: string) {
 
     if (error) return { success: false, error: error.message }
 
-    revalidatePath('/dashboard')
-    revalidatePath('/accounts')
     return { success: true }
 }

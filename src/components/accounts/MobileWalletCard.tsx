@@ -37,7 +37,7 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
   };
 
   return (
-    <div className="relative w-full h-[240px] ml-1 sm:scale-120 md:scale-100 sm:h-[255px] flex items-center justify-center overflow-hidden py-4">
+    <div className="relative w-full h-[240px] sm:h-[290px] flex items-center justify-center overflow-hidden py-4">
       <AnimatePresence initial={false}>
         {accounts.map((acc, index) => {
           let state = "hiddenRight"; 
@@ -73,7 +73,7 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
               className="absolute w-[88%] max-w-[400px] aspect-[1.586/1] cursor-grab active:cursor-grabbing"
               onClick={() => handleClick(index, acc.id)} // 💡 Usamos nuestra nueva función inteligente
             >
-              <div className="w-full h-full rounded-[28px] shadow-md overflow-hidden">
+              <div className="w-full h-full rounded-[10px] shadow-md overflow-hidden ml-1">
                 <UniversalCard 
                   account={acc} 
                   institution={acc.institution} 

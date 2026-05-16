@@ -1,82 +1,78 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // 💡 Importamos los hooks de navegación
-import { Account } from '@/types';
-import { AnimatedNumber } from '../dashboard/NetWorth/AnimatedNumber';
-import { Share2, Edit, Plus, Loader2 } from 'lucide-react'; // 💡 Importamos Loader2 para el spinner
+import { useMemo } from 'react';
+import { Share2, Edit, Plus, Loader2 } from 'lucide-react';
+import { useModalStore } from '@/store/useModalStore';
+import { useSearchParams } from 'next/navigation'; // 💡 Reemplazamos useFilterStore por useSearchParams
+import { useAccounts } from '@/hooks/useCatalogs'; 
+import { toast } from 'sonner';
 
-export default function AccountDetailsHeader({ account }: { account: Account }) {
-  const router = useRouter();
+export default function AccountDetailsHeader() {
+  const openModal = useModalStore((state) => state.openModal);
+  
+  // 💡 Obtenemos el ID directamente de la URL de forma síncrona
   const searchParams = useSearchParams();
+  const urlAccountId = searchParams.get('accountId'); 
   
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const { data: accounts = [], isLoading } = useAccounts();
 
-  useEffect(() => {
-    setLoadingAction(null);
-  }, [searchParams]);
+  // Determinamos qué cuenta mostrar de manera ultra-segura
+  const activeAccount = useMemo(() => {
+    if (accounts.length === 0) return null;
+    // Si hay un ID en la URL, lo usamos; si no, por defecto mostramos la primera cuenta de la caché
+    return accounts.find(a => a.id === urlAccountId) || accounts[0];
+  }, [accounts, urlAccountId]);
 
-  const handleAction = (type: string, url: string) => {
-    // Si ya hay una carga activa, no permitimos otra acción
-    if (loadingAction) return;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center gap-4 pt-2 opacity-50">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col items-center gap-2 animate-pulse">
+            <div className="w-14 h-14 rounded-[10px] border border-border bg-surface-2" />
+            <div className="h-2 w-8 bg-surface-2 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
-    setLoadingAction(type);
-    router.push(url, { scroll: false });
+  if (!activeAccount) return null;
 
-    // "Seguro de vida": si por algo la URL no cambia en 2 segundos, liberamos el botón
-    setTimeout(() => {
-      setLoadingAction(prev => prev === type ? null : prev);
-    }, 2000);
-  };
-  
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col items-center justify-center py-2 md:py-4 space-y-1 md:space-y-2">
-        <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em]">
-          Current Balance
-        </p>
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter">
-          <span className="text-blue-600 text-3xl mr-1">$</span>
-          <AnimatedNumber value={Number(account.current_balance)} />
-          <span className="text-sm text-slate-400 ml-2 uppercase">{account.currency}</span>
-        </h1>
-        <p className="text-slate-400 font-medium text-sm">
-          •••• •••• •••• {account.last_4_digits}
-        </p>
-      </div>
-
-      <div className="flex justify-center gap-4">
-        <ActionButton 
-          icon={<Plus size={20} />} 
-          label="Add" 
-          isLoading={loadingAction === 'add'}
-          disabled={!!loadingAction}
-          onClick={() => handleAction('add', `?accountId=${account.id}&newTx=true`)}
-        />
-        
-        <ActionButton 
-          icon={<Edit size={20} />} 
-          label="Edit" 
-          isLoading={loadingAction === 'edit'}
-          disabled={!!loadingAction}
-          onClick={() => handleAction('edit', `?accountId=${account.id}&editAccountId=${account.id}`)}
-        />
-        
-        <ActionButton 
-          icon={<Share2 size={20} />} 
-          label="Share" 
-          isLoading={loadingAction === 'share'}
-          disabled={!!loadingAction}
-          onClick={() => {
-            setLoadingAction('share');
-            // Simulación de lógica de compartir
-            setTimeout(() => setLoadingAction(null), 1000);
-          }}
-        />
-      </div>
+    <div className="flex justify-center gap-4 pt-2">
+      <ActionButton 
+        icon={<Plus size={20} />} 
+        label="Add" 
+        onClick={() => openModal('transaction', { accountId: activeAccount.id })}
+      />
+      
+      <ActionButton 
+        icon={<Edit size={20} />} 
+        label="Edit" 
+        onClick={() => openModal('account', { accountId: activeAccount.id })}
+      />
+      
+      <ActionButton 
+        icon={<Share2 size={20} />} 
+        label="Share" 
+        onClick={() => {
+          if (navigator.share) {
+            navigator.share({
+              title: `YBank - ${activeAccount.name}`,
+              text: `Revisando el balance de mi nodo financiero.`,
+              url: window.location.href,
+            }).catch(console.error);
+          } else {
+            navigator.clipboard.writeText(window.location.href);
+            toast.success("Enlace de telemetría copiado al portapapeles");
+          }
+        }}
+      />
     </div>
   );
 }
+
+// ... (ActionButton se queda exactamente igual)
 
 function ActionButton({ 
   icon, 
@@ -97,16 +93,16 @@ function ActionButton({
       disabled={disabled || isLoading}
       className="flex flex-col items-center gap-2 group cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 transition-all"
     >
-      <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition-all duration-300 shadow-sm
+      <div className={`w-14 h-14 rounded-[10px] border flex items-center justify-center transition-all duration-300 shadow-sm
         ${isLoading 
-          ? 'bg-blue-50 border-blue-200 text-blue-600' 
-          : 'bg-white border-slate-100 text-slate-900 md:group-hover:bg-blue-600 md:group-hover:text-white md:group-hover:border-blue-600'
+          ? 'bg-blue-50/50 border-blue-200 text-blue-600' 
+          : 'bg-card border-border text-foreground hover:border-primary hover:text-primary'
         }
       `}>
-        {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : icon}
+        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : icon}
       </div>
-      <span className={`text-[10px] font-black uppercase tracking-widest transition-colors
-        ${isLoading ? 'text-blue-600' : 'text-slate-400 md:group-hover:text-slate-900'}
+      <span className={`text-[9px] font-bold uppercase tracking-[0.2em] transition-colors
+        ${isLoading ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}
       `}>
         {isLoading ? '...' : label}
       </span>

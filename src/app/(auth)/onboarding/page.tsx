@@ -1,6 +1,7 @@
 // src/app/onboarding/page.tsx
 import OnboardingForm from "@/components/dashboard/OnboardingForm";
 import { Logo } from "@/components/ui/Logo";
+import { getInstitutions } from "@/lib/actions/institutions";
 import { createSupabaseClient } from "@/lib/supabase/createServerClient";
 import { redirect } from "next/navigation";
 
@@ -12,13 +13,8 @@ export default async function OnboardingPage() {
         redirect('/sign-in');
     }
 
-    // 🔍 ANALISIS DE QA: ¿Qué nos falta saber?
-    // 1. ¿Tiene nombre? (Si se registró por Email ya lo pedimos, si es Google viene en la metadata)
     const hasName = !!user?.user_metadata?.full_name;
-    
-    // 2. ¿Necesita configurar contraseña? 
-    // Solo si entró por Google y queremos que tenga una clave local, 
-    // O si quieres que todos pasen por este paso por seguridad.
+    const institutions = await getInstitutions();
     const needsPassword = !user?.app_metadata?.providers?.includes('email');
 
   return (
@@ -37,6 +33,7 @@ export default async function OnboardingPage() {
         <OnboardingForm 
             initialStep={!hasName ? 1 : needsPassword ? 2 : 3} 
             defaultName={user?.user_metadata?.full_name || ""}
+            institutions={institutions}
         />
       </div>
     </main>
