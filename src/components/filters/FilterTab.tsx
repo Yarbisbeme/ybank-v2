@@ -1,4 +1,3 @@
-// components/filters/FilterTab.tsx
 'use client'
 
 import { motion } from 'framer-motion';
@@ -15,7 +14,7 @@ export default function FilterTab({ active, onClick, label }: FilterTabProps) {
     <button
       onClick={onClick}
       className={cn(
-        "relative px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-[6px] transition-all z-10",
+        "relative flex flex-1 items-center justify-center h-full px-2 sm:px-4 text-[10px] sm:text-[11px] font-black uppercase tracking-wider rounded-[6px] transition-all z-10 whitespace-nowrap",
         active ? "text-background" : "text-muted-foreground hover:text-foreground"
       )}
     >
