@@ -14,6 +14,23 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
+    // 💡 Paso 1: Resolver IDs de transacciones con sub-ítems de esta categoría (Split Transactions)
+    let transactionIdsFromItems: string[] = [];
+    
+    if (filters?.categoryId) {
+        const { data: itemRows, error: itemError } = await supabase
+            .from('transaction_items')
+            .select('transaction_id')
+            .eq('category_id', filters.categoryId);
+
+        if (!itemError && itemRows) {
+            // Mapeamos y limpiamos duplicados o nulos de los IDs encontrados
+            transactionIdsFromItems = Array.from(
+                new Set(itemRows.map(row => row.transaction_id).filter(Boolean))
+            );
+        }
+    }
+
     const tagsJoin = filters?.tagId 
       ? `tags:transaction_tags!inner(tag:tags(id, name))` 
       : `tags:transaction_tags(tag:tags(id, name))`;      
@@ -54,7 +71,20 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
         // MODO GLOBAL (Sin cuenta específica): El filtro aplica de forma estricta al tipo original
         if (filters?.type) query = query.eq('type', filters.type)
     }
-    if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
+
+    // 💡 Paso 2: Aplicar el filtro de categorías optimizado para PostgREST
+    if (filters?.categoryId) {
+        if (transactionIdsFromItems.length > 0) {
+            // Si encontramos sub-ítems, construimos un OR plano impecable:
+            // "O la transacción principal tiene la categoría, O su ID pertenece a la lista de desgloses"
+            const idsString = transactionIdsFromItems.map(id => `id.eq.${id}`).join(',');
+            query = query.or(`category_id.eq.${filters.categoryId},${idsString}`);
+        } else {
+            // Si no hay sub-ítems con esa categoría, simplemente buscamos de forma tradicional en la raíz
+            query = query.eq('category_id', filters.categoryId);
+        }
+    }
+
     if (filters?.startDate) query = query.gte('date', filters.startDate)
     if (filters?.tagId) {
         query = query.eq('tags.tag_id', filters.tagId)
@@ -69,15 +99,15 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
 
     const { data, error, count } = await query
 
-  if (error) {
-      console.error('Error al traer transacciones:', error);
-      throw new Error(error.message); // 💡 THROW, no devuelvas { transactions: [], total: 0 }
-  }
+    if (error) {
+        console.error('Error al traer transacciones:', error);
+        throw new Error(error.message); 
+    }
 
-  return JSON.parse(JSON.stringify({ 
-      transactions: data, 
-      total: count || 0 
-  }));
+    return JSON.parse(JSON.stringify({ 
+        transactions: data, 
+        total: count || 0 
+    }));
 }
 
 export async function getTransactionById(id: string) {

@@ -15,7 +15,7 @@ import { signOut } from '@/lib/actions/auth';
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 
-export default function Navbar({ user, accounts = [], transactions = [], tags = [] }: NavbarProps) {
+export default function Navbar({ user, accounts = [], transactions = [], tags = [], categories = [] }: NavbarProps) {
   
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -25,7 +25,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const openModal = useModalStore(state => state.openModal);
   const queryClient = useQueryClient();
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
-    accounts: false, transactions: false, tags: false
+    accounts: false, transactions: false, tags: false, categories: false
   });
 
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
@@ -59,18 +59,42 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [] };
-    const query = searchQuery.toLowerCase();
-    return {
-      accounts: accounts.filter(acc => acc.name.toLowerCase().includes(query)),
-      transactions: transactions.filter(tx =>
-        tx.description.toLowerCase().includes(query) ||
-        tx.category?.name.toLowerCase().includes(query)
-      ),
-      tags: tags.filter(tag => tag.name.toLowerCase().includes(query))
-    };
-  }, [searchQuery, accounts, transactions, tags]);
+    if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [], categories: [] };
+    
+    // 💡 1. Normalizamos el texto del usuario: pasamos a minúsculas y ELIMINAMOS TILDES
+    const query = searchQuery
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
 
+    // Función auxiliar para limpiar tildes de los textos de la BD
+    const cleanText = (text: string) => 
+      text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // 💡 2. Aplanamos el árbol de categorías para que busque tanto en padres como en subcategorías
+    const allFlatCategories = categories.flatMap(cat => {
+      // Retornamos la categoría padre junto con todas sus subcategorías (si existen)
+      return [cat, ...(cat.subcategories || [])];
+    });
+
+    // 💡 3. Eliminamos duplicados por ID (por si acaso una subcategoría vino duplicada)
+    const uniqueCategories = allFlatCategories.filter(
+      (cat, index, self) => self.findIndex(c => c.id === cat.id) === index
+    );
+
+    return {
+      accounts: accounts.filter(acc => cleanText(acc.name).includes(query)),
+      
+      transactions: transactions.filter(tx =>
+        cleanText(tx.description || '').includes(query) ||
+        (tx.category?.name && cleanText(tx.category.name).includes(query))
+      ),
+      
+      tags: tags.filter(tag => cleanText(tag.name).includes(query)),
+      
+      categories: uniqueCategories.filter(cat => cleanText(cat.name).includes(query))
+    };
+  }, [searchQuery, accounts, transactions, tags, categories]);
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };

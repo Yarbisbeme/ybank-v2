@@ -126,6 +126,7 @@ export interface NavbarProps {
   accounts?: Account[];
   transactions?: Transaction[];
   tags?: Tag[];
+  categories?: Category[];
 }
 
 export interface GlobalSearchProps {
@@ -137,6 +138,7 @@ export interface GlobalSearchProps {
     accounts: Account[];
     transactions: Transaction[];
     tags: Tag[];
+    categories: Category[];
   };
   expanded: { [key: string]: boolean };
   onToggleSection: (section: string) => void;

@@ -117,11 +117,14 @@ export function useTransactionsList(page: number = 1) {
         });
 
         if (filterType) localTx = localTx.filter((tx: any) => tx.type === filterType);
-        if (filterCategoryId) localTx = localTx.filter((tx: any) => tx.category_id === filterCategoryId);
+        if (filterCategoryId) {
+          localTx = localTx.filter((tx: any) => 
+            tx.category_id === filterCategoryId || 
+            tx.items?.some((item: any) => item.category_id === filterCategoryId)
+          );
+        }
         if (filterStartDate) localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
         if (filterEndDate) localTx = localTx.filter((tx: any) => tx.date <= filterEndDate);
-        
-        // 💡 Soporte offline para nuevos filtros
         if (filterTagId) localTx = localTx.filter((tx: any) => tx.tags?.some((t: any) => t.tag?.id === filterTagId));
         if (filterSearch) localTx = localTx.filter((tx: any) => tx.description?.toLowerCase().includes(filterSearch.toLowerCase()));
 

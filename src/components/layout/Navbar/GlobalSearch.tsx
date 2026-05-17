@@ -1,8 +1,8 @@
 "use client";
-// 💡 FIX 1: Importamos 'useTransition' junto con los hooks estándar
+
 import React, { useState, useEffect, useTransition } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { Search, Tag as TagIcon, ArrowLeftIcon, Command, Loader2 } from 'lucide-react';
+import { Search, Tag as TagIcon, ArrowLeftIcon, Command, Loader2, LayoutGrid } from 'lucide-react';
 import { useRouter } from 'next/navigation'; 
 import { GlobalSearchProps } from '@/types';
 import { getNodeIcon, getCategoryIcon } from '@/lib/utils'; 
@@ -16,14 +16,9 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
   const openModal = useModalStore((state) => state.openModal);
   const { setFilter } = useFilterStore();
 
-  // 💡 FIX 2: Inicializamos el estado de transición de React
-  // 'isPending' será TRUE de forma automática mientras Next.js descarga la nueva página.
   const [isPending, startTransition] = useTransition();
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // 💡 FIX 3: REACCIÓN TÁCTICA AL CAMBIO DE PÁGINA
-  // Cuando 'isPending' vuelve a ser false y estábamos navegando, significa que la página destino 
-  // ya cargó completamente sus datos. En ese milisegundo, cerramos el buscador limpiamente.
   useEffect(() => {
     if (!isPending && isNavigating) {
       onClose();
@@ -34,10 +29,9 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
   // === HANDLERS MÁGICOS DE CONTEXTO ===
   
   const handleAccountClick = (accId: string) => {
-    setIsNavigating(true); // Encendemos el estado de navegación
+    setIsNavigating(true); 
     setFilter('accountId', accId); 
     
-    // 💡 FIX 4: Envolvemos la navegación en startTransition
     startTransition(() => {
       router.push(`/accounts?accountId=${accId}`);
     });
@@ -61,6 +55,16 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
     });
   };
 
+  // 💡 NUEVO: Handler para hacer clic en Categorías
+  const handleCategoryClick = (categoryId: string) => {
+    setIsNavigating(true);
+    setFilter('categoryId', categoryId); 
+    
+    startTransition(() => {
+      router.push(`/transactions?categoryId=${categoryId}`);
+    });
+  };
+
   const handleViewMoreTransactions = () => {
     setIsNavigating(true);
     
@@ -77,7 +81,7 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm hidden md:block" 
-            onClick={isPending ? undefined : onClose} // 💡 Desactivamos el cierre si está cargando
+            onClick={isPending ? undefined : onClose}
           />
           
           <motion.div 
@@ -86,8 +90,6 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
             className="relative w-full h-full md:h-auto md:max-w-2xl bg-card rounded-none md:rounded-[10px] shadow-2xl border-none md:border border-border overflow-hidden flex flex-col"
           >
             
-            {/* 💡 FIX 5: EXPERIENCIA GLASSMORPHISM COMPLETA */}
-            {/* Si Next.js está cargando la página, inyectamos una capa de cristal encima de todo con un Spinner */}
             <AnimatePresence>
               {isPending && (
                 <motion.div
@@ -115,9 +117,9 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
               </button>
               <input 
                 autoFocus
-                disabled={isPending} // Deshabilitamos el input si ya está cargando
+                disabled={isPending} 
                 type="text"
-                placeholder="Buscar nodos, operaciones o tags..."
+                placeholder="Buscar nodos, operaciones, categorías o tags..."
                 className="flex-1 py-1 bg-transparent border-none outline-none text-sm font-mono font-medium text-foreground placeholder:text-muted-foreground/50 pl-2 disabled:opacity-50"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -151,12 +153,12 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                     {/* === SECCIÓN NODOS === */}
                     <SearchSection 
                       title="Nodos" 
-                      count={results.accounts.length}
+                      count={results.accounts?.length || 0}
                       isExpanded={expanded.accounts}
                       onToggle={() => onToggleSection('accounts')}
                     >
                       <AnimatePresence mode="popLayout">
-                        {(expanded.accounts ? results.accounts : results.accounts.slice(0, 3)).map((acc, idx) => (
+                        {(expanded.accounts ? results.accounts : results.accounts?.slice(0, 3))?.map((acc, idx) => (
                           <motion.div
                             layout key={acc.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ delay: idx * 0.03 }}
@@ -185,11 +187,9 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                       title="Registro Operativo" 
                       count={results.transactions?.length || 0}
                       isExpanded={expanded.transactions}
-                      // 💡 MODIFICACIÓN: Al hacer clic en "+X Más", ejecuta nuestro handler de redirección
                       onToggle={handleViewMoreTransactions} 
                     >
                       <AnimatePresence mode="popLayout">
-                        {/* Muestra un preview limpio de 3 ítems en el buscador móvil/desktop */}
                         {results.transactions?.slice(0, 3).map((tx: any, idx: number) => (
                           <motion.div
                             layout key={tx.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -222,7 +222,48 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                       </AnimatePresence>
                     </SearchSection>
 
-                    {/* === SECCIÓN CLASIFICADORES (TAGS) === */}
+                    {/* === SECCIÓN CATEGORÍAS === */}
+                    <SearchSection 
+                      title="Categorías Encontradas" 
+                      count={results.categories?.length || 0}
+                      isExpanded={expanded.categories}
+                      onToggle={() => onToggleSection('categories')}
+                    >
+                      <AnimatePresence mode="popLayout">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {(expanded.categories ? results.categories : results.categories?.slice(0, 3))?.map((cat: any, idx: number) => (
+                            <motion.div
+                              layout 
+                              key={cat.id} 
+                              initial={{ opacity: 0, scale: 0.95 }} 
+                              animate={{ opacity: 1, scale: 1 }} 
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ delay: idx * 0.02 }}
+                            >
+                              <button 
+                                onClick={() => handleCategoryClick(cat.id)}
+                                disabled={isPending}
+                                className="w-full flex items-center justify-between px-3 py-3 bg-surface-2 border border-border rounded-[8px] hover:border-primary/50 hover:bg-surface-3 transition-all text-foreground text-xs font-bold group shadow-sm disabled:opacity-50"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  {/* 💡 Icono dinámico: Si el objeto no tiene propiedad de ícono propia (por ser subcategoría), usamos un fallback sutil */}
+                                  <span style={{ color: cat.color || '#0179FE' }} className="shrink-0 transition-transform group-hover:scale-110">
+                                    {getCategoryIcon(cat.icon || 'default-icon')}
+                                  </span>
+                                  <span className="truncate">{cat.name}</span>
+                                </div>
+                                
+                                <span className="text-[8px] font-black tracking-widest text-muted-foreground uppercase bg-card border border-border px-1.5 py-0.5 rounded-[4px] group-hover:text-primary group-hover:border-primary/30 transition-colors">
+                                  Filtrar Historial
+                                </span>
+                              </button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </AnimatePresence>
+                    </SearchSection>
+
+                    {/* === SECCIÓN TAGS === */}
                     <SearchSection 
                       title="Clasificadores" 
                       count={results.tags?.length || 0}

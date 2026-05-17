@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFilterStore } from '@/store/useFilterStore';
 import TransactionFilterBar from '@/components/Transactions/TransactionFilterBar';
 import ClientTransactionTable from '@/components/Transactions/ClientTransactionTable';
-import { ArrowLeft, Landmark } from 'lucide-react';
-import Link from 'next/link';
 
 export default function TransactionsLedgerPage() {
   const searchParams = useSearchParams();
@@ -16,14 +14,14 @@ export default function TransactionsLedgerPage() {
     const tagId = searchParams.get('tagId');
     const type = searchParams.get('type');
     const accountId = searchParams.get('accountId');
-    const searchQuery = searchParams.get('search'); // 💡 Capturamos la 'j' de la URL
+    const categoryId = searchParams.get('categoryId');
+    const searchQuery = searchParams.get('search'); 
 
-    // Inicializamos los filtros en el store de Zustand
     if (tagId) setFilter('tagId', tagId);
     if (type) setFilter('type', type as any);
     if (accountId) setFilter('accountId', accountId);
+    if (categoryId) setFilter('categoryId', categoryId); 
     
-    // 💡 SOLUCIÓN: Activamos el estado de texto en el store
     if (searchQuery) {
       setFilter('search', decodeURIComponent(searchQuery));
     }

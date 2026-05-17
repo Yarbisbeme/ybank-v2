@@ -104,6 +104,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             accounts={initialData.accounts} 
             transactions={initialData.transactions} 
             tags={initialData.tags} 
+            categories={initialData.categories}
           />
           
           <main className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
