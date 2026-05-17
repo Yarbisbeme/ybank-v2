@@ -41,7 +41,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col h-full p-6 bg-card border-r border-border transition-colors">
+    <div className="flex flex-col h-full px-6 py-2 pb- bg-card border-r border-border transition-colors">
       
       <div className="flex flex-row items-center my-2 pr-2"> 
         <img 
