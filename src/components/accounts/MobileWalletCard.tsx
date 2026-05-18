@@ -2,18 +2,17 @@
 
 import { useState } from 'react';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation'; // 💡 1. Importamos el enrutador
+import { useRouter } from 'next/navigation'; 
 import UniversalCard from '../Tarjetas/UniversalCard';
 
 export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const router = useRouter(); // 💡 2. Inicializamos el enrutador
 
-  // Control para evitar clics accidentales mientras se arrastra
+  const [activeIdx, setActiveIdx] = useState(0);
+  const router = useRouter(); 
+
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragEnd = (e: any, info: PanInfo) => {
-    // Un pequeño retraso para que el clic no se dispare justo al soltar el arrastre
     setTimeout(() => setIsDragging(false), 100); 
 
     const threshold = 40;
@@ -25,19 +24,16 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
   };
 
   const handleClick = (index: number, accountId: string) => {
-    if (isDragging) return; // Si estaba arrastrando, ignoramos el clic
-
+    if (isDragging) return; 
     if (index < activeIdx) {
-      // Si toca una de atrás, la trae al frente
       setActiveIdx(index);
     } else if (index === activeIdx) {
-      // 💡 3. Si toca la activa, ¡Navegamos a la cuenta!
       router.push(`/accounts?accountId=${accountId}`);
     }
   };
 
   return (
-    <div className="relative w-full h-[240px] sm:h-[290px] flex items-center justify-center overflow-hidden py-4">
+    <div className="relative w-full h-[240px] sm:h-[290px] flex items-center justify-center">
       <AnimatePresence initial={false}>
         {accounts.map((acc, index) => {
           let state = "hiddenRight"; 
@@ -49,9 +45,9 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
           else if (index > activeIdx) state = "next";
 
           const variants = {
-            active: { x: 0, scale: 1, opacity: 1, zIndex: 50 },
-            prev1: { x: -20, scale: 0.95, opacity: 1, zIndex: 40 },
-            prev2: { x: -40, scale: 0.90, opacity: 1, zIndex: 30 },
+            active: { x: 5, scale: 1, opacity: 1, zIndex: 50 },
+            prev1: { x: -10, scale: 0.95, opacity: 1, zIndex: 40 },
+            prev2: { x: -25, scale: 0.90, opacity: 1, zIndex: 30 },
             hiddenLeft: { x: -80, scale: 0.85, opacity: 0, zIndex: 20 },
             next: { x: '200%', scale: 0.9, opacity: 0, zIndex: 60 },
             hiddenRight: { x: '200%', scale: 0.9, opacity: 0, zIndex: 10 },
@@ -67,13 +63,13 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
               drag={index === activeIdx ? "x" : false}
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.1}
-              onDragStart={() => setIsDragging(true)} // 💡 Detectamos cuándo empieza a arrastrar
+              onDragStart={() => setIsDragging(true)}
               onDragEnd={handleDragEnd}
               style={{ transformOrigin: "center center" }} 
-              className="absolute w-[88%] max-w-[400px] aspect-[1.586/1] cursor-grab active:cursor-grabbing"
-              onClick={() => handleClick(index, acc.id)} // 💡 Usamos nuestra nueva función inteligente
+              className="absolute w-[90%] max-w-[400px] aspect-[1.586/1] cursor-grab active:cursor-grabbing"
+              onClick={() => handleClick(index, acc.id)}
             >
-              <div className="w-full h-full rounded-[10px] shadow-md overflow-hidden ml-1">
+              <div className="w-full h-full shadow-md overflow-hidden">
                 <UniversalCard 
                   account={acc} 
                   institution={acc.institution} 
