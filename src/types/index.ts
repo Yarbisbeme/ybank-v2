@@ -129,6 +129,15 @@ export interface NavbarProps {
   categories?: Category[];
 }
 
+export interface SidebarLinkProps {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  isActive: boolean;
+  isLoading: boolean;
+  onClick: (e: React.MouseEvent) => void;
+}
+
 export interface GlobalSearchProps {
   isOpen: boolean;
   onClose: () => void;
