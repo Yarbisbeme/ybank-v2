@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ShoppingCart } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useModalStore } from '@/store/useModalStore';
 import { getCategoryIcon } from '@/lib/utils';
 

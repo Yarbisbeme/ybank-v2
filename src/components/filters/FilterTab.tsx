@@ -14,7 +14,7 @@ export default function FilterTab({ active, onClick, label }: FilterTabProps) {
     <button
       onClick={onClick}
       className={cn(
-        "relative flex flex-1 xl:flex-none items-center justify-center h-full px-2 sm:px-4 text-[10px] sm:text-[11px] font-black uppercase tracking-wider rounded-[6px] transition-all z-10 whitespace-nowrap overflow-hidden",
+        "relative flex flex-1 xl:flex-none items-center justify-center h-full px-1 sm:px-4 text-[11px] sm:text-[11px] font-black uppercase tracking-wider rounded-[6px] transition-all z-10 whitespace-nowrap overflow-hidden",
         active ? "text-background" : "text-muted-foreground hover:text-foreground"
       )}
     >
