@@ -16,7 +16,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-// 💡 Solo importamos el componente inteligente
 import YBankCalendarPicker from '../filters/YBankCalendarPicker';
 
 type TransactionType = 'expense' | 'income' | 'transfer';
@@ -39,7 +38,6 @@ const getSafeType = (rawType?: string): TransactionType => {
 
 export default function TransactionForm({ accounts, tags, categories, initialData, defaultAccountId, onSuccess }: TransactionFormProps) {
 
-  // 💡 1. ESTADOS SIMPLIFICADOS (Adiós a los estados de coordenadas)
   const [showCalendar, setShowCalendar] = useState(false);
   const calendarTriggerRef = useRef<HTMLDivElement>(null);
   
