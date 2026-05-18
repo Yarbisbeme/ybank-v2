@@ -14,6 +14,7 @@ import GlobalSearch from './GlobalSearch';
 import { signOut } from '@/lib/actions/auth'; 
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGlobalSearch } from '@/hooks/useCatalogs'; // 👈 Importamos el nuevo hook
 
 export default function Navbar({ user, accounts = [], transactions = [], tags = [], categories = [] }: NavbarProps) {
   
@@ -21,7 +22,10 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   const [avatarError, setAvatarError] = useState(false); 
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState(''); // 💡 Estado para el retraso intencional
+
   const openModal = useModalStore(state => state.openModal);
   const queryClient = useQueryClient();
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
@@ -29,6 +33,19 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   });
 
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
+
+  // =========================================================================
+  // 🧠 DEBOUNCE: Espera 300ms de inactividad antes de buscar en la BD
+  // =========================================================================
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // 💡 Ejecutamos el hook de búsqueda profunda
+  const { data: searchData } = useGlobalSearch(debouncedQuery);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -61,40 +78,44 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [], categories: [] };
     
-    // 💡 1. Normalizamos el texto del usuario: pasamos a minúsculas y ELIMINAMOS TILDES
-    const query = searchQuery
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    const query = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cleanText = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    // Función auxiliar para limpiar tildes de los textos de la BD
-    const cleanText = (text: string) => 
-      text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const allFlatCategories = categories.flatMap(cat => [cat, ...(cat.subcategories || [])]);
+    const uniqueCategories = allFlatCategories.filter((cat, index, self) => self.findIndex(c => c.id === cat.id) === index);
 
-    // 💡 2. Aplanamos el árbol de categorías para que busque tanto en padres como en subcategorías
-    const allFlatCategories = categories.flatMap(cat => {
-      // Retornamos la categoría padre junto con todas sus subcategorías (si existen)
-      return [cat, ...(cat.subcategories || [])];
+    // =========================================================================
+    // 📡 MODO OFFLINE: EL ESCÁNER DE CACHÉ PROFUNDO
+    // =========================================================================
+    const allCachedQueries = queryClient.getQueriesData({ queryKey: ['transactions'] });
+    let offlineTransactions: any[] = [...transactions]; 
+    
+    allCachedQueries.forEach(([_, data]: any) => {
+      if (data && data.transactions) {
+        offlineTransactions = [...offlineTransactions, ...data.transactions];
+      }
     });
 
-    // 💡 3. Eliminamos duplicados por ID (por si acaso una subcategoría vino duplicada)
-    const uniqueCategories = allFlatCategories.filter(
-      (cat, index, self) => self.findIndex(c => c.id === cat.id) === index
+    const uniqueOfflineTransactions = offlineTransactions.filter((tx, index, self) => 
+      self.findIndex(t => t.id === tx.id) === index
     );
+
+    const isOnlineAndSearched = typeof navigator !== 'undefined' && navigator.onLine && debouncedQuery.length > 2 && searchData?.transactions;
 
     return {
       accounts: accounts.filter(acc => cleanText(acc.name).includes(query)),
-      
-      transactions: transactions.filter(tx =>
-        cleanText(tx.description || '').includes(query) ||
-        (tx.category?.name && cleanText(tx.category.name).includes(query))
-      ),
-      
       tags: tags.filter(tag => cleanText(tag.name).includes(query)),
+      categories: uniqueCategories.filter(cat => cleanText(cat.name).includes(query)),
       
-      categories: uniqueCategories.filter(cat => cleanText(cat.name).includes(query))
+      transactions: isOnlineAndSearched
+        ? searchData.transactions 
+        : uniqueOfflineTransactions.filter(tx =>
+            cleanText(tx.description || '').includes(query) ||
+            (tx.category?.name && cleanText(tx.category.name).includes(query))
+          )
     };
-  }, [searchQuery, accounts, transactions, tags, categories]);
+  }, [searchQuery, debouncedQuery, accounts, transactions, tags, categories, searchData, queryClient]);
+
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
@@ -114,11 +135,32 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
     }
   };
 
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setTimeout(() => {
+      setSearchQuery('');
+      setDebouncedQuery('');
+    }, 150);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        closeSearch(); // 👈 Aquí
+        setIsMobileMenuOpen(false); 
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <>
       <header className="sticky top-0 z-[60] h-16 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8 lg:px-12 border-b border-border transition-colors">
-
-        {/* ... (Todo el header principal se queda exactamente igual) ... */}
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
@@ -272,7 +314,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
       <GlobalSearch
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={closeSearch}
         query={searchQuery}
         setQuery={setSearchQuery}
         results={searchResults}

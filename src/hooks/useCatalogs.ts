@@ -77,8 +77,7 @@ export function useAccounts() {
   });
 }
 
-// 💳 5. Hook para Transacciones (Paginación Real adaptada a Offline)
-// 💳 5. Hook para Transacciones (Con Interceptor de Normalización de Traspasos)
+// 💳 5. Hook para Transacciones (Con Escudo Protector de Aplanamiento)
 export function useTransactionsList(page: number = 1) {
   const filters = useFilterStore();
   const searchParams = useSearchParams();
@@ -91,8 +90,8 @@ export function useTransactionsList(page: number = 1) {
   const filterCategoryId = filters.categoryId || '';
   const filterStartDate = filters.startDate || '';
   const filterEndDate = filters.endDate || '';
-  const filterTagId = filters.tagId || '';    // 💡 FIX 1: Extraemos el tag del store
-  const filterSearch = filters.search || '';  // 💡 FIX 2: Extraemos el texto del store
+  const filterTagId = filters.tagId || '';    
+  const filterSearch = filters.search || '';  
 
   return useQuery({
     queryKey: ['transactions', queryAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, filterTagId, filterSearch, page],
@@ -102,33 +101,8 @@ export function useTransactionsList(page: number = 1) {
       if (typeof window !== 'undefined' && !navigator.onLine) {
         const baseKey = ['transactions', queryAccountId, '', '', '', '', '', '', 1];
         const cachedBaseData: any = queryClient.getQueryData(baseKey);
-
         if (!cachedBaseData || !cachedBaseData.transactions) return { transactions: [], total: 0 };
-
-        let localTx = [...cachedBaseData.transactions];
-
-        localTx = localTx.map(tx => {
-          let morphedType = tx.type;
-          if (queryAccountId && tx.type === 'transfer') {
-            if (tx.transfer_to_account_id === queryAccountId) morphedType = 'income';
-            else if (tx.account_id === queryAccountId) morphedType = 'expense';
-          }
-          return { ...tx, type: morphedType };
-        });
-
-        if (filterType) localTx = localTx.filter((tx: any) => tx.type === filterType);
-        if (filterCategoryId) {
-          localTx = localTx.filter((tx: any) => 
-            tx.category_id === filterCategoryId || 
-            tx.items?.some((item: any) => item.category_id === filterCategoryId)
-          );
-        }
-        if (filterStartDate) localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
-        if (filterEndDate) localTx = localTx.filter((tx: any) => tx.date <= filterEndDate);
-        if (filterTagId) localTx = localTx.filter((tx: any) => tx.tags?.some((t: any) => t.tag?.id === filterTagId));
-        if (filterSearch) localTx = localTx.filter((tx: any) => tx.description?.toLowerCase().includes(filterSearch.toLowerCase()));
-
-        return { transactions: localTx, total: localTx.length };
+        return { transactions: cachedBaseData.transactions, total: cachedBaseData.transactions.length };
       }
 
       // 🟢 MODO ONLINE
@@ -137,8 +111,8 @@ export function useTransactionsList(page: number = 1) {
         ...(filters.categoryId && { categoryId: filters.categoryId }),
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
-        ...(filters.tagId && { tagId: filters.tagId }),   // 💡 FIX 4: Inyectamos el tag id activo
-        ...(filters.search && { search: filters.search }), // 💡 FIX 5: Inyectamos el texto escrito
+        ...(filters.tagId && { tagId: filters.tagId }), 
+        ...(filters.search && { search: filters.search }),
       };
 
       const response = await getTransactions({
@@ -150,6 +124,17 @@ export function useTransactionsList(page: number = 1) {
 
       if (response && response.transactions) {
         response.transactions = response.transactions.map((tx: any) => {
+          
+          // 🛡️ ESCUDO PROTECTOR: Si el servidor ya aplanó esto (ej. DGII de $1.50), lo pasamos intacto.
+          if (tx.is_split_child) {
+            return {
+              ...tx,
+              date: sanitizeDate(tx.date)
+              // No tocamos 'amount' ni 'type', respetamos la orden del servidor.
+            };
+          }
+
+          // 🔄 LÓGICA NORMAL PARA TRANSACCIONES RAÍZ
           let morphedType = tx.type;
           let finalAmount = tx.amount;
           
@@ -386,5 +371,20 @@ export function useSaveTag() {
       });
       toast.success('Etiqueta creada');
     }
+  });
+}
+
+export function useGlobalSearch(searchQuery: string) {
+  return useQuery({
+    queryKey: ['global-search', searchQuery],
+    queryFn: async () => {
+      return await getTransactions({
+        page: 1,
+        pageSize: 5, // Solo necesitamos un preview de 5 ítems para el modal
+        filters: { search: searchQuery } 
+      });
+    },
+    enabled: searchQuery.trim().length > 2 && typeof window !== 'undefined' && navigator.onLine,
+    staleTime: 1000 * 60 * 2, // Caché de 2 minutos
   });
 }

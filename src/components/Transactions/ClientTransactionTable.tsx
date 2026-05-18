@@ -27,10 +27,53 @@ export default function ClientTransactionTable() {
   }, [urlAccountId, preferredAccountId, accounts]);
 
   const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
-  const transactions = data?.transactions || [];
+  const baseTransactions = data?.transactions || [];
   const totalItems = data?.total || 0;
   const filters = useFilterStore();
 
+  // =========================================================================
+  // ☢️ OPCIÓN NUCLEAR: Aplanamiento Forzado en Tiempo de Renderizado
+  // =========================================================================
+  const transactions = useMemo(() => {
+    // Si no estamos filtrando por categoría, dejamos todo intacto
+    if (!filters.categoryId) return baseTransactions;
+
+    const flat: any[] = [];
+    
+    baseTransactions.forEach((tx: any) => {
+      let addedAsChild = false;
+      
+      // 1. Si la transacción tiene desgloses
+      if (tx.items && tx.items.length > 0) {
+        const matching = tx.items.filter((i: any) => i.category_id === filters.categoryId);
+        
+        if (matching.length > 0) {
+          matching.forEach((item: any) => {
+            flat.push({
+              ...tx,
+              id: `${tx.id}-item-${item.id}`, // ID virtual para la calculadora
+              amount: Number(item.unit_price) * Number(item.quantity || 1), // Monto exacto del hijo
+              category_id: item.category_id,
+              category: item.category || tx.category,
+              description: `${tx.description} ↳ ${item.name || 'Desglose'}`,
+              items: [], // 🚨 DESTRUIMOS EL ACORDEÓN FÍSICAMENTE AQUÍ
+              is_split_child: true, // Nuestra bandera escudo
+              type: 'expense' // Lo forzamos a gasto para los colores y matemáticas
+            });
+          });
+          addedAsChild = true;
+        }
+      }
+
+      // 2. Solo pasamos al padre si no encontramos hijos y el padre coincide
+      if (!addedAsChild && tx.category_id === filters.categoryId) {
+        flat.push({ ...tx, items: [] });
+      }
+    });
+    
+    return flat;
+  }, [baseTransactions, filters.categoryId]);
+  
   const isQueryLoading = isLoadingTx || isLoadingAccounts || !activeAccountId;
 
   // Sincronizamos el totalItems hacia Zustand para que la barra de filtros lo lea
@@ -45,7 +88,6 @@ export default function ClientTransactionTable() {
     }
   }, [filters.type, filters.categoryId, filters.startDate, filters.endDate, clearSelection]);
 
-  // 🧮 2. MATEMÁTICA SIMPLIFICADA
   const selectionSummary = useMemo(() => {
     const values = Object.values(selectedTx);
     if (values.length === 0) return { count: 0, total: 0 };
@@ -53,12 +95,11 @@ export default function ClientTransactionTable() {
     const total = values.reduce((sum: number, tx: any) => {
       const amount = Number(tx.amount) || 0;
       
-      // 💡 ¡MIRA QUÉ LIMPIO! Como el interceptor ya disfrazó los traspasos de esta cuenta 
-      // en 'income' y 'expense', la matemática vuelve a ser de escuela primaria.
+      if (tx.is_split_child) return sum - amount;
+      
       if (tx.type === 'income') return sum + amount;
       if (tx.type === 'expense') return sum - amount;
       
-      // Solo caerá aquí si estamos en la vista Global (donde siguen siendo 'transfer')
       return sum; 
     }, 0);
 

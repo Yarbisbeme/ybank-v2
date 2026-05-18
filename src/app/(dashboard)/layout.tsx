@@ -77,7 +77,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     console.warn("📡 Layout: Modo Offline. Se enviará un initialData vacío.");
   }
 
-  // 3. Preparar UI básica (Navbar)
   const navbarUser = {
     name: user?.user_metadata?.full_name || user?.email || 'Usuario',
     email: user?.email || '',

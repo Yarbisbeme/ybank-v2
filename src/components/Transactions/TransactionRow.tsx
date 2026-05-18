@@ -9,27 +9,32 @@ import { getCategoryIcon } from '@/lib/utils';
 export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccountId?: string | null }) {
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const openModal = useModalStore((state) => state.openModal);
   
-  const isTransfer = tx.type === 'transfer';
+  const isSplitChild = Boolean(tx.is_split_child);
+
+  const isTransfer = !isSplitChild && tx.type === 'transfer';
   const isReceiver = isTransfer && tx.transfer_to_account_id === activeAccountId;
   
-  const displayAmount = isReceiver ? (tx.target_amount || tx.amount) : tx.amount;
-  const displayType = isTransfer 
-    ? (isReceiver ? 'income' : (tx.account_id === activeAccountId ? 'expense' : 'transfer')) 
-    : tx.type;
-  
-  const displayItems = isReceiver ? [] : (tx.items || []);
+  const displayAmount = isSplitChild 
+    ? tx.amount 
+    : (isReceiver ? (tx.target_amount || tx.amount) : tx.amount);
 
-  const openModal = useModalStore((state) => state.openModal);
+  const displayType = isSplitChild 
+    ? 'expense' 
+    : (isTransfer ? (isReceiver ? 'income' : (tx.account_id === activeAccountId ? 'expense' : 'transfer')) : tx.type);
+  
+  const displayItems = (isReceiver || isSplitChild) ? [] : (tx.items || []);
+  const items = displayItems;
+  const hasSubTransactions = items.length > 0;
 
   const isPositive = displayType === 'income';
   const amountColor = isPositive ? 'text-emerald-500' : (displayType === 'expense' ? 'text-foreground' : 'text-blue-500');
   const amountPrefix = isPositive ? '+' : (displayType === 'expense' ? '-' : '');
-  
-  const items = displayItems;
-  const hasSubTransactions = items.length > 0;
 
   const handleOpenEditModal = () => {
+    if (isSplitChild) return; 
+
     openModal('transaction', { 
       transactionId: tx.id, 
       accountId: tx.account_id,
@@ -39,6 +44,16 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
 
   const [year, month, day] = tx.date.split('T')[0].split('-');
   const safeDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (tx.description?.includes('Envío a Yarbis') || tx.description?.includes('Smirnoff')) {
+    console.log("DATA REAL EN LA FILA:", { 
+      descripcion: tx.description, 
+      cantidad_items: tx.items?.length, 
+      esta_aplanado: tx.is_split_child,
+      monto: displayAmount
+    });
+  }
+
   return (
     <div className="flex flex-col border-b border-border last:border-0">
       
