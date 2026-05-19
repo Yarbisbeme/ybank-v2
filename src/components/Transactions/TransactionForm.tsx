@@ -121,12 +121,13 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       payload.amount = parseFloat(amount);
       
       if (type === 'transfer') {
-        payload.destinationAccountId = destinationAccountId; // 👈 CORRECCIÓN VITAL
+        payload.destinationAccountId = destinationAccountId && destinationAccountId !== '' ? destinationAccountId : null;
+        payload.categoryId = null; 
       } else {
-        payload.categoryId = (type === 'expense' && isSplit) ? null : categoryId; // 👈 CORRECCIÓN VITAL
+        payload.categoryId = (type === 'expense' && isSplit) ? null : categoryId;
+        payload.destinationAccountId = null;
       }
       
-      // 💡 2. Enriquecemos los items con la matemática completa para la BD
       payload.items = (type === 'expense' && isSplit) ? items.map(item => ({
         ...item,
         unit_price: parseFloat(item.unit_price),

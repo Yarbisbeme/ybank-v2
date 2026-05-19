@@ -1,6 +1,5 @@
 'use server'
 
-import { DGII_CATEGORY_ID, DGII_TAX_RATE } from '@/constants/constants'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
@@ -301,12 +300,12 @@ export async function updateTransaction(id: string, input: any) {
 
     const originalTransferAmount = parseFloat(input.amount);
 
-    if (input.type !== 'transfer' || 'payment') {
-        delete cleanInput.transfer_to_account_id
-        delete cleanInput.target_amount
-        delete cleanInput.exchange_rate
+    if (input.type !== 'transfer' && input.type !== 'payment') {
+        delete cleanInput.transfer_to_account_id;
+        delete cleanInput.target_amount;
+        delete cleanInput.exchange_rate;
     } else {
-        delete cleanInput.category_id 
+        delete cleanInput.category_id;
         cleanInput.amount = originalTransferAmount;
         cleanInput.target_amount = originalTransferAmount;
         items = []; 

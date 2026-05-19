@@ -284,14 +284,14 @@ export interface ModalState {
   closeModal: () => void;
 }
 
-interface FilterState {
+export interface FilterState {
   type: 'income' | 'expense' | 'transfer' | null;
   categoryId: string | null;
   tagId: string | null;
   accountId: string | null;
   startDate: string | null;
   endDate: string | null;
-  search: string | null; // 💡 Añadir este campo si no existe
+  search: string | null;
   setFilter: (key: string, value: any) => void;
   clearFilters: () => void;
 }

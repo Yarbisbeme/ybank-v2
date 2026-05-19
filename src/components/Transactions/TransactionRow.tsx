@@ -45,18 +45,8 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
   const [year, month, day] = tx.date.split('T')[0].split('-');
   const safeDate = new Date(Number(year), Number(month) - 1, Number(day));
 
-  if (tx.description?.includes('Envío a Yarbis') || tx.description?.includes('Smirnoff')) {
-    console.log("DATA REAL EN LA FILA:", { 
-      descripcion: tx.description, 
-      cantidad_items: tx.items?.length, 
-      esta_aplanado: tx.is_split_child,
-      monto: displayAmount
-    });
-  }
-
   return (
     <div className="flex flex-col border-b border-border last:border-0">
-      
       <div 
         onClick={handleOpenEditModal}
         className="flex items-center justify-between py-4 px-2 md:px-4 transition-colors cursor-pointer active:bg-surface-2 hover:bg-surface-2/50 group"
@@ -81,7 +71,6 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
           <p className={`text-sm font-mono font-bold tracking-tight ${amountColor}`}>
             {amountPrefix}${Number(displayAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          
           {hasSubTransactions && (
             <motion.div 
               animate={{ rotate: isExpanded ? 180 : 0 }}
