@@ -56,8 +56,7 @@ export async function signInWithGoogle() {
         access_type: 'offline',
         prompt: 'consent',
       },
-      // 💡 Importante para YBank: Pedimos permiso para leer correos bancarios
-      scopes: 'https://www.googleapis.com/auth/gmail.readonly',
+      scopes: 'https://www.googleapis.com/auth/gmail.modify',
     },
   });
 
