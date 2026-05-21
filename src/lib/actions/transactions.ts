@@ -1,6 +1,5 @@
 'use server'
 
-import { DGII_CATEGORY_ID, DGII_TAX_RATE } from '@/constants/constants'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
@@ -14,12 +13,31 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
+    let transactionIdsFromItems: string[] = [];
+    
+    if (filters?.categoryId) {
+        const { data: itemRows, error: itemError } = await supabase
+            .from('transaction_items')
+            .select('transaction_id')
+            .eq('category_id', filters.categoryId);
+
+        if (!itemError && itemRows) {
+            transactionIdsFromItems = Array.from(
+                new Set(itemRows.map(row => row.transaction_id).filter(Boolean))
+            );
+        }
+    }
+
+    const tagsJoin = filters?.tagId 
+      ? `tags:transaction_tags!inner(tag:tags(id, name))` 
+      : `tags:transaction_tags(tag:tags(id, name))`;      
+
     let selectString = `
       *,
       category:categories(name, icon, color),
       account:accounts!account_id(name, currency), 
       transfer_to_account:accounts!transfer_to_account_id(name, currency),
-      tags:transaction_tags(tag:tags(id, name)),
+      ${tagsJoin}, 
       items:transaction_items(*, category:categories(id, name, icon)) 
     `;
 
@@ -36,39 +54,111 @@ export async function getTransactions({ page = 1, pageSize = 20, accountId, filt
     
     if (accountId) {
         if (filters?.type === 'income') {
-            // Es un INGRESO si: (Es tipo income en esta cuenta) O (Es tipo transfer y el destino es esta cuenta)
             query = query.or(`and(type.eq.income,account_id.eq.${accountId}),and(type.eq.transfer,transfer_to_account_id.eq.${accountId})`)
         } else if (filters?.type === 'expense') {
-            // Es un GASTO si: (Es tipo expense en esta cuenta) O (Es tipo transfer y el origen es esta cuenta)
             query = query.or(`and(type.eq.expense,account_id.eq.${accountId}),and(type.eq.transfer,account_id.eq.${accountId})`)
         } else {
-            // Si el filtro es 'transfer' o no hay filtro, traemos todo lo que toque esta cuenta
             query = query.or(`account_id.eq.${accountId},transfer_to_account_id.eq.${accountId}`)
             if (filters?.type) query = query.eq('type', filters.type)
         }
     } else {
-        // MODO GLOBAL (Sin cuenta específica): El filtro aplica de forma estricta al tipo original
         if (filters?.type) query = query.eq('type', filters.type)
     }
-    if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
+
+    if (filters?.categoryId) {
+        if (transactionIdsFromItems.length > 0) {
+            const idsString = transactionIdsFromItems.map(id => `id.eq.${id}`).join(',');
+            query = query.or(`category_id.eq.${filters.categoryId},${idsString}`);
+        } else {
+            query = query.eq('category_id', filters.categoryId);
+        }
+    }
+
     if (filters?.startDate) query = query.gte('date', filters.startDate)
-    if (filters?.tagId) query = query.eq('transaction_tags.tag_id', filters.tagId)
+    if (filters?.tagId) query = query.eq('tags.tag_id', filters.tagId)
     if (filters?.endDate) {
         const endOfDay = filters.endDate.includes('T') ? filters.endDate : `${filters.endDate}T23:59:59.999Z`;
         query = query.lte('date', endOfDay)
     }
+    if (filters?.search) query = query.ilike('description', `%${filters.search}%`)
 
     const { data, error, count } = await query
 
-  if (error) {
-      console.error('Error al traer transacciones:', error);
-      throw new Error(error.message); // 💡 THROW, no devuelvas { transactions: [], total: 0 }
-  }
+    if (error) {
+        console.error('Error al traer transacciones:', error);
+        throw new Error(error.message); 
+    }
 
-  return JSON.parse(JSON.stringify({ 
-      transactions: data, 
-      total: count || 0 
-  }));
+    // =================================================================
+    // ✂️ MOTOR DE APLANAMIENTO ESTRICTO EN EL SERVIDOR (CORREGIDO)
+    // =================================================================
+    interface TransactionItem {
+        id: string;
+        transaction_id: string;
+        category_id: string;
+        name: string | null;
+        description: string | null;
+        unit_price: number;
+        quantity: number;
+        category?: any;
+    }
+
+    interface DBTransaction {
+        id: string;
+        description: string | null;
+        amount: number;
+        type: string;
+        category_id: string | null;
+        date: string;
+        created_at: string;
+        category?: any;
+        items?: TransactionItem[]; 
+        [key: string]: any; 
+    }
+
+    let processedData: any[] = [];
+
+    if (data) {
+        if (filters?.categoryId) {
+            const transactions = (data as unknown) as DBTransaction[];
+
+            for (const tx of transactions) {
+                let addedAsChild = false;
+
+                if (tx.items && tx.items.length > 0) {
+                    const matchingItems = tx.items.filter((item: TransactionItem) => item.category_id === filters.categoryId);
+                    
+                    if (matchingItems.length > 0) {
+                        matchingItems.forEach((item: TransactionItem) => {
+                            processedData.push({
+                                ...tx,
+                                id: `${tx.id}-item-${item.id}`, 
+                                amount: Number(item.unit_price) * Number(item.quantity || 1), 
+                                category_id: item.category_id,
+                                category: item.category || tx.category,
+                                description: `${tx.description} ↳ ${item.name || 'Desglose'}`, 
+                                items: [], // Destruimos los hijos para que la UI no dibuje el acordeón
+                                is_split_child: true,
+                                type: 'expense' 
+                            });
+                        });
+                        addedAsChild = true; // Marcamos que ya procesamos esta rama
+                    }
+                }
+
+                if (!addedAsChild && tx.category_id === filters.categoryId) {
+                     processedData.push({ ...tx, items: [] });
+                }
+            }
+        } else {
+            processedData = data;
+        }
+    }
+
+    return JSON.parse(JSON.stringify({ 
+        transactions: processedData, 
+        total: filters?.categoryId ? processedData.length : (count || 0) 
+    }));
 }
 
 export async function getTransactionById(id: string) {
@@ -210,12 +300,12 @@ export async function updateTransaction(id: string, input: any) {
 
     const originalTransferAmount = parseFloat(input.amount);
 
-    if (input.type !== 'transfer' || 'payment') {
-        delete cleanInput.transfer_to_account_id
-        delete cleanInput.target_amount
-        delete cleanInput.exchange_rate
+    if (input.type !== 'transfer' && input.type !== 'payment') {
+        delete cleanInput.transfer_to_account_id;
+        delete cleanInput.target_amount;
+        delete cleanInput.exchange_rate;
     } else {
-        delete cleanInput.category_id 
+        delete cleanInput.category_id;
         cleanInput.amount = originalTransferAmount;
         cleanInput.target_amount = originalTransferAmount;
         items = []; 

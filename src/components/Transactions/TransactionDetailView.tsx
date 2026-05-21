@@ -19,8 +19,6 @@ export default function TransactionDetailView({
   const isIncome = transaction.type === 'income';
   const isTransfer = transaction.type === 'transfer';
 
-  // 💡 1. DICCIONARIO DE TEMAS (Color Coding)
-  // Definimos las paletas exactas para cada estado para mantener Tailwind feliz (sin interpolar strings)
   const theme = {
     expense: {
       icon: "bg-rose-500/10 text-rose-600 border-rose-200/50",
@@ -105,9 +103,7 @@ export default function TransactionDetailView({
             </div>
             
             {/* 💡 Flecha de traspaso tintada */}
-            <div className={cn("flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-background border shadow-sm", theme.badge)}>
-              <ArrowRight size={14} />
-            </div>
+              <ArrowRight size={14} className={cn("flex-shrink-0 flex items-center justify-center w-8 h-8 shadow-sm", theme.badge)}/>
             
             <div className="flex flex-col gap-1 w-full text-right">
               <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Destino</span>

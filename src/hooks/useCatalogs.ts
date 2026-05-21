@@ -11,13 +11,9 @@ import { useSearchParams } from 'next/navigation';
 import { getProfile, updateProfile } from '@/lib/actions/profile';
 import { toast } from 'sonner';
 import { ProfileUpdateInput } from '@/types';
-import { useYBankStore } from '@/store/useYBankStore';
 
-// Helper para comprobar si el navegador está offline de manera síncrona
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
 
-// 💡 0. EL GUARDIÁN DE ZONAS HORARIAS (Frontera Absoluta)
-// Corta cualquier hora o zona horaria, garantizando que todo sea estrictamente "YYYY-MM-DD" local.
 export const sanitizeDate = (rawDate: string | Date | null | undefined): string => {
   if (!rawDate) return new Date().toISOString().split('T')[0];
   
@@ -81,8 +77,7 @@ export function useAccounts() {
   });
 }
 
-// 💳 5. Hook para Transacciones (Paginación Real adaptada a Offline)
-// 💳 5. Hook para Transacciones (Con Interceptor de Normalización de Traspasos)
+// 💳 5. Hook para Transacciones (Con Escudo Protector de Aplanamiento)
 export function useTransactionsList(page: number = 1) {
   const filters = useFilterStore();
   const searchParams = useSearchParams();
@@ -95,36 +90,19 @@ export function useTransactionsList(page: number = 1) {
   const filterCategoryId = filters.categoryId || '';
   const filterStartDate = filters.startDate || '';
   const filterEndDate = filters.endDate || '';
+  const filterTagId = filters.tagId || '';    
+  const filterSearch = filters.search || '';  
 
   return useQuery({
-    queryKey: ['transactions', queryAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, page],
+    queryKey: ['transactions', queryAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, filterTagId, filterSearch, page],
     queryFn: async () => {
       
       // 🛑 MODO OFFLINE
       if (typeof window !== 'undefined' && !navigator.onLine) {
-        const baseKey = ['transactions', queryAccountId, '', '', '', '', 1];
+        const baseKey = ['transactions', queryAccountId, '', '', '', '', '', '', 1];
         const cachedBaseData: any = queryClient.getQueryData(baseKey);
-
         if (!cachedBaseData || !cachedBaseData.transactions) return { transactions: [], total: 0 };
-
-        let localTx = [...cachedBaseData.transactions];
-
-        // 💡 1. Aplicamos el disfraz también en modo offline
-        localTx = localTx.map(tx => {
-          let morphedType = tx.type;
-          if (queryAccountId && tx.type === 'transfer') {
-            if (tx.transfer_to_account_id === queryAccountId) morphedType = 'income';
-            else if (tx.account_id === queryAccountId) morphedType = 'expense';
-          }
-          return { ...tx, type: morphedType };
-        });
-
-        if (filterType) localTx = localTx.filter((tx: any) => tx.type === filterType);
-        if (filterCategoryId) localTx = localTx.filter((tx: any) => tx.category_id === filterCategoryId);
-        if (filterStartDate) localTx = localTx.filter((tx: any) => tx.date >= filterStartDate);
-        if (filterEndDate) localTx = localTx.filter((tx: any) => tx.date <= filterEndDate);
-
-        return { transactions: localTx, total: localTx.length };
+        return { transactions: cachedBaseData.transactions, total: cachedBaseData.transactions.length };
       }
 
       // 🟢 MODO ONLINE
@@ -133,6 +111,8 @@ export function useTransactionsList(page: number = 1) {
         ...(filters.categoryId && { categoryId: filters.categoryId }),
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
+        ...(filters.tagId && { tagId: filters.tagId }), 
+        ...(filters.search && { search: filters.search }),
       };
 
       const response = await getTransactions({
@@ -142,27 +122,36 @@ export function useTransactionsList(page: number = 1) {
         filters: activeFilters 
       });
 
-      // 💡 2. INTERCEPTOR DE LECTURA: El Disfraz
       if (response && response.transactions) {
         response.transactions = response.transactions.map((tx: any) => {
+          
+          // 🛡️ ESCUDO PROTECTOR: Si el servidor ya aplanó esto (ej. DGII de $1.50), lo pasamos intacto.
+          if (tx.is_split_child) {
+            return {
+              ...tx,
+              date: sanitizeDate(tx.date)
+              // No tocamos 'amount' ni 'type', respetamos la orden del servidor.
+            };
+          }
+
+          // 🔄 LÓGICA NORMAL PARA TRANSACCIONES RAÍZ
           let morphedType = tx.type;
           let finalAmount = tx.amount;
           
-          // Solo disfrazamos si estamos viendo una cuenta en específico (No en Global)
           if (queryAccountId && tx.type === 'transfer') {
             if (tx.transfer_to_account_id === queryAccountId) {
-              morphedType = 'income'; // Se disfraza de Ingreso
-              finalAmount = tx.target_amount || tx.amount; // 👈 Usamos lo que llegó limpio
+              morphedType = 'income';
+              finalAmount = tx.target_amount || tx.amount;
             } else if (tx.account_id === queryAccountId) {
-              morphedType = 'expense'; // Se disfraza de Gasto
+              morphedType = 'expense';
             }
           }
 
           return {
             ...tx,
-            type: morphedType,            // La UI ahora verá 'income' o 'expense'
-            original_type: tx.type,       // Guardamos la verdad por si la necesitamos luego
-            amount: finalAmount,          // Sobrescribimos el monto para la UI
+            type: morphedType,
+            original_type: tx.type,
+            amount: finalAmount,
             date: sanitizeDate(tx.date)
           };
         });
@@ -382,5 +371,20 @@ export function useSaveTag() {
       });
       toast.success('Etiqueta creada');
     }
+  });
+}
+
+export function useGlobalSearch(searchQuery: string) {
+  return useQuery({
+    queryKey: ['global-search', searchQuery],
+    queryFn: async () => {
+      return await getTransactions({
+        page: 1,
+        pageSize: 5, // Solo necesitamos un preview de 5 ítems para el modal
+        filters: { search: searchQuery } 
+      });
+    },
+    enabled: searchQuery.trim().length > 2 && typeof window !== 'undefined' && navigator.onLine,
+    staleTime: 1000 * 60 * 2, // Caché de 2 minutos
   });
 }

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Bell, Menu, X, 
-  LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle
+  LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle,
+  Loader2
 } from 'lucide-react';
 import { NavbarProps } from '@/types';
 import { useModalStore } from '@/store/useModalStore'; 
@@ -13,19 +14,39 @@ import GlobalSearch from './GlobalSearch';
 import { signOut } from '@/lib/actions/auth'; 
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGlobalSearch } from '@/hooks/useCatalogs'; // 👈 Importamos el nuevo hook
+import { SidebarLink } from '../SidebarLink';
 
-export default function Navbar({ user, accounts = [], transactions = [], tags = [] }: NavbarProps) {
+export default function Navbar({ user, accounts = [], transactions = [], tags = [], categories = [] }: NavbarProps) {
   
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   const [avatarError, setAvatarError] = useState(false); 
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState(''); // 💡 Estado para el retraso intencional
+
   const openModal = useModalStore(state => state.openModal);
   const queryClient = useQueryClient();
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
-    accounts: false, transactions: false, tags: false
+    accounts: false, transactions: false, tags: false, categories: false
   });
+
+  const [loadingPath, setLoadingPath] = useState<string | null>(null);
+
+  // =========================================================================
+  // 🧠 DEBOUNCE: Espera 300ms de inactividad antes de buscar en la BD
+  // =========================================================================
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // 💡 Ejecutamos el hook de búsqueda profunda
+  const { data: searchData } = useGlobalSearch(debouncedQuery);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,6 +64,11 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   }, []);
 
   useEffect(() => {
+    setLoadingPath(null);
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     if (isMobileMenuOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'auto';
     return () => { document.body.style.overflow = 'auto'; };
@@ -51,17 +77,45 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [] };
-    const query = searchQuery.toLowerCase();
+    if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [], categories: [] };
+    
+    const query = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cleanText = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const allFlatCategories = categories.flatMap(cat => [cat, ...(cat.subcategories || [])]);
+    const uniqueCategories = allFlatCategories.filter((cat, index, self) => self.findIndex(c => c.id === cat.id) === index);
+
+    // =========================================================================
+    // 📡 MODO OFFLINE: EL ESCÁNER DE CACHÉ PROFUNDO
+    // =========================================================================
+    const allCachedQueries = queryClient.getQueriesData({ queryKey: ['transactions'] });
+    let offlineTransactions: any[] = [...transactions]; 
+    
+    allCachedQueries.forEach(([_, data]: any) => {
+      if (data && data.transactions) {
+        offlineTransactions = [...offlineTransactions, ...data.transactions];
+      }
+    });
+
+    const uniqueOfflineTransactions = offlineTransactions.filter((tx, index, self) => 
+      self.findIndex(t => t.id === tx.id) === index
+    );
+
+    const isOnlineAndSearched = typeof navigator !== 'undefined' && navigator.onLine && debouncedQuery.length > 2 && searchData?.transactions;
+
     return {
-      accounts: accounts.filter(acc => acc.name.toLowerCase().includes(query)),
-      transactions: transactions.filter(tx =>
-        tx.description.toLowerCase().includes(query) ||
-        tx.category?.name.toLowerCase().includes(query)
-      ),
-      tags: tags.filter(tag => tag.name.toLowerCase().includes(query))
+      accounts: accounts.filter(acc => cleanText(acc.name).includes(query)),
+      tags: tags.filter(tag => cleanText(tag.name).includes(query)),
+      categories: uniqueCategories.filter(cat => cleanText(cat.name).includes(query)),
+      
+      transactions: isOnlineAndSearched
+        ? searchData.transactions 
+        : uniqueOfflineTransactions.filter(tx =>
+            cleanText(tx.description || '').includes(query) ||
+            (tx.category?.name && cleanText(tx.category.name).includes(query))
+          )
     };
-  }, [searchQuery, accounts, transactions, tags]);
+  }, [searchQuery, debouncedQuery, accounts, transactions, tags, categories, searchData, queryClient]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -73,12 +127,42 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
     await signOut(); 
   };
 
+  const handleNavigationClick = (e: React.MouseEvent, targetPath: string) => {
+    if (pathname === targetPath) {
+      e.preventDefault();
+      closeMenu();
+    } else {
+      setLoadingPath(targetPath);
+    }
+  };
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setTimeout(() => {
+      setSearchQuery('');
+      setDebouncedQuery('');
+    }, 150);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        closeSearch(); // 👈 Aquí
+        setIsMobileMenuOpen(false); 
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <>
       <header className="sticky top-0 z-[60] h-16 bg-card/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8 lg:px-12 border-b border-border transition-colors">
-
         <div className="flex items-center gap-3">
-          
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
             className="md:hidden p-2 -ml-2 text-foreground hover:bg-surface-2 rounded-[6px] transition-colors"
@@ -88,45 +172,30 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
           
           <div className="md:hidden flex flex-row items-center cursor-pointer"> 
             <Image 
-              src="/icons/logoY.svg" 
-              alt="YBank" 
-              width={24}
-              height={24}
-              priority
+              src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority
               className="w-[26px] h-auto object-contain dark:invert"
             />
-            <span className="text-foreground font-bold text-[24px] tracking-tighter">
-                Bank
-            </span>
+            <span className="text-foreground font-bold text-[24px] tracking-tighter">Bank</span>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
             <div className="w-9 h-9 rounded-[10px] overflow-hidden border border-border bg-surface-2 flex items-center justify-center text-primary font-bold text-sm shrink-0">
               {user?.avatarUrl && !avatarError ? (
-                <img 
-                  src={user.avatarUrl} 
-                  alt="Perfil" 
-                  className="w-full h-full object-cover" 
-                  onError={() => setAvatarError(true)} 
-                />
+                <img src={user.avatarUrl} alt="Perfil" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
               ) : (
                 <span>{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
               )}
             </div>
             <div className="flex flex-col">
-              <h1 className="text-xs font-bold text-foreground tracking-tight leading-none">
-                {user?.name || 'Operador'}
-              </h1>
+              <h1 className="text-xs font-bold text-foreground tracking-tight leading-none">{user?.name || 'Operador'}</h1>
               <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">
                 {new Date().toLocaleDateString('es-DO', { weekday: 'long', day: '2-digit', month: 'short' }).replace(',', '')}
               </p>
             </div>
           </div>
-
         </div>
 
         <div className="flex items-center gap-3 flex-1 justify-end">
-          
           <button onClick={() => setIsSearchOpen(true)} className="hidden md:flex relative items-center gap-2 bg-surface-2 border border-border rounded-[8px] py-1.5 px-3 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all w-full max-w-[220px]">
             <Search size={14} />
             <span className="text-xs font-medium">Búsqueda Global...</span>
@@ -139,7 +208,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
             <Search size={18} strokeWidth={2.5} />
           </button>
           
-          {/* 💡 FIX 1: Cambiamos de <Link href="..."> a <button onClick={() => openModal(...)}> en el header Desktop */}
           <button 
             onClick={() => openModal('account')}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-foreground text-background rounded-[8px] text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
@@ -154,6 +222,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         </div>
       </header>
 
+      {/* BACKDROP DEL MENÚ MÓVIL */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm md:hidden transition-opacity" 
@@ -161,21 +230,13 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         />
       )}
 
+      {/* MENÚ MÓVIL */}
       <div className={`fixed top-0 left-0 z-[210] h-[100dvh] w-[85%] max-w-[320px] bg-card border-r border-border transform transition-transform duration-300 ease-out md:hidden flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
         <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex flex-row items-center cursor-pointer" onClick={closeMenu}> 
-            <Image 
-              src="/icons/logoY.svg" 
-              alt="YBank" 
-              width={24}
-              height={24}
-              priority
-              className="w-[26px] h-auto object-contain dark:invert"
-            />
-            <span className="text-foreground font-bold text-[24px] tracking-tighter">
-                Bank
-            </span>
+            <Image src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority className="w-[26px] h-auto object-contain dark:invert" />
+            <span className="text-foreground font-bold text-[24px] tracking-tighter">Bank</span>
           </div>
           <button onClick={closeMenu} className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors">
             <X size={20} strokeWidth={2.5} />
@@ -187,34 +248,28 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
             Módulos Core
           </p>
           <SidebarLink 
-            href="/dashboard" 
-            label="Consola" 
-            icon={LayoutDashboard} 
+            href="/dashboard" label="Consola" icon={LayoutDashboard} 
             isActive={pathname === '/dashboard'} 
-            onClick={closeMenu} 
+            isLoading={loadingPath === '/dashboard'}
+            onClick={(e) => handleNavigationClick(e, '/dashboard')} 
           />
           <SidebarLink 
-            href="/accounts" 
-            label="Nodos" 
-            icon={Server} 
+            href="/accounts" label="Nodos" icon={Server} 
             isActive={pathname === '/accounts'} 
-            onClick={closeMenu} 
+            isLoading={loadingPath === '/accounts'}
+            onClick={(e) => handleNavigationClick(e, '/accounts')} 
           />
           <SidebarLink 
-            href="/settings" 
-            label="Preferencias" 
-            icon={Settings} 
+            href="/settings" label="Preferencias" icon={Settings} 
             isActive={pathname === '/settings'} 
-            onClick={closeMenu} 
+            isLoading={loadingPath === '/settings'}
+            onClick={(e) => handleNavigationClick(e, '/settings')} 
           />
         </nav>
 
         <div className="p-5 border-t border-border flex flex-col gap-4 shrink-0 bg-card pb-safe">
           
-          {/* 💡 FIX 2: Quitamos onClick={closeMenu} del div contenedor para evitar que cierre antes de abrir el modal */}
           <div className="grid grid-cols-2 gap-3">
-            
-            {/* 💡 FIX 3: Reemplazamos <Link> por <button> en el menú móvil para Operación */}
             <button 
               onClick={() => { closeMenu(); openModal('transaction'); }} 
               className="flex items-center justify-center gap-2 bg-foreground text-background font-bold rounded-[10px] transition-transform active:scale-95 text-xs py-2.5 shadow-sm"
@@ -222,7 +277,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               <PlusCircle size={14} /> Operación
             </button>
             
-            {/* 💡 FIX 4: Reemplazamos <Link> por <button> en el menú móvil para Nodo */}
             <button 
               onClick={() => { closeMenu(); openModal('account'); }} 
               className="flex items-center justify-center gap-2 bg-surface-2 border border-border text-foreground font-bold rounded-[10px] hover:border-primary/50 transition-all active:scale-95 text-xs py-2.5"
@@ -235,12 +289,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-[8px] overflow-hidden border border-border bg-card flex items-center justify-center text-primary font-bold text-xs shrink-0">
                 {user?.avatarUrl && !avatarError ? (
-                  <img 
-                    src={user.avatarUrl} 
-                    alt="Perfil" 
-                    className="w-full h-full object-cover" 
-                    onError={() => setAvatarError(true)} 
-                  />
+                  <img src={user.avatarUrl} alt="Perfil" className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
                 ) : (
                   <span>{user?.name?.charAt(0).toUpperCase() || 'O'}</span>
                 )}
@@ -266,7 +315,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
       <GlobalSearch
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={closeSearch}
         query={searchQuery}
         setQuery={setSearchQuery}
         results={searchResults}
@@ -274,31 +323,5 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         onToggleSection={toggleSection}
       />
     </>
-  );
-}
-
-interface SidebarLinkProps {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-function SidebarLink({ href, label, icon: Icon, isActive, onClick }: SidebarLinkProps) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`
-        flex items-center gap-3 px-4 py-3 rounded-[10px] transition-all duration-200 font-bold text-sm
-        ${isActive 
-          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm' 
-          : 'text-muted-foreground hover:text-foreground hover:bg-surface-2 border border-transparent'} 
-      `}
-    >
-      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-      <span>{label}</span>
-    </Link>
   );
 }
