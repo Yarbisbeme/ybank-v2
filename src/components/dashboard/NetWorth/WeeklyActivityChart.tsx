@@ -48,7 +48,11 @@ export default function WeeklyActivityChart({ transactions }: { transactions: Tr
         return txDateOnly === dayStr;
       });
 
-      const expenseTxs = dayTxs.filter(tx => tx.type === 'expense');
+      const expenseTxs = dayTxs.filter(tx => {
+        const isExpense = tx.type === 'expense';
+        const isExternalTransfer = tx.type === 'transfer' && !tx.transfer_to_account_id;
+        return isExpense || isExternalTransfer;
+      });
 
       return { 
         day: dayStr, 
