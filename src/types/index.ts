@@ -163,11 +163,14 @@ export interface EditCreateAccount {
   custom_text_theme: CustomTextTheme;
   current_balance: number;
   last_4_digits: string | null; 
-  institution: Institution; 
-  // 👇 NUEVOS CAMPOS AÑADIDOS
+  
+  institution?: Institution | null; // Opcional para poder usar Efectivo
+  institution_id?: string | null;   // Agregado para arreglar el error TS
   initial_balance?: number;
   expiry_date?: string | null;
-  credit_limit?: number | null;
+  credit_limit?: number | null;     // Para tarjetas de crédito
+  cutoff_day?: number | null;       // Para tarjetas de crédito
+  payoff_day?: number | null;       // Para tarjetas de crédito
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -175,7 +178,7 @@ export interface EditCreateAccount {
 
 export interface CreateAccountInput {
   name: string;
-  institution_id: string;
+  institution_id?: string | null;
   type: AccountType;
   currency: CurrencyCode;
   initial_balance: number;

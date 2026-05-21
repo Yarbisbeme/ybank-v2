@@ -182,3 +182,12 @@ export const breakdownTax = (finalPrice: number) => {
     total_price: finalPrice
   };
 };
+
+export const formatCurrency = (value: number | string) => {
+  const num = Number(value);
+  if (isNaN(num)) return '';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+};
