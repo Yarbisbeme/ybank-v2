@@ -12,7 +12,7 @@ interface UniversalModalProps {
   onClose: () => void;
 }
 
-export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl', onClose }: UniversalModalProps) {
+export default function UniversalModal({ children, title, maxWidth = 'max-w-4xl', onClose }: UniversalModalProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => { 
@@ -45,8 +45,6 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-2xl'
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={cn(
-              // Quitamos el bg-card de aquí para que el hijo dibuje el fondo, 
-              // pero FORZAMOS el corte de esquinas con overflow-hidden
               "relative w-full shadow-2xl flex flex-col overflow-hidden bg-background",
               "rounded-t-[20px] md:rounded-[12px] border border-border/50",
               "max-h-[95vh] md:max-h-[90vh]",

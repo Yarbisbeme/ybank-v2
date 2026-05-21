@@ -4,13 +4,11 @@ import { useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Zap, Loader2 } from 'lucide-react';
 import DesktopAccounts from './DesktopAccounts';
 import MobileWalletStack from './MobileWalletCard'; 
-import { useAccounts } from '@/hooks/useCatalogs'; // 💡 1. Importamos el hook maestro
+import { useAccounts } from '@/hooks/useCatalogs'; 
 
-// 💡 2. Eliminamos las Props. El componente ahora es autosuficiente.
 export default function AccountCarousel() {
   const desktopScrollRef = useRef<HTMLDivElement>(null);
   
-  // 💡 3. Consumimos los datos directamente de TanStack Query
   const { data: accounts = [], isLoading } = useAccounts();
 
   const scroll = (direction: 'left' | 'right') => {
@@ -43,7 +41,6 @@ export default function AccountCarousel() {
     return () => container.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // 💡 4. Estado de carga elegante (Skeleton)
   if (isLoading) {
     return (
       <div className="w-full h-[200px] bg-card/50 animate-pulse rounded-[10px] border border-border border-dashed flex flex-col items-center justify-center gap-2">
@@ -53,11 +50,10 @@ export default function AccountCarousel() {
     );
   }
 
-  // 💡 5. Manejo de estado vacío
   if (accounts.length === 0) return null;
 
   return (
-    <section className="relative w-full pb-8">
+    <section className="relative w-full sm:pb-8">
       
       {/* VERSIÓN ESCRITORIO */}
       <div className="hidden md:block">

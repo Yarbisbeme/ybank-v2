@@ -15,20 +15,29 @@ export const useYBankStore = create<YBankStore>()(
       setCurrency: (currency) => set({ currency }),
 
       updateRateContext: async (institutionId: string) => {
+        // 🛡️ ESCUDO 1: Si no hay ID válido (está cargando o es null), abortamos en silencio
+        if (!institutionId || typeof institutionId !== 'string') {
+          return;
+        }
+
         set({ isCalculatingRate: true }); 
+        
         try {
           const rateData = await getSmartRate(institutionId, 'sell'); 
-          set({ preferredRate: rateData });
+          
+          // 🛡️ ESCUDO 2: Solo actualizamos si el servidor nos devolvió algo válido
+          if (rateData) {
+             set({ preferredRate: rateData });
+          }
         } catch (error) {
-          console.error("Error al sincronizar Tasa YBANK:", error);
+          console.warn("⚠️ No se pudo sincronizar la Tasa YBANK (Posible transición de Auth).");
         } finally {
           set({ isCalculatingRate: false }); 
         }
       },
     }),
     {
-      name: 'ybank-zustand-storage', // Guarda la moneda y la cuenta en localStorage
-      // No persistimos la tasa ni el estado de carga
+      name: 'ybank-zustand-storage', 
       partialize: (state) => ({ 
         currency: state.currency, 
         preferredAccountId: state.preferredAccountId 

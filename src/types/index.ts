@@ -126,6 +126,16 @@ export interface NavbarProps {
   accounts?: Account[];
   transactions?: Transaction[];
   tags?: Tag[];
+  categories?: Category[];
+}
+
+export interface SidebarLinkProps {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  isActive: boolean;
+  isLoading: boolean;
+  onClick: (e: React.MouseEvent) => void;
 }
 
 export interface GlobalSearchProps {
@@ -137,6 +147,7 @@ export interface GlobalSearchProps {
     accounts: Account[];
     transactions: Transaction[];
     tags: Tag[];
+    categories: Category[];
   };
   expanded: { [key: string]: boolean };
   onToggleSection: (section: string) => void;
@@ -152,11 +163,14 @@ export interface EditCreateAccount {
   custom_text_theme: CustomTextTheme;
   current_balance: number;
   last_4_digits: string | null; 
-  institution: Institution; 
-  // 👇 NUEVOS CAMPOS AÑADIDOS
+  
+  institution?: Institution | null; // Opcional para poder usar Efectivo
+  institution_id?: string | null;   // Agregado para arreglar el error TS
   initial_balance?: number;
   expiry_date?: string | null;
-  credit_limit?: number | null;
+  credit_limit?: number | null;     // Para tarjetas de crédito
+  cutoff_day?: number | null;       // Para tarjetas de crédito
+  payoff_day?: number | null;       // Para tarjetas de crédito
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -164,7 +178,7 @@ export interface EditCreateAccount {
 
 export interface CreateAccountInput {
   name: string;
-  institution_id: string;
+  institution_id?: string | null;
   type: AccountType;
   currency: CurrencyCode;
   initial_balance: number;
@@ -274,12 +288,14 @@ export interface ModalState {
 }
 
 export interface FilterState {
-  type: string | null;
+  type: 'income' | 'expense' | 'transfer' | null;
   categoryId: string | null;
   tagId: string | null;
+  accountId: string | null;
   startDate: string | null;
   endDate: string | null;
-  setFilter: (key: keyof Omit<FilterState, 'setFilter' | 'clearFilters'>, value: string | null) => void;
+  search: string | null;
+  setFilter: (key: string, value: any) => void;
   clearFilters: () => void;
 }
 
@@ -290,6 +306,7 @@ export interface ProfileUpdateInput {
   primary_account_id?: string;
   theme_preference?: string;
   monthly_savings_goal?: string | number;
+  theme?: 'light' | 'dark' | 'auto';
   onboarding_completed?: boolean;
 }
 

@@ -77,7 +77,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     console.warn("📡 Layout: Modo Offline. Se enviará un initialData vacío.");
   }
 
-  // 3. Preparar UI básica (Navbar)
   const navbarUser = {
     name: user?.user_metadata?.full_name || user?.email || 'Usuario',
     email: user?.email || '',
@@ -88,31 +87,36 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <DashboardProviders 
       initialData={initialData}
       primaryAccountId={profile.primary_account_id}
-      institutionId={null} // Se puede calcular en el cliente
+      institutionId={null}
     >
       <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
         
+        {/* BARRA LATERAL (DESKTOP) */}
         <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-border bg-card">
           <Sidebar />
         </aside>
 
+        {/* CONTENEDOR PRINCIPAL */}
         <div className="flex flex-col flex-1 min-w-0 h-full">
           <Navbar 
             user={navbarUser} 
             accounts={initialData.accounts} 
             transactions={initialData.transactions} 
             tags={initialData.tags} 
+            categories={initialData.categories}
           />
           
-          {/* 💡 AÑADIMOS overflow-x-hidden AQUÍ */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
-            <div className="max-w-[1400px] mx-auto w-full">
+          <main className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
+            
+            <div className="grow max-w-[1400px] mx-auto w-full">
               {children}
             </div>
+            
             <PWAFooter />
           </main>
         </div>
       </div>
     </DashboardProviders>
   );
+
 }

@@ -9,22 +9,53 @@ import { useAccounts } from '@/hooks/useCatalogs';
 export default function CreditHealthBento() {
   const { currency, preferredRate } = useYBankStore();
   
-  // 💡 2. Consumimos los datos de la caché global
+  // Consumimos los datos de la caché global
   const { data: accounts = [], isLoading } = useAccounts();
 
-  const creditStats = useMemo(() => {
-    // 1. Filtramos tarjetas
-    const cards = accounts.filter(a => a.type === 'credit_card' && a.is_active);
-    if (cards.length === 0) return null;
+  // 💡 1. Separamos el filtro de tarjetas para poder usarlo en las validaciones
+  const cards = useMemo(() => accounts.filter(a => a.type === 'credit_card' && a.is_active), [accounts]);
 
-    // 2. Métricas
-    const totalLimit = cards.reduce((sum, a) => sum + (Number(a.credit_limit) || 0), 0);
-    const totalUsed = cards.reduce((sum, a) => sum + Math.abs(Number(a.current_balance) || 0), 0);
+  // 💡 2. VALIDACIÓN DE SEGURIDAD: ¿Necesitamos la tasa de cambio?
+  // Verificamos si alguna de las tarjetas tiene una moneda diferente a la moneda global elegida.
+  const hasMixedCurrencies = cards.some(c => c.currency !== currency);
+  
+  // Si hay monedas mezcladas, pero Zustand aún no nos ha entregado la tasa, estamos ciegos.
+  const isWaitingForRate = hasMixedCurrencies && (!preferredRate || !preferredRate.rate);
+
+  // 💡 3. Actualizamos la condición de carga para incluir la espera de la tasa de cambio
+  const isActuallyLoading = (isLoading && accounts.length === 0) || isWaitingForRate;
+
+  const creditStats = useMemo(() => {
+    // Si estamos cargando o esperando la tasa, no calculamos nada aún para evitar números locos
+    if (cards.length === 0 || isWaitingForRate) return null;
+
+    let totalLimit = 0;
+    let totalUsed = 0;
+
+    cards.forEach(card => {
+      let rateMultiplier = 1;
+      
+      // Si entra aquí, estamos 100% seguros de que preferredRate.rate existe
+      if (preferredRate && preferredRate.rate) {
+        if (currency === 'DOP' && card.currency === 'USD') {
+          rateMultiplier = preferredRate.rate; 
+        } else if (currency === 'USD' && card.currency === 'DOP') {
+          rateMultiplier = 1 / preferredRate.rate; 
+        }
+      }
+
+      const limit = Number(card.credit_limit) || 0;
+      totalLimit += (limit * rateMultiplier);
+
+      const balance = Number(card.current_balance) || 0;
+      if (balance < 0) {
+         totalUsed += (Math.abs(balance) * rateMultiplier);
+      }
+    });
+
     const totalAvailable = totalLimit - totalUsed;
-    
     const utilization = totalLimit > 0 ? Math.round((totalUsed / totalLimit) * 100) : 0;
     
-    // 3. Próximo Corte
     const today = new Date().getDate();
     const nearestCutoff = cards.reduce((prev, curr) => {
       const day = curr.cutoff_day || 30;
@@ -33,9 +64,7 @@ export default function CreditHealthBento() {
     }, 31);
 
     return { utilization, nearestCutoff, totalAvailable, cardCount: cards.length };
-  }, [accounts]);
-
-  const isActuallyLoading = isLoading && accounts.length === 0;
+  }, [cards, currency, preferredRate, isWaitingForRate]);
 
   if (isActuallyLoading) {
     return (
@@ -55,14 +84,11 @@ export default function CreditHealthBento() {
     );
   }
 
-  // Conversión de moneda
-  const displayAvailable = currency === 'USD' && preferredRate 
-    ? creditStats.totalAvailable / preferredRate.rate 
-    : creditStats.totalAvailable;
-
+  // 💡 FIX: Como ya unificamos todas las monedas dentro del useMemo en base al 'currency' global, 
+  // ya no necesitamos hacer la conversión aquí abajo. El totalAvailable ya está en la moneda correcta.
   const formattedAvailable = new Intl.NumberFormat('en-US', { 
     style: 'currency', currency: currency, minimumFractionDigits: 0
-  }).format(displayAvailable);
+  }).format(creditStats.totalAvailable);
 
   const isHealthy = creditStats.utilization <= 30;
   const isWarning = creditStats.utilization > 30 && creditStats.utilization < 60;
