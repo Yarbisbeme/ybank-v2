@@ -53,7 +53,7 @@ export default function AccountCarousel() {
   if (accounts.length === 0) return null;
 
   return (
-    <section className="relative w-full sm:pb-8">
+    <section className="relative w-full">
       
       {/* VERSIÓN ESCRITORIO */}
       <div className="hidden md:block">

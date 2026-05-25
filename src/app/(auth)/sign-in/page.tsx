@@ -60,8 +60,6 @@ export default function SignIn() {
       }
     } catch (error) {
       toast.error("Ocurrió un error inesperado");
-    } finally {
-      setLoading(false);
     }
   };
 

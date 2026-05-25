@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation'; 
 import UniversalCard from '../Tarjetas/UniversalCard';
-import { cn } from '@/lib/utils'; // Asegúrate de tener tu helper cn o usa strings normales
 
 export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
 

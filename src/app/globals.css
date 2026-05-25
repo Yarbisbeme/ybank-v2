@@ -4,59 +4,60 @@
 @custom-variant dark (&:is(.dark *));
 
 /* --------------------------------------------------
-   1. VARIABLES DE TEMA – FINTECH 2026
+   1. VARIABLES DE TEMA – YBANK FINTECH 2026
 -------------------------------------------------- */
 @theme {
   /* Tipografías */
   --font-inter: var(--font-inter);
   --font-ibm-plex-serif: var(--font-ibm-plex-serif);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-mono: var(--font-jetbrains-mono); /* Asegura que apunte a DM Mono si lo cambiaste en tu layout */
 
-  /* Colores base semánticos */
-  --color-primary-500: #2563EB;
+  /* Colores base semánticos (Identidad YBANK) */
+  --color-primary-500: #2563EB; /* Electric Blue */
   --color-primary-600: #1D4ED8;
   --color-primary-700: #1E40AF;
 
   --color-surface-0: #FFFFFF;
-  --color-surface-1: #F9FAFB;
-  --color-surface-2: #F2F4F7;
+  --color-surface-1: #F5F5F4; /* Off White Base */
+  --color-surface-2: #E5E7EB; 
 
-  --color-border-soft: rgba(16, 24, 40, 0.08);
-  --color-border-strong: rgba(16, 24, 40, 0.16);
+  --color-border-soft: rgba(17, 24, 39, 0.08); /* Basado en Near Black */
+  --color-border-strong: rgba(17, 24, 39, 0.16);
 
   /* Texto */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475467;
-  --color-text-muted: #667085;
+  --color-text-primary: #111827; /* Near Black */
+  --color-text-secondary: #6B7280; /* Muted Gray */
+  --color-text-muted: #9CA3AF;
 
   /* Estados */
   --color-success-600: #039855;
+  --color-success-dark: #4ADE80; /* Success Green (Contexto Dark) */
   --color-danger-600: #D92D20;
   --color-warning-600: #DC6803;
 
-  /* Gradientes refinados */
+  /* Gradientes refinados YBANK */
   --image-bank-gradient: linear-gradient(
     135deg,
-    #2563EB 0%,
-    #3B82F6 50%,
-    #60A5FA 100%
+    #111827 0%, /* Near Black */
+    #1F2937 100%
   );
 
   /* Glass */
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-bg: rgba(245, 245, 244, 0.65); /* Off White translúcido */
+  --glass-border: rgba(17, 24, 39, 0.1);
 
-  /* Sombras modernas */
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-sm: 0 2px 6px rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 8px 20px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.12);
+  /* Sombras modernas (Ajustadas a Near Black) */
+  --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-sm: 0 2px 6px rgba(17, 24, 39, 0.06);
+  --shadow-md: 0 8px 20px rgba(17, 24, 39, 0.08);
+  --shadow-lg: 0 16px 40px rgba(17, 24, 39, 0.12);
 
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* Radius (Calculado para cuadrar con Shadcn) */
+  --radius-sm: 4px;  /* Inline */
+  --radius-md: 8px;  /* Elementos / Botones */
+  --radius-lg: 12px; /* Cards */
+  --radius-xl: 16px;
+  --radius-full: 9999px; /* Avatares 50% */
 
   /* Transiciones */
   --transition-fast: 150ms ease;
@@ -64,7 +65,7 @@
 }
 
 /* --------------------------------------------------
-   2. UTILIDADES AVANZADAS
+   2. UTILIDADES AVANZADAS YBANK
 -------------------------------------------------- */
 
 input::-webkit-outer-spin-button,
@@ -78,7 +79,7 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Glass moderno (usable en cards, modals, headers) */
+/* Glass moderno */
 .glassmorphism {
   background: var(--glass-bg);
   backdrop-filter: blur(14px) saturate(120%);
@@ -87,7 +88,7 @@ input[type="number"] {
   box-shadow: var(--shadow-sm);
 }
 
-/* Card base bancaria */
+/* Card base bancaria YBANK */
 .bank-card {
   background: var(--color-surface-0);
   border-radius: var(--radius-lg);
@@ -101,10 +102,10 @@ input[type="number"] {
   transform: translateY(-2px);
 }
 
-/* Botón primario */
+/* Botón primario (Near Black) */
 .btn-primary {
-  background: var(--image-bank-gradient);
-  color: white;
+  background: #111827;
+  color: #F5F5F4;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-xs);
   transition: transform var(--transition-fast),
@@ -114,6 +115,7 @@ input[type="number"] {
 .btn-primary:hover {
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
+  background: #1F2937;
 }
 .btn-primary:active {
   transform: translateY(0);
@@ -131,20 +133,51 @@ input[type="number"] {
 
   body {
     font-family: var(--font-inter);
-    background-color: var(--color-surface-1);
-    color: var(--color-text-primary);
+    background-color: var(--background);
+    color: var(--foreground);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
-  h1, h2, h3, h4 {
+  /* 💡 JERARQUÍA TIPOGRÁFICA YBANK */
+  h1, .text-display {
+    font-size: clamp(2.25rem, 4vw, 3rem); /* 36px - 48px */
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  h2, .text-section {
+    font-size: clamp(1.375rem, 3vw, 1.75rem); /* 22px - 28px */
+    font-weight: 500;
     letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  p, .text-body {
+    font-size: clamp(0.875rem, 1vw, 1rem); /* 14px - 16px */
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+
+  .text-mono {
+    font-family: var(--font-mono);
+    font-size: clamp(0.75rem, 1vw, 0.8125rem); /* 12px - 13px */
+    font-weight: 400;
+  }
+
+  .text-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   input, select, textarea {
-    background-color: var(--color-surface-0);
-    border: 1px solid var(--color-border-soft);
-    border-radius: var(--radius-sm);
+    background-color: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md); /* 8px según spec */
     transition: border-color var(--transition-fast),
                 box-shadow var(--transition-fast);
   }
@@ -153,19 +186,16 @@ input[type="number"] {
   select:focus,
   textarea:focus {
     outline: none;
-    border-color: var(--color-primary-500);
+    border-color: var(--color-primary-500); /* Electric Blue para focus */
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
   }
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-sm: calc(var(--radius) - 4px); /* 4px */
+  --radius-md: var(--radius);             /* 8px */
+  --radius-lg: calc(var(--radius) + 4px); /* 12px */
+  --radius-xl: calc(var(--radius) + 8px); /* 16px */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -184,116 +214,92 @@ input[type="number"] {
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* 💡 CORRECCIÓN DE COLORES PARA ANIMACIONES FLUIDAS (HEX en lugar de OKLCH) */
+/* 💡 VARIABLES SHADCN CON IDENTIDAD YBANK */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem; /* 8px Base Elementos */
   
-  --background: #ffffff;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --popover: #ffffff;
-  --popover-foreground: #09090b;
+  --background: #F5F5F4; /* Off White */
+  --foreground: #111827; /* Near Black */
   
-  --primary: #09090b;          /* 👈 Reemplazo de oklch(0.205 0 0) */
-  --primary-foreground: #fafafa;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
   
-  --secondary: #f4f4f5;
-  --secondary-foreground: #09090b; /* 👈 Reemplazo de oklch(0.205 0 0) */
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
   
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  /* Botón Primario: Near Black */
+  --primary: #111827;
+  --primary-foreground: #F5F5F4;
   
-  --accent: #f4f4f5;
-  --accent-foreground: #09090b;   /* 👈 Reemplazo de oklch(0.205 0 0) */
+  /* Acentos y CTAs: Electric Blue */
+  --secondary: #E5E7EB;
+  --secondary-foreground: #111827;
+  
+  --muted: #E5E7EB;
+  --muted-foreground: #6B7280; /* Muted Gray */
+  
+  --accent: #2563EB; /* Electric Blue */
+  --accent-foreground: #FFFFFF;
   
   --destructive: #ef4444;
   
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #a1a1aa;
+  --border: rgba(17, 24, 39, 0.08); /* Near black al 8% */
+  --input: #FFFFFF;
+  --ring: #2563EB; /* Electric Blue focus ring */
   
-  /* Mantengo los gráficos en OKLCH porque normalmente no se animan, 
-     pero si fallan, me avisas y los convertimos */
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  
-  --sidebar: #fafafa;
-  --sidebar-foreground: #09090b;
-  --sidebar-primary: #09090b;     /* 👈 Reemplazo de oklch(0.205 0 0) */
-  --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #09090b; /* 👈 Reemplazo de oklch(0.205 0 0) */
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #a1a1aa;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #111827;
+  --sidebar-primary-foreground: #F5F5F4;
+  --sidebar-accent: #F5F5F4;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: rgba(17, 24, 39, 0.08);
+  --sidebar-ring: #2563EB;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #09090b;             /* 👈 Reemplazo de oklch(0.205 0 0) */
-  --card-foreground: #fafafa;
-  --popover: #09090b;          /* 👈 Reemplazo de oklch(0.205 0 0) */
-  --popover-foreground: #fafafa;
+  --background: #0F172A; /* Terminal Dark */
+  --foreground: #F5F5F4; /* Off White */
   
-  --primary: #fafafa;
-  --primary-foreground: #09090b;  /* 👈 Reemplazo de oklch(0.205 0 0) */
+  --card: #111827; /* Near Black para cards oscuras */
+  --card-foreground: #F5F5F4;
   
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
+  --popover: #111827;
+  --popover-foreground: #F5F5F4;
   
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
+  --primary: #2563EB; /* Electric Blue para botones primarios en Dark */
+  --primary-foreground: #FFFFFF;
   
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
+  --secondary: #1F2937;
+  --secondary-foreground: #F5F5F4;
+  
+  --muted: #1F2937;
+  --muted-foreground: #9CA3AF;
+  
+  --accent: #2563EB; /* Electric Blue */
+  --accent-foreground: #FFFFFF;
   
   --destructive: #7f1d1d;
   
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.15);
-  --ring: #a1a1aa;
+  --border: rgba(245, 245, 244, 0.1);
+  --input: rgba(17, 24, 39, 0.5); /* Cajas de texto súper oscuras */
+  --ring: #2563EB;
   
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  
-  --sidebar: #09090b;          /* 👈 Reemplazo de oklch(0.205 0 0) */
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #8b5cf6;
-  --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #a1a1aa;
+  --sidebar: #0F172A;
+  --sidebar-foreground: #F5F5F4;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #111827;
+  --sidebar-accent-foreground: #F5F5F4;
+  --sidebar-border: rgba(245, 245, 244, 0.1);
+  --sidebar-ring: #2563EB;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }
 
@@ -302,7 +308,6 @@ input[type="number"] {
 -------------------------------------------------- */
 
 @layer utilities {
-  /* 💡 FORZAR OCULTAMIENTO TOTAL */
   .scrollbar-hide {
     -ms-overflow-style: none !important;  /* IE and Edge */
     scrollbar-width: none !important;     /* Firefox */
@@ -315,7 +320,6 @@ input[type="number"] {
   }
 }
 
-/* 💡 Aplicar globalmente al body para el scroll vertical de la página */
 @layer base {
   body {
     -ms-overflow-style: none;

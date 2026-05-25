@@ -11,13 +11,11 @@ interface EditableCardProps {
   institutions?: Institution[]; 
 }
 
-const YBANK_PALETTE = [
+const YBANK_PALETTE_ACCOUNT = [
   '#09090b', '#1e293b', '#172554', '#2563eb', '#059669', 
   '#e11d48', '#d97706', '#7c3aed', '#0891b2', '#4c1d95',
 ];
 
-// 🏗️ PILAR 1: DICCIONARIO DE CONFIGURACIÓN (Configuration over Logic)
-// Define exactamente cómo se comporta cada tipo de cuenta según tu base de datos
 const ACCOUNT_TYPE_CONFIG: Record<string, { 
   requiresInstitution: boolean; 
   showCardDetails: boolean; 
@@ -139,7 +137,6 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
       onChange('expiry_date', null);
     }
 
-    // Si cambiamos de cuenta activa a pasiva (o viceversa), reseteamos a 0 para evitar bugs de signos
     if (config.isPassive !== newConfig.isPassive) {
       onChange('current_balance', 0);
       onChange('initial_balance', 0);
@@ -148,8 +145,6 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
     setIsTypeMenuOpen(false);
   };
 
-  // 🧠 PILAR 3: EL ESPEJISMO DEL BALANCE
-  // La UI siempre muestra números positivos. La lógica guarda negativos si es 'credit_card'
   const displayBalance = data.current_balance !== undefined && data.current_balance !== null 
     ? Math.abs(Number(data.current_balance)) 
     : '';
@@ -442,7 +437,7 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
               </div>
               
               <div className="grid grid-cols-5 gap-2.5 mb-4">
-                {YBANK_PALETTE.map((presetColor) => (
+                {YBANK_PALETTE_ACCOUNT.map((presetColor) => (
                   <button
                     key={presetColor}
                     type="button"

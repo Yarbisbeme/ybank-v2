@@ -116,55 +116,58 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
       style={{ backgroundColor: finalColor }}
     >
       {/* 💡 YBANK Style: Redujimos la opacidad general de los patrones al 10% (Marca de agua) */}
-      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 z-0 mix-blend-overlay opacity-80 pointer-events-none overflow-hidden">
         
-        {/* --- 🌊 WAVES: Líneas más finas --- */}
+        {/* --- 🌊 WAVES (Ondas de Fluidez Financiera) --- */}
         {finalPattern === 'waves' && (
-          <>
-            <div className="absolute -bottom-[40%] -right-[10%] w-[140%] h-[140%] rounded-full border-[8px] border-white/30" />
-            <div className="absolute -bottom-[20%] -right-[0%] w-[100%] h-[100%] rounded-full border-[4px] border-white/40" />
-          </>
+          <div className="absolute inset-0 mix-blend-overlay opacity-30">
+            <div className="absolute -bottom-[60%] -right-[20%] w-[150%] h-[150%] rounded-full border-[2px] border-white" />
+            <div className="absolute -bottom-[40%] -right-[10%] w-[120%] h-[120%] rounded-full border-[1px] border-white/50" />
+            <div className="absolute -bottom-[20%] right-[0%] w-[90%] h-[90%] rounded-full border-[0.5px] border-white/30" />
+          </div>
         )}
         
-        {/* --- 🧊 GEOMETRIC: Bordes más afilados --- */}
+        {/* --- 🧊 GEOMETRIC (Bloques / Estabilidad) --- */}
         {finalPattern === 'geometric' && (
-          <>
-            <div className="absolute top-[10%] left-[5%] w-24 h-24 bg-white/20 rounded-lg rotate-[15deg] backdrop-blur-sm border border-white/30" />
-            <div className="absolute bottom-[10%] right-[10%] w-32 h-32 border-[2px] border-white/30 rounded-2xl rotate-[35deg]" />
-            <div className="absolute top-[40%] right-[15%] w-16 h-16 border border-white/20 rounded-lg -rotate-12" />
-          </>
-        )}
-
-        {/* --- 🌌 MESH --- */}
-        {finalPattern === 'mesh' && (
-          <>
-            <div className="absolute top-[-30%] left-[-10%] w-[80%] h-[80%] bg-white/40 rounded-full blur-[60px]" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[80%] bg-white/30 rounded-full blur-[50px]" />
-          </>
-        )}
-
-        {/* --- 🏎️ LINES: Estilo código de barras / velocidad --- */}
-        {finalPattern === 'lines' && (
-          <div className="absolute inset-0 flex gap-8 -skew-x-[20deg] scale-150 -translate-x-12 opacity-80">
-            <div className="w-16 h-full bg-gradient-to-b from-white/30 to-transparent" />
-            <div className="w-8 h-full bg-gradient-to-b from-white/15 to-transparent" />
-            <div className="w-32 h-full bg-gradient-to-b from-white/40 to-white/5" />
-            <div className="w-4 h-full bg-gradient-to-b from-white/20 to-transparent" />
+          <div className="absolute inset-0 mix-blend-overlay opacity-25">
+            <div className="absolute top-[15%] left-[5%] w-24 h-24 bg-white/20 rounded-lg rotate-[15deg] backdrop-blur-sm" />
+            <div className="absolute bottom-[10%] right-[10%] w-32 h-32 border-[1.5px] border-white rounded-2xl rotate-[35deg]" />
+            <div className="absolute top-[40%] right-[20%] w-12 h-12 border border-white/50 rounded-md -rotate-12" />
           </div>
         )}
 
-        {/* --- 🔘 DOTS: Grid técnico --- */}
+        {/* --- 🌌 MESH (Nube de Datos / Dinamismo) --- */}
+        {finalPattern === 'mesh' && (
+          <div className="absolute inset-0 mix-blend-overlay opacity-40">
+            <div className="absolute top-[-30%] left-[-10%] w-[80%] h-[80%] bg-white rounded-full blur-[60px]" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[80%] bg-white/60 rounded-full blur-[50px]" />
+            <div className="absolute top-[30%] left-[40%] w-[40%] h-[40%] bg-black/20 rounded-full blur-[40px]" /> {/* Contraste interno */}
+          </div>
+        )}
+
+        {/* --- 🏎️ LINES (Velocidad / Transacciones al Instante) --- */}
+        {finalPattern === 'lines' && (
+          <div className="absolute inset-0 flex gap-4 -skew-x-[25deg] scale-150 -translate-x-12 mix-blend-overlay opacity-20">
+            <div className="w-12 h-full bg-gradient-to-b from-white to-transparent" />
+            <div className="w-4 h-full bg-white/60" />
+            <div className="w-24 h-full bg-gradient-to-t from-white to-white/10" />
+            <div className="w-2 h-full bg-white/40" />
+            <div className="w-16 h-full bg-gradient-to-b from-white/80 to-transparent" />
+          </div>
+        )}
+
+        {/* --- 🔘 DOTS (Precisión / Auditoría) --- */}
         {finalPattern === 'dots' && (
           <div 
-            className="absolute inset-0 opacity-100"
+            className="absolute inset-0 mix-blend-overlay opacity-30"
             style={{
-              backgroundImage: isDarkText 
-                ? 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.4) 1px, transparent 0)' 
-                : 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.5) 1px, transparent 0)',
-              backgroundSize: '16px 16px'
+              backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+              backgroundSize: '12px 12px'
             }}
           />
         )}
+        
+        {/* SOLID: No requiere código adicional, es el fondo liso */}
         
         {/* Viñeta sutil */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/20" />

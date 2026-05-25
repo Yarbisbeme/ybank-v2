@@ -106,12 +106,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             categories={initialData.categories}
           />
           
-          <main className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden p-6 md:px-4 scrollbar-hide">
+          <main className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden md:pt-6 md:pb-0 scrollbar-hide">
             
-            <div className="grow max-w-[1400px] mx-auto w-full">
+            <div className="grow max-w-[1400px] mx-auto w-full px-4">
               {children}
             </div>
-            
             <PWAFooter />
           </main>
         </div>

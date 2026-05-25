@@ -10,7 +10,6 @@ interface DetailsProps {
 }
 
 export default function AccountDetailsPanel({ data, onChange, isEditing }: DetailsProps) {
-  // 💡 Mantenemos los tokens de diseño YBANK
   const inputClasses = "w-full bg-surface-2 border border-border rounded-[10px] px-4 py-3 text-sm font-bold text-foreground outline-none focus:border-primary transition-all";
   const labelClasses = "text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block";
 
@@ -23,7 +22,6 @@ export default function AccountDetailsPanel({ data, onChange, isEditing }: Detai
         return;
     }
     
-    // Limitar rango entre 1 y 31
     let clamped = Math.min(Math.max(num, 1), 31);
     onChange('cutoff_day', clamped);
   };

@@ -36,7 +36,7 @@ export default function PWAFooter() {
   };
 
   return (
-    <footer className="w-full pt-4 px-4 border-t border-border bg-card/50 backdrop-blur-md mt-auto">
+    <footer className="w-full p-4 border-t border-border bg-card/50 backdrop-blur-md mt-auto">
       <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         
         {/* Info de la Compañía */}

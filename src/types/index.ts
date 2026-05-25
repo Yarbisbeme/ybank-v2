@@ -9,7 +9,7 @@ export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' 
 export type CurrencyCode = 'DOP' | 'USD';
 // 💡 Corrección: PascalCase
 export type CustomTextTheme = 'light' | 'dark';
-export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots';
+export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots' | 'curve';
 export type operation = 'buy' | 'sell'
 
 // ==========================================
