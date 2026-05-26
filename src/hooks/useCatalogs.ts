@@ -188,6 +188,7 @@ export function useUpdateProfile() {
     },
     onSuccess: (response) => {
       queryClient.setQueryData(['user-profile'], response.data);
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
     },
   });
 }

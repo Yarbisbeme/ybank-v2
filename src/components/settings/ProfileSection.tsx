@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 
 interface ProfileData {
   fullName: string
-  email: string
   phone: string
   bio: string
 }
@@ -23,7 +22,6 @@ export default function ProfileSection() {
 
   const [formData, setFormData] = useState<ProfileData>({
     fullName: '',
-    email: '',
     phone: '',
     bio: ''
   })
@@ -33,7 +31,6 @@ export default function ProfileSection() {
     if (profileData) {
       setFormData({
         fullName: profileData.full_name || profileData.name || '',
-        email: profileData.email || '',
         phone: profileData.phone || '',
         bio: profileData.bio || ''
       })
@@ -51,8 +48,6 @@ export default function ProfileSection() {
       full_name: formData.fullName,
       phone: formData.phone,
       bio: formData.bio
-      // Nota: El email suele estar protegido por Auth en Supabase, 
-      // confírmalo con tu backend si permites actualizarlo directamente.
     }
 
     updateProfile(payload, {
@@ -71,7 +66,6 @@ export default function ProfileSection() {
     if (profileData) {
       setFormData({
         fullName: profileData.full_name || profileData.name || '',
-        email: profileData.email || '',
         phone: profileData.phone || '',
         bio: profileData.bio || ''
       })
@@ -112,21 +106,6 @@ export default function ProfileSection() {
               onChange={handleInputChange}
               disabled={!isEditing || isSaving}
               className="w-full px-3 py-2.5 border border-border rounded-[8px] bg-background disabled:opacity-50 disabled:bg-surface-2/50 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none text-sm font-medium"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Email <span className="text-[9px] font-normal tracking-normal text-muted-foreground/70 ml-1">(Identidad)</span>
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              // El email suele bloquearse porque Supabase requiere un flujo de verificación doble para cambiarlo
-              disabled={true} 
-              className="w-full px-3 py-2.5 border border-border rounded-[8px] bg-surface-2/50 opacity-70 cursor-not-allowed outline-none text-sm font-medium text-muted-foreground"
             />
           </div>
 

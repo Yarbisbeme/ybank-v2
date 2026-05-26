@@ -25,12 +25,22 @@ export async function updateProfile(payload: ProfileUpdateInput) {
   
   if (!user) return { success: false, error: 'No autorizado' }
 
+  const updateData: any = {
+    updated_at: new Date().toISOString()
+  };
+
+  if (payload.full_name !== undefined) updateData.full_name = payload.full_name;
+  if (payload.avatar_url !== undefined) updateData.avatar_url = payload.avatar_url;
+  if (payload.currency_preference !== undefined) updateData.currency_preference = payload.currency_preference;
+  if (payload.theme_preference !== undefined) updateData.theme_preference = payload.theme_preference;
+  
+  if (payload.primary_account_id !== undefined) {
+    updateData.primary_account_id = payload.primary_account_id;
+  }
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({ 
-      ...payload, 
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData) // Pasamos el objeto limpio
     .eq('id', user.id)
     .select('*') 
     .single()

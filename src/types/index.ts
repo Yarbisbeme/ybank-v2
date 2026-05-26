@@ -303,7 +303,7 @@ export interface ProfileUpdateInput {
   full_name?: string;
   avatar_url?: string | null;
   currency_preference?: string;
-  primary_account_id?: string;
+  primary_account_id?: string | null; 
   theme_preference?: string;
   monthly_savings_goal?: string | number;
   theme?: 'light' | 'dark' | 'auto';

@@ -5,9 +5,7 @@ import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import UniversalCard from '../Tarjetas/UniversalCard';
-import { useAccounts } from '@/hooks/useCatalogs'; 
-import { useFilterStore } from '@/store/useFilterStore';
-// 💡 ELIMINAMOS useFilterStore de aquí. La URL es el único jefe ahora.
+import { useAccounts, useProfile, useUpdateProfile } from '@/hooks/useCatalogs'; 
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -24,26 +22,42 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
 
   const router = useRouter();
   const isMobile = useIsMobile();
-  const { data: accounts = [], isLoading } = useAccounts();
+  const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
+  
+  const { data: profile, isLoading: isLoadingProfile } = useProfile();
+  const updateProfileMutation = useUpdateProfile();
+
   const [ activeIdx, setActiveIdx ] = useState(0);
 
-  const setFilter = useFilterStore((state) => state.setFilter);
-
+  // 💡 AUTO-ENFOQUE INTELIGENTE EN CUENTA FAVORITA
   useEffect(() => {
     if (accounts.length === 0) return;
     
-    const targetId = initialAccountId || accounts[0].id;
+    // 🔥 CAMBIO CRÍTICO: Definimos el target con la nueva jerarquía de prioridad
+    const targetId = initialAccountId || profile?.primary_account_id || accounts[0].id;
     const newIdx = accounts.findIndex(acc => acc.id === targetId);
     
     if (newIdx !== -1) {
       if (newIdx !== activeIdx) {
-        setActiveIdx(newIdx);
+        setActiveIdx(newIdx); // Centramos la tarjeta en el stack
       }
-      setFilter('accountId', targetId);
-    }
-  }, [accounts, initialAccountId, setFilter]);
 
-  // 4. Definición de Variantes de Animación optimizadas
+      // 💡 Si el usuario entró a la sección limpia (sin accountId en la URL), 
+      // actualizamos la URL con su cuenta favorita para que el Registro Operativo la filtre automáticamente.
+      if (!initialAccountId) {
+        router.replace(`/accounts?accountId=${targetId}`, { scroll: false });
+      }
+    }
+  }, [accounts, initialAccountId, profile?.primary_account_id, router]);
+
+  // Handler de favoritos para la estrella
+  const handleToggleFavorite = (accountId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newPrimaryId = profile?.primary_account_id === accountId ? null : accountId;
+    updateProfileMutation.mutate({ primary_account_id: newPrimaryId });
+  };
+
   const variants = useMemo(() => {
     const offsetBase = isMobile ? 70 : 90;
     return {
@@ -68,12 +82,10 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
     };
   }, [isMobile]);
 
-  // 💡 Handlers de navegación actualizados
   const handleSelection = (index: number) => {
     const selectedId = accounts[index]?.id;
     if (selectedId && index !== activeIdx) {
-      setActiveIdx(index); // Movemos el carrusel
-      // 💡 Actualizamos la URL silenciosamente. La tabla cliente lo detectará y se filtrará sola.
+      setActiveIdx(index); 
       router.push(`/accounts?accountId=${selectedId}`, { scroll: false });
     }
   };
@@ -95,7 +107,7 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
     }
   };
 
-  if (isLoading) {
+  if (isLoadingAccounts || isLoadingProfile) {
     return (
       <div className="w-full min-h-[300px] flex items-center justify-center">
         <Loader2 className="animate-spin text-primary/30" size={40} />
@@ -126,7 +138,6 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
 
       <AnimatePresence initial={false}>
         {accounts.map((acc, index) => {
-          // Lógica de estados visuales
           let state = "hiddenRight"; 
           if (index === activeIdx) state = "active";
           else if (index === activeIdx - 1) state = "prev1";
@@ -157,7 +168,12 @@ export default function AccountStackSelector({ initialAccountId }: { initialAcco
                   : 'shadow-lg shadow-black/10'
               }`}
             >
-              <UniversalCard account={acc} institution={acc.institution} />
+              <UniversalCard 
+                account={acc} 
+                institution={acc.institution} 
+                isFavorite={profile?.primary_account_id === acc.id}
+                onToggleFavorite={handleToggleFavorite}
+              />
             </motion.div>
           );
         })}

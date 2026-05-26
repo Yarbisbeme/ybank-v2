@@ -1,11 +1,13 @@
 'use client'
 
 import React from 'react';
-import { CreditCard, Wallet, TrendingUp, Receipt, Coins } from 'lucide-react';
+import { Star } from 'lucide-react'; // 💡 Cambiamos los iconos por Star
 
 interface UniversalCardProps {
   account: any;
   institution: any;
+  isFavorite?: boolean;
+  onToggleFavorite?: (accountId: string, e: React.MouseEvent) => void;
 }
 
 // Calcula si el color de la tarjeta es oscuro o claro
@@ -85,8 +87,13 @@ const BankLogo = ({
   );
 };
 
-const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) => {
-  const finalColor = account?.color || institution?.brand_color_primary || '#020617'; // slate-950 default
+const UniversalCard: React.FC<UniversalCardProps> = ({ 
+  account, 
+  institution, 
+  isFavorite = false, // 💡 Lo recibimos como prop (por defecto false)
+  onToggleFavorite 
+}) => {
+  const finalColor = account?.color || institution?.brand_color_primary || '#020617'; 
   const finalPattern = account?.custom_pattern || institution?.card_pattern || 'solid';
   const finalTextTheme = account?.custom_text_theme || institution?.text_theme || 'light';
 
@@ -94,31 +101,14 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
   const textColor = isDarkText ? 'text-slate-900' : 'text-white';
   const secondaryOpacity = isDarkText ? 'opacity-60' : 'opacity-70';
 
-  const getAccountInfo = () => {
-    const type = (account?.type || '').toLowerCase();
-    if (type.includes('credit') || type.includes('crédito') || type.includes('credito')) 
-      return { icon: CreditCard, label: 'Crédito' };
-    if (type.includes('saving') || type.includes('ahorro')) 
-      return { icon: Wallet, label: 'Ahorro' };
-    if (type.includes('investment') || type.includes('inversion')) 
-      return { icon: TrendingUp, label: 'Inversión' };
-    if (type.includes('cash') || type.includes('efectivo')) 
-      return { icon: Coins, label: 'Efectivo' };
-    return { icon: Receipt, label: 'Corriente' };
-  };
-
-  const { icon: TypeIcon, label: typeLabel } = getAccountInfo();
-
   return (
     <div 
-      // 💡 YBANK Style: rounded-[16px] (Proporción tarjeta física real), borde sutil
       className={`relative w-full h-full rounded-[10px] overflow-hidden transition-all duration-500 group border ${isDarkText ? 'border-black/5' : 'border-white/10'} ${textColor}`}
       style={{ backgroundColor: finalColor }}
     >
-      {/* 💡 YBANK Style: Redujimos la opacidad general de los patrones al 10% (Marca de agua) */}
       <div className="absolute inset-0 z-0 mix-blend-overlay opacity-80 pointer-events-none overflow-hidden">
         
-        {/* --- 🌊 WAVES (Ondas de Fluidez Financiera) --- */}
+        {/* --- 🌊 WAVES --- */}
         {finalPattern === 'waves' && (
           <div className="absolute inset-0 mix-blend-overlay opacity-30">
             <div className="absolute -bottom-[60%] -right-[20%] w-[150%] h-[150%] rounded-full border-[2px] border-white" />
@@ -127,7 +117,7 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
         )}
         
-        {/* --- 🧊 GEOMETRIC (Bloques / Estabilidad) --- */}
+        {/* --- 🧊 GEOMETRIC --- */}
         {finalPattern === 'geometric' && (
           <div className="absolute inset-0 mix-blend-overlay opacity-25">
             <div className="absolute top-[15%] left-[5%] w-24 h-24 bg-white/20 rounded-lg rotate-[15deg] backdrop-blur-sm" />
@@ -136,16 +126,16 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
         )}
 
-        {/* --- 🌌 MESH (Nube de Datos / Dinamismo) --- */}
+        {/* --- 🌌 MESH --- */}
         {finalPattern === 'mesh' && (
           <div className="absolute inset-0 mix-blend-overlay opacity-40">
             <div className="absolute top-[-30%] left-[-10%] w-[80%] h-[80%] bg-white rounded-full blur-[60px]" />
             <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[80%] bg-white/60 rounded-full blur-[50px]" />
-            <div className="absolute top-[30%] left-[40%] w-[40%] h-[40%] bg-black/20 rounded-full blur-[40px]" /> {/* Contraste interno */}
+            <div className="absolute top-[30%] left-[40%] w-[40%] h-[40%] bg-black/20 rounded-full blur-[40px]" /> 
           </div>
         )}
 
-        {/* --- 🏎️ LINES (Velocidad / Transacciones al Instante) --- */}
+        {/* --- 🏎️ LINES --- */}
         {finalPattern === 'lines' && (
           <div className="absolute inset-0 flex gap-4 -skew-x-[25deg] scale-150 -translate-x-12 mix-blend-overlay opacity-20">
             <div className="w-12 h-full bg-gradient-to-b from-white to-transparent" />
@@ -156,7 +146,7 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
         )}
 
-        {/* --- 🔘 DOTS (Precisión / Auditoría) --- */}
+        {/* --- 🔘 DOTS --- */}
         {finalPattern === 'dots' && (
           <div 
             className="absolute inset-0 mix-blend-overlay opacity-30"
@@ -167,8 +157,6 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           />
         )}
         
-        {/* SOLID: No requiere código adicional, es el fondo liso */}
-        
         {/* Viñeta sutil */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/20" />
       </div>
@@ -177,7 +165,7 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
         
         {/* HEADER */}
         <div className="flex justify-between items-start relative z-50">
-          <div className="h-8 lg:h-10 flex items-center justify-start">
+          <div className="h-8 lg:h-10 flex items-center justify-start pointer-events-none">
             <BankLogo 
               logoUrl={institution?.logo_url} 
               bankName={institution?.name || 'Nodo Institucional'} 
@@ -187,23 +175,38 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
           </div>
 
           <div className="relative group/tooltip">
-            {/* 💡 YBANK Style: Icono en caja rígida (rounded-[6px]) */}
-            <div className={`p-2 rounded-[6px] border transition-colors ${isDarkText ? 'bg-black/10 border-black/10' : 'bg-white/20 border-white/10'}`}>
-              <TypeIcon size={16} className={secondaryOpacity} strokeWidth={2.5} />
-            </div>
-            <div className="absolute top-full mt-2 right-0 bg-slate-900 text-white text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded-[4px] opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all whitespace-nowrap shadow-lg">
-              {typeLabel}
+            {/* 💡 YBANK Style: Botón interactivo de Favorito */}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); // Evita que el click se propague si la tarjeta entera es un link/botón
+                if (onToggleFavorite) onToggleFavorite(account?.id, e);
+              }}
+              className={`p-2 rounded-[6px] border transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center ${
+                isFavorite 
+                  ? 'bg-amber-400 border-amber-400/50 shadow-sm text-slate-900' 
+                  : isDarkText 
+                    ? 'bg-black/5 border-black/10 hover:bg-black/10 text-slate-800' 
+                    : 'bg-white/10 border-white/20 hover:bg-white/20 text-white'
+              }`}
+            >
+              <Star 
+                size={16} 
+                className={`transition-all duration-300 ${isFavorite ? 'fill-current' : 'opacity-70 group-hover/tooltip:opacity-100'}`} 
+                strokeWidth={isFavorite ? 2 : 2.5} 
+              />
+            </button>
+            <div className="absolute top-full mt-2 right-0 bg-slate-900 text-white text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded-[4px] opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all whitespace-nowrap shadow-lg z-50">
+              {isFavorite ? 'Cuenta Favorita' : 'Marcar como favorita'}
             </div>
           </div>
         </div>
 
         {/* BALANCE */}
-        <div className="mt-auto mb-4">
+        <div className="mt-auto mb-4 pointer-events-none">
           <p className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-1 ${secondaryOpacity}`}>
             {account?.name || 'Balance Operativo'}
           </p>
           <div className="flex items-baseline gap-1.5">
-            {/* 💡 YBANK Style: Tipografía Mono para divisas y números */}
             <span className="text-xs font-mono font-medium opacity-80">{account?.currency}</span>
             <p className="text-3xl lg:text-4xl font-mono font-bold tracking-tighter truncate drop-shadow-sm">
               {account?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -212,14 +215,13 @@ const UniversalCard: React.FC<UniversalCardProps> = ({ account, institution }) =
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-end pointer-events-none">
           <div className="flex flex-col">
             <p className={`text-[11px] font-mono tracking-[0.25em] font-medium ${secondaryOpacity}`}>
               •••• {account?.last_4_digits || '0000'}
             </p>
           </div>
           <div className="flex flex-col items-end">
-             {/* 💡 Texto más sobrio para la red (en vez de un VISA gigante en italic) */}
              <span className="text-[10px] font-black tracking-widest uppercase opacity-60">
                {account?.type === 'credit_card' ? 'CREDIT' : 'DEBIT'}
              </span>

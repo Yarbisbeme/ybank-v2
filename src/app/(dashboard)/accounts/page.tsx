@@ -30,7 +30,7 @@ export default function AccountsPage() {
         <AccountDetailsHeader />
       </section>
 
-      <section className="pt-8">
+      <section className="pt-8 sm:bg-white sm:p-4 sm:mt-20 sm:rounded-t-[16px] sm:-mx-4 sm:border-1">
         <div className="flex items-center gap-2 mb-4">
            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
              Registro de Operaciones del Nodo
