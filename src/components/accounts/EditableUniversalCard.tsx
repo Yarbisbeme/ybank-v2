@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, Building2, Search, X, Hash, Palette, Wallet } from 'lucide-react';
 import { EditCreateAccount, CustomPattern, CurrencyCode, Institution } from '@/types';
 import { ACCOUNT_TYPES, cn, formatCurrency } from '@/lib/utils'
+import YbankColorPicker from '../ui/YbankColorPicker';
 
 interface EditableCardProps {
   data: EditCreateAccount;
@@ -73,7 +74,6 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsBankMenuOpen(false);
         setIsTypeMenuOpen(false);
-        setIsColorMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -414,7 +414,7 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
           <button 
             type="button"
             onClick={() => {
-              setIsColorMenuOpen(!isColorMenuOpen);
+              setIsColorMenuOpen(true);
               setIsBankMenuOpen(false);
               setIsTypeMenuOpen(false);
             }}
@@ -423,65 +423,13 @@ export default function EditableUniversalCard({ data, onChange, institutions = [
             title="Personalizar color"
           />
 
-          {isColorMenuOpen && (
-            <div className="absolute bottom-full left-0 mb-3 w-[260px] bg-card border border-border rounded-[10px] shadow-2xl p-4 z-[60] animate-in fade-in slide-in-from-bottom-2 origin-bottom-left">
-              
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Tonalidad</p>
-                <button 
-                  onClick={() => setIsColorMenuOpen(false)}
-                  className="p-1 rounded-[10px] text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-5 gap-2.5 mb-4">
-                {YBANK_PALETTE_ACCOUNT.map((presetColor) => (
-                  <button
-                    key={presetColor}
-                    type="button"
-                    onClick={() => {
-                      onChange('color', presetColor);
-                      setIsColorMenuOpen(false);
-                    }}
-                    className={cn(
-                      "w-full aspect-square rounded-[8px] border-[2px] transition-all hover:scale-110",
-                      data.color === presetColor ? "border-primary shadow-md scale-110" : "border-transparent"
-                    )}
-                    style={{ backgroundColor: presetColor }}
-                  />
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 pt-3 border-t border-border/50">
-                <div className="flex-1 flex items-center bg-background border border-border rounded-[8px] px-2.5 py-1.5 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-                  <Hash size={12} className="text-muted-foreground mr-1.5 shrink-0" />
-                  <input 
-                    type="text" 
-                    value={data.color || '#09090b'} 
-                    onChange={(e) => onChange('color', e.target.value)}
-                    onKeyDown={handleHexKeyDown} 
-                    maxLength={7}
-                    className="bg-transparent border-none p-0 text-[11px] font-mono font-bold w-full outline-none text-foreground uppercase" 
-                  />
-                </div>
-                
-                <label 
-                  className="relative w-8 h-8 rounded-[8px] overflow-hidden border border-border cursor-pointer shrink-0 shadow-sm transition-transform hover:scale-105 hover:border-primary/50 block"
-                  style={{ backgroundColor: data.color || '#09090b' }}
-                  title="Abrir paleta del sistema"
-                >
-                  <input 
-                    type="color" 
-                    value={data.color || '#09090b'}
-                    onChange={(e) => onChange('color', e.target.value)}
-                    className="absolute inset-[-10px] w-12 h-12 opacity-0 cursor-pointer"
-                  />
-                </label>
-              </div>
-            </div>
-          )}
+          {/* 💡 EL MINI MODAL (Se renderiza condicionalmente vía la prop isOpen) */}
+          <YbankColorPicker 
+            isOpen={isColorMenuOpen}
+            color={data.color || '#09090b'}
+            onChange={(newColor) => onChange('color', newColor)}
+            onClose={() => setIsColorMenuOpen(false)}
+          />
         </div>
 
         <button 

@@ -11,6 +11,8 @@ import { useSearchParams } from 'next/navigation';
 import { getProfile, updateProfile } from '@/lib/actions/profile';
 import { toast } from 'sonner';
 import { ProfileUpdateInput } from '@/types';
+import { formatCurrency } from '@/lib/utils';
+import { useYBankStore } from '@/store/useYBankStore';
 
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
 
@@ -388,4 +390,27 @@ export function useGlobalSearch(searchQuery: string) {
     enabled: searchQuery.trim().length > 2 && typeof window !== 'undefined' && navigator.onLine,
     staleTime: 1000 * 60 * 2, // Caché de 2 minutos
   });
+}
+
+export function useCurrency() {
+  const { currency, preferredRate } = useYBankStore();
+
+  const formatMoney = (amount: number, sourceCurrency: string) => {
+    if (sourceCurrency === currency) {
+      return formatCurrency(amount, currency);
+    }
+
+    const rate = preferredRate?.rate || 1;
+    let convertedAmount = amount;
+
+    if (currency === 'USD' && sourceCurrency === 'DOP') {
+      convertedAmount = amount / rate;
+    } else if (currency === 'DOP' && sourceCurrency === 'USD') {
+      convertedAmount = amount * rate;
+    }
+
+    return formatCurrency(convertedAmount, currency);
+  };
+
+  return { currency, formatMoney };
 }

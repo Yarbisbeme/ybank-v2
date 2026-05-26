@@ -26,7 +26,7 @@ export default function DashboardPage() {
       </div>
       <section className="sm:bg-white sm:p-4 sm:rounded-t-[16px] sm:-mx-4 sm:border-1">
         <div className="flex items-center gap-2 sm:py-4 justify-center sm:block py-1">
-           <h3 className="font-bold uppercase tracking-[0.2em] text-muted-foreground">
+           <h3 className="font-bold uppercase tracking-[0.1em] text-muted-foreground">
              Transacciones Globales
            </h3>
         </div>

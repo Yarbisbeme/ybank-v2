@@ -15,7 +15,7 @@ import { es } from 'date-fns/locale';
 interface YBankCalendarProps {
   isOpen: boolean; 
   mode: 'single' | 'range'; 
-  triggerRef?: React.RefObject<any>; // ✅ TypeScript feliz
+  triggerRef?: React.RefObject<any>; 
   inline?: boolean; 
   value?: string | null; 
   onChange?: (date: string) => void;
@@ -35,7 +35,7 @@ export default function YBankCalendarPicker({
   const initialDate = mode === 'single' 
     ? (value ? new Date(value + 'T00:00:00') : new Date())
     : (startDate ? new Date(startDate + 'T00:00:00') : new Date());
-
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -84,26 +84,68 @@ export default function YBankCalendarPicker({
     }
   };
 
-  const setPreset = (start: Date, end: Date) => {
+  const setPreset = (start: Date | null, end: Date | null) => {
     if (mode === 'range') {
-      setFilter?.('startDate', format(start, 'yyyy-MM-dd'));
-      setFilter?.('endDate', format(end, 'yyyy-MM-dd'));
+      setFilter?.('startDate', start ? format(start, 'yyyy-MM-dd') : null);
+      setFilter?.('endDate', end ? format(end, 'yyyy-MM-dd') : null);
     } else {
-      onChange?.(format(start, 'yyyy-MM-dd'));
+      onChange?.(start ? format(start, 'yyyy-MM-dd') : '');
     }
-    onClose();
+    onClose()
   };
+
+  // 💡 LÓGICA DE DETECCIÓN DE PRESETS ACTIVOS
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  const thisMonthStartStr = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+  const thisMonthEndStr = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+  const lastMonthStartStr = format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd');
+  const lastMonthEndStr = format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd');
+
+  const isHoyActive = mode === 'single' ? value === todayStr : (startDate === todayStr && endDate === todayStr);
+  const isAyerActive = mode === 'single' ? value === yesterdayStr : (startDate === yesterdayStr && endDate === yesterdayStr);
+  const isEsteMesActive = mode === 'range' && startDate === thisMonthStartStr && endDate === thisMonthEndStr;
+  const isMesPasadoActive = mode === 'range' && startDate === lastMonthStartStr && endDate === lastMonthEndStr;
 
   const CalendarUI = (
     <div className={cn("bg-card flex flex-col sm:flex-row w-full", inline ? "shadow-none border-none" : "sm:w-auto")}>
       <div className="flex flex-row sm:flex-col w-full sm:w-[130px] bg-surface-2/50 border-b sm:border-b-0 sm:border-r border-border p-2 gap-1 overflow-x-auto sm:overflow-x-visible scrollbar-hide">
         <p className="hidden sm:block text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground p-2 mb-1">Jump</p>
-        <PresetBtn label="Hoy" onClick={() => setPreset(new Date(), new Date())} />
-        <PresetBtn label="Ayer" onClick={() => setPreset(subDays(new Date(), 1), subDays(new Date(), 1))} />
+        
+        <PresetBtn 
+          label="Hoy" 
+          isActive={isHoyActive} 
+          onClick={() => {
+            if (isHoyActive) setPreset(null, null); // Si ya estaba activo, lo limpia
+            else setPreset(new Date(), new Date());
+          }} 
+        />
+        <PresetBtn 
+          label="Ayer" 
+          isActive={isAyerActive} 
+          onClick={() => {
+            if (isAyerActive) setPreset(null, null);
+            else setPreset(subDays(new Date(), 1), subDays(new Date(), 1));
+          }} 
+        />
         {mode === 'range' && (
           <>
-            <PresetBtn label="Este Mes" onClick={() => setPreset(startOfMonth(new Date()), endOfMonth(new Date()))} />
-            <PresetBtn label="Mes Pasado" onClick={() => setPreset(startOfMonth(subMonths(new Date(), 1)), endOfMonth(subMonths(new Date(), 1)))} />
+            <PresetBtn 
+              label="Este Mes" 
+              isActive={isEsteMesActive} 
+              onClick={() => {
+                if (isEsteMesActive) setPreset(null, null);
+                else setPreset(startOfMonth(new Date()), endOfMonth(new Date()));
+              }} 
+            />
+            <PresetBtn 
+              label="Mes Pasado" 
+              isActive={isMesPasadoActive} 
+              onClick={() => {
+                if (isMesPasadoActive) setPreset(null, null);
+                else setPreset(startOfMonth(subMonths(new Date(), 1)), endOfMonth(subMonths(new Date(), 1)));
+              }} 
+            />
           </>
         )}
       </div>
@@ -137,15 +179,10 @@ export default function YBankCalendarPicker({
                 key={i} type="button" onClick={() => handleDateClick(day)} disabled={!isCurrentMonth}
                 className={cn(
                   "h-8 flex items-center justify-center text-[11px] font-mono transition-all relative rounded-[6px]",
-                  // Días fuera del mes
                   !isCurrentMonth && "text-muted-foreground/30 cursor-not-allowed",
-                  // 💡 HOVER CORREGIDO: Usamos bg-primary/10 en lugar de estilos que oculten el texto
                   isCurrentMonth && !isSelectedSingle && !isSelectedStart && !isSelectedEnd && "hover:bg-primary/10 hover:text-primary text-foreground font-medium",
-                  // Día de hoy
                   isToday && !isSelectedSingle && !isSelectedStart && "text-primary font-black underline underline-offset-2",
-                  // Días seleccionados
                   (isSelectedSingle || isSelectedStart || isSelectedEnd) && "bg-primary text-white font-black z-10 shadow-sm scale-105",
-                  // Rango intermedio
                   isWithinRange && "bg-primary/10 text-primary rounded-none",
                 )}
               >
@@ -165,12 +202,11 @@ export default function YBankCalendarPicker({
     <AnimatePresence>
       {isOpen && (
         isMobile ? (
-          /* === MÓVIL === */
           <div className="fixed inset-0 z-[99999] flex flex-col justify-end">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={onClose} // Cierra al tocar el fondo oscuro
+              onClick={onClose} 
             />
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
@@ -185,16 +221,12 @@ export default function YBankCalendarPicker({
             </motion.div>
           </div>
         ) : (
-          /* === DESKTOP === */
-          // 💡 BACKDROP INVISIBLE PARA DESKTOP
           <div className="fixed inset-0 z-[99999]">
-            {/* Este div invisible detecta el clic fuera y cierra el calendario */}
             <div className="absolute inset-0" onClick={onClose} />
-            
             <div 
               className="absolute"
               style={{ top: coords.top, left: coords.left }}
-              onClick={(e) => e.stopPropagation()} // Previene que clics DENTRO del calendario lo cierren
+              onClick={(e) => e.stopPropagation()} 
             >
               <motion.div
                 initial={{ opacity: 0, y: 5, scale: 0.95 }}
@@ -214,10 +246,87 @@ export default function YBankCalendarPicker({
   );
 }
 
-function PresetBtn({ label, onClick }: { label: string, onClick: () => void }) {
+function PresetBtn({ label, isActive, onClick }: { label: string, isActive?: boolean, onClick: () => void }) {
+  
   return (
-    <button type="button" onClick={onClick} className="flex-1 sm:flex-none text-left px-3 py-2 rounded-[6px] hover:bg-surface-2 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
-      {label}
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative flex-1 sm:flex-none flex items-center justify-center sm:justify-start px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] rounded-[6px] transition-all z-10 whitespace-nowrap overflow-hidden",
+        isActive ? "text-white" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+      )}
+    >
+      <AnimatePresence>
+      {isActive && (
+        <motion.div 
+          layoutId="calendar-active-pill"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-foreground shadow-sm rounded-[6px] -z-10 overflow-hidden"
+        >
+          <motion.div
+            key={`wave-container-${label}`} 
+            initial={{ y: '130%' }}
+            animate={{ y: '-30%' }}
+            transition={{ y: { duration: 0.9, ease: 'backOut' } }}
+            className="absolute inset-0 z-10 h-[200%] w-[160%] origin-bottom-left rotate-[-8deg]"
+          >
+            {/* 💡 ANIMACIÓN BIDIRECCIONAL: Oscila de ida y vuelta suavemente */}
+            <motion.div
+              animate={{ x: ['-40%', '0%', '-40%'] }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 4, 
+                ease: 'easeInOut' 
+              }}
+              className="absolute inset-0 h-full w-full"
+            >
+              <WaveLayer color="#014ba0" className="opacity-70" /> 
+              <WaveLayer color="#0179FE" className="opacity-90 translate-y-2" />
+              <div className="absolute -bottom-[98%] left-0 h-full w-full bg-[#0179FE]" />
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
+      </AnimatePresence>
+
+      <span className="relative z-30">{label}</span>
     </button>
+  );
+}
+
+// ==========================================
+// COMPONENTES DE ONDA (WAVE ANIMATION)
+// ==========================================
+
+function WaveLayer({
+  color,
+  className = "",
+}: {
+  color: string;
+  className?: string;
+}) {
+  return (
+    <div className={`absolute bottom-0 left-0 h-full w-[200%] ${className}`}>
+      <WavePath color={color} />
+    </div>
+  );
+}
+
+function WavePath({ color }: { color: string }) {
+  return (
+    <svg
+      viewBox="0 0 1200 120"
+      preserveAspectRatio="none"
+      className="absolute bottom-0 h-[60px] w-full" 
+    >
+      <path
+        d="M0,0 V20 Q300,110 600,20 T1200,20 V120 H0 Z"
+        fill={color}
+        transform="scale(1,-1) translate(0,-120)"
+      />
+    </svg>
   );
 }
