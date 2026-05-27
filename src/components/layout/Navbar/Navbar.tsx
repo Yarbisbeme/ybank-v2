@@ -4,11 +4,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Bell, Menu, X, 
   LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle,
-  Loader2
 } from 'lucide-react';
 import { NavbarProps } from '@/types';
 import { useModalStore } from '@/store/useModalStore'; 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import GlobalSearch from './GlobalSearch';
 import { signOut } from '@/lib/actions/auth'; 
@@ -214,11 +212,12 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
           >
             <Plus size={14} strokeWidth={2.5} /> Nuevo Nodo
           </button>
-
+          {/**
           <button className="flex items-center justify-center w-8 h-8 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors relative">
             <Bell size={18} strokeWidth={2.5} />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
           </button>
+           */}
         </div>
       </header>
 

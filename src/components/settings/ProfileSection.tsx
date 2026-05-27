@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useProfile, useUpdateProfile } from '@/hooks/useCatalogs' // Tus hooks de conexión
-import { Loader2, User } from 'lucide-react'
+import { Camera, Loader2, User } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ProfileData {
@@ -25,8 +25,7 @@ export default function ProfileSection() {
     phone: '',
     bio: ''
   })
-
-  // 3. Hidratamos el formulario cuando los datos reales lleguen de Supabase
+  
   useEffect(() => {
     if (profileData) {
       setFormData({
@@ -86,14 +85,6 @@ export default function ProfileSection() {
       <div className="bg-card border border-border rounded-[12px] p-6 space-y-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold tracking-tight">Información de Perfil</h2>
-          {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 border border-border rounded-[8px] hover:bg-surface-2 transition-colors text-sm font-bold shadow-sm"
-            >
-              Editar Datos
-            </button>
-          )}
         </div>
 
         <div className="space-y-4">
@@ -131,10 +122,17 @@ export default function ProfileSection() {
               rows={3}
               placeholder="Escribe algo sobre ti..."
               className="w-full px-3 py-2.5 border border-border rounded-[8px] bg-background disabled:opacity-50 disabled:bg-surface-2/50 focus:ring-1 focus:ring-primary focus:border-primary transition-all outline-none text-sm font-medium resize-none"
-            />
+              />
           </div>
         </div>
-
+        {!isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="w-full sm:w-auto px-6 py-2.5 bg-surface-2 border border-border rounded-[8px] hover:border-primary/50 transition-all text-[11px] font-black uppercase tracking-[0.1em] shadow-sm"
+          >
+            Editar Datos
+          </button>
+        )}
         {isEditing && (
           <div className="flex gap-3 pt-4 border-t border-border/50">
             <button
@@ -156,24 +154,20 @@ export default function ProfileSection() {
       </div>
 
       {/* Avatar Section */}
-      <div className="bg-card border border-border rounded-[12px] p-6 space-y-4 shadow-sm flex items-center justify-between">
+      <div className="bg-card border border-border rounded-[12px] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-[12px] bg-surface-2 border border-border flex items-center justify-center text-primary text-xl font-black overflow-hidden shrink-0">
-            {profileData?.avatar_url ? (
-               <img src={profileData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-               <User size={24} />
-            )}
+          <div className="w-16 h-16 rounded-[12px] bg-surface-2 border border-border flex items-center justify-center text-primary text-xl font-black overflow-hidden shrink-0 relative group">
+            {profileData?.avatar_url ? <img src={profileData.avatar_url} className="w-full h-full object-cover" /> : <User size={24} />}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+                <Camera size={16} className="text-white" />
+            </div>
           </div>
-          <div className="space-y-1">
-            <h2 className="text-base font-bold tracking-tight">Foto de Perfil</h2>
-            <p className="text-xs text-muted-foreground font-medium">
-              Formatos soportados: JPG, PNG o GIF. Máximo 2MB.
-            </p>
+          <div>
+            <h2 className="text-sm font-bold">Foto de Perfil</h2>
+            <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG o GIF. Máx 2MB.</p>
           </div>
         </div>
-        
-        <button className="px-4 py-2 bg-surface-2 border border-border rounded-[8px] hover:border-primary/50 transition-colors text-xs font-bold shadow-sm whitespace-nowrap">
+        <button className="w-full sm:w-auto px-6 py-2.5 bg-surface-2 border border-border rounded-[8px] hover:border-primary/50 transition-all text-[11px] font-black uppercase tracking-[0.1em] shadow-sm">
           Actualizar Foto
         </button>
       </div>
