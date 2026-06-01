@@ -142,7 +142,7 @@ export default function GlobalSearch({ isOpen, onClose, query, setQuery, results
                             width={42}
                             height={42}
                             priority
-                            className="w-[50px] h-auto object-contain dark:invert"
+                            className="w-[50px] h-auto object-contain"
                         />
                     </div>
                     </div>

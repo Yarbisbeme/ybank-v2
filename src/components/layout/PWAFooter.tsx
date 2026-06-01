@@ -48,7 +48,7 @@ export default function PWAFooter() {
                     width={24}
                     height={24}
                     priority
-                    className="w-[24px] h-auto object-contain dark:invert"
+                    className="w-[24px] h-auto object-contain"
                 />
                 <span className="text-foreground font-bold text-[22px] tracking-tighter">
                     Bank

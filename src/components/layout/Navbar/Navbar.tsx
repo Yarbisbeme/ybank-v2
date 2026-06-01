@@ -234,7 +234,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         
         <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex flex-row items-center cursor-pointer" onClick={closeMenu}> 
-            <Image src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority className="w-[26px] h-auto object-contain dark:invert" />
+            <Image src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority className="w-[26px] h-auto object-contain" />
             <span className="text-foreground font-bold text-[24px] tracking-tighter">Bank</span>
           </div>
           <button onClick={closeMenu} className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors">

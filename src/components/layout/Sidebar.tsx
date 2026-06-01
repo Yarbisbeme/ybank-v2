@@ -47,7 +47,7 @@ export default function Sidebar() {
         <img 
           src="/icons/logoY.svg" 
           alt="YBank" 
-          className="w-[30px] h-auto object-contain dark:invert" 
+          className="w-[30px] h-auto object-contain" 
         />
         <span className="text-foreground font-bold text-[30px] tracking-tighter">
             Bank

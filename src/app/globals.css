@@ -19,7 +19,7 @@
 
   --color-surface-0: #FFFFFF;
   --color-surface-1: #F5F5F4; /* Off White Base */
-  --color-surface-2: #E5E7EB; 
+  --color-surface-2: var(--surface-2);
 
   --color-border-soft: rgba(17, 24, 39, 0.08); /* Basado en Near Black */
   --color-border-strong: rgba(17, 24, 39, 0.16);
@@ -257,6 +257,8 @@ input[type="number"] {
   --sidebar-accent-foreground: #111827;
   --sidebar-border: rgba(17, 24, 39, 0.08);
   --sidebar-ring: #2563EB;
+
+  --surface-2: #E5E7EB;
 }
 
 .dark {
@@ -283,8 +285,9 @@ input[type="number"] {
   
   --destructive: #7f1d1d;
   
-  --border: rgba(245, 245, 244, 0.1);
-  --input: rgba(17, 24, 39, 0.5); /* Cajas de texto súper oscuras */
+  --border: rgba(245, 245, 244, 0.08);
+  --surface-2: #1F2937; 
+  --input: #1e293b;
   --ring: #2563EB;
   
   --sidebar: #0F172A;
@@ -295,6 +298,15 @@ input[type="number"] {
   --sidebar-accent-foreground: #F5F5F4;
   --sidebar-border: rgba(245, 245, 244, 0.1);
   --sidebar-ring: #2563EB;
+
+}
+
+/* Limpiar el icono del dropdown en los selects */
+.dark select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
 }
 
 @layer base {
