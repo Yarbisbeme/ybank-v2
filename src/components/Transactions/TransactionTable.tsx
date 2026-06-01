@@ -32,7 +32,7 @@ export default function TransactionTable({
         <div className="p-3 bg-surface-2 rounded-full flex items-center justify-center mb-3">
           <RefreshCw size={20} className="text-muted-foreground" />
         </div>
-        <h3 className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Sin Telemetría</h3>
+        <h3 className="text-label text-muted-foreground">Sin Telemetría</h3>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function TransactionTable({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 mt-2">
-          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+          <p className="text-label text-muted-foreground">
             Pág <span className="text-foreground">{currentPage}</span> de <span className="text-foreground">{totalPages}</span>
           </p>
           
@@ -84,14 +84,14 @@ export default function TransactionTable({
             <button 
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] border border-border bg-surface-2 text-[9px] font-bold uppercase tracking-widest text-foreground hover:bg-card disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="btn-secondary flex items-center gap-1 px-3 py-1.5 rounded-[6px] border border-border text-label text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               <ChevronLeft size={12} strokeWidth={3} /> Ant
             </button>
             <button 
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] border border-border bg-surface-2 text-[9px] font-bold uppercase tracking-widest text-foreground hover:bg-card disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="btn-secondary flex items-center gap-1 px-3 py-1.5 rounded-[6px] border border-border text-label text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               Sig <ChevronRight size={12} strokeWidth={3} />
             </button>

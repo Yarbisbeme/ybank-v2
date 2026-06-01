@@ -95,8 +95,8 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
 
   // 💡 Clases maestras redefinidas
   const cardClasses = "flex flex-col gap-6 bg-card p-8 rounded-[24px] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.1)] border border-border/50";
-  const inputClasses = "w-full h-12 px-4 bg-surface-2/50 rounded-[10px] border border-border/60 focus:bg-background focus:border-primary/40 focus:ring-1 focus:ring-primary/20 text-sm font-bold text-foreground placeholder:text-muted-foreground/50 outline-none transition-all disabled:opacity-50";
-  const labelClasses = "text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block ml-1";
+  const inputClasses = "w-full h-12 px-4 bg-surface-2/50 rounded-[10px] border border-border/60 focus:bg-background focus:border-primary/40 focus:ring-1 focus:ring-primary/20 text-body font-bold text-foreground placeholder:text-muted-foreground/50 outline-none transition-all disabled:opacity-50";
+  const labelClasses = "text-label text-muted-foreground mb-1.5 block ml-1";
 
   return (
     <div className="max-w-md w-full mx-auto p-6 relative">
@@ -140,13 +140,13 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
               />
             </div>
 
-            <button 
-              onClick={handleNext} 
-              disabled={!isValidStep1}
-              className="mt-2 flex items-center justify-center gap-2 w-full h-12 rounded-[10px] bg-foreground text-background text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
-            >
-              Continuar <ArrowRight size={14} />
-            </button>
+          <button 
+            onClick={handleNext} 
+            disabled={!isValidStep1}
+            className="btn-primary mt-2 flex items-center justify-center gap-2 w-full h-12 rounded-[10px] text-label transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
+          >
+            Continuar <ArrowRight size={14} />
+          </button>
           </motion.div>
         )}
 
@@ -177,13 +177,13 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
             </div>
 
             <div className="flex gap-3 mt-2">
-              <button onClick={handleBack} className="flex items-center justify-center w-12 h-12 bg-surface-2 border border-border rounded-[10px] text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors">
+              <button onClick={handleBack} className="btn-secondary flex items-center justify-center w-12 h-12 rounded-[10px] text-label transition-colors">
                 <ArrowLeft size={16} />
               </button>
               <button 
                 onClick={handleNext} 
                 disabled={!isValidStep2}
-                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] bg-foreground text-background text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                className="btn-primary flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-label transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
               >
                 Asegurar Bóveda <ArrowRight size={14} />
               </button>
@@ -257,13 +257,13 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
             </div>
 
             <div className="flex gap-3 mt-2">
-              <button onClick={handleBack} className="flex items-center justify-center w-12 h-12 bg-surface-2 border border-border rounded-[10px] text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors">
+              <button onClick={handleBack} className="btn-secondary flex items-center justify-center w-12 h-12 rounded-[10px] text-label transition-colors">
                 <ArrowLeft size={16} />
               </button>
               <button 
                 onClick={handleNext} 
                 disabled={!isValidStep3}
-                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] bg-foreground text-background text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                className="btn-primary flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-label transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
               >
                 Configurar Nodo <ArrowRight size={14} />
               </button>
@@ -301,15 +301,15 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
             </div>
             
             <div className="flex gap-3 mt-2">
-               <button onClick={handleBack} disabled={loading} className="flex items-center justify-center w-12 h-12 bg-surface-2 border border-border rounded-[10px] text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors disabled:opacity-50">
+               <button onClick={handleBack} disabled={loading} className="btn-secondary flex items-center justify-center w-12 h-12 rounded-[10px] text-label transition-colors disabled:opacity-50">
                 <ArrowLeft size={16} />
               </button>
               <button 
                 onClick={handleSubmit} 
                 disabled={loading}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] shadow-[0_10px_20px_-10px_rgba(37,99,235,0.5)]",
-                  loading ? "bg-muted text-muted-foreground cursor-wait" : "bg-primary text-white hover:bg-primary/90"
+                  "flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-label transition-all active:scale-[0.98] shadow-[0_10px_20px_-10px_rgba(37,99,235,0.5)]",
+                  loading ? "bg-muted text-muted-foreground cursor-wait" : "btn-primary hover:bg-primary/90"
                 )}
               >
                 {loading ? "Sincronizando..." : <><CheckCircle2 size={16} /> Inicializar YBANK</>}

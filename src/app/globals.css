@@ -122,6 +122,25 @@ input[type="number"] {
   opacity: 0.95;
 }
 
+/* Botón secundario */
+.btn-secondary {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast),
+              box-shadow var(--transition-fast),
+              background var(--transition-fast);
+}
+.btn-secondary:hover {
+  background: var(--color-card);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
 /* --------------------------------------------------
    3. BASE GLOBAL Y CONFIGURACIÓN DE TEMA
 -------------------------------------------------- */

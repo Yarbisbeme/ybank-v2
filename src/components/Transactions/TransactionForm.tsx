@@ -184,7 +184,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
           
           {/* HERO AMOUNT INPUT */}
           <div className="flex flex-col items-center justify-center py-4 px-4 rounded-[8px] bg-surface-2/30 border border-border/50 focus-within:border-primary/30 focus-within:bg-background transition-all">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
+            <p className="text-label text-muted-foreground mb-1">
               {(type === 'expense' && isSplit) ? 'Monto Desglosado' : 'Importe Operativo'}
             </p>
             <div className="flex items-center text-4xl sm:text-5xl font-mono font-black text-foreground relative">
@@ -202,7 +202,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             
             {/* NODO ORIGEN */}
             <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><CreditCard size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" />{type === 'transfer' ? 'Nodo Origen' : 'Nodo Operativo'}</label>
+              <label className="text-label text-muted-foreground flex items-center gap-1.5"><CreditCard size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" />{type === 'transfer' ? 'Nodo Origen' : 'Nodo Operativo'}</label>
               <SearchableDropdown options={accountOptions} value={accountId} onChange={setAccountId} placeholder="Seleccionar Nodo..." />
             </div>
 
@@ -210,7 +210,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
               {type === 'transfer' ? (
                 <>
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Send size={10} /> Nodo Destino</label>
+                  <label className="text-label text-primary flex items-center gap-1.5"><Send size={10} /> Nodo Destino</label>
                   <SearchableDropdown options={accountOptions.filter(acc => acc.id !== accountId)} value={destinationAccountId} onChange={setDestinationAccountId} placeholder="Seleccionar Destino..." />
                 </>
               ) : (
@@ -236,7 +236,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
               className="relative group flex flex-col h-full justify-between p-2.5 h-[54px] rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:border-primary/40 transition-all cursor-pointer"
               onClick={() => setShowCalendar(true)}
             >
-              <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5 cursor-pointer transition-colors group-hover:text-primary pointer-events-none">
+              <label className="text-label text-muted-foreground flex items-center gap-1.5 cursor-pointer transition-colors group-hover:text-primary pointer-events-none">
                 <Calendar size={10} /> Fecha Valor
               </label>
               
@@ -250,12 +250,12 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
 
             {/* ETIQUETAS Y NOTAS */}
             <div className="focus-within:z-[110] group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-               <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">Etiquetas Analíticas</label>
+               <label className="text-label text-muted-foreground flex items-center gap-1.5">Etiquetas Analíticas</label>
                <TagInput availableTags={availableTags} selectedTagIds={selectedTags} onChange={setSelectedTags} onCustomTagCreate={handleCustomTagCreate} />
             </div>
 
             <div className="md:col-span-2 group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
+              <label className="text-label text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
               <textarea rows={1} placeholder="Nota u observación contable..." className="w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
           </div>
@@ -278,7 +278,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             </button>
           )}
 
-          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={cn("flex-1 py-2.5 rounded-[6px] text-xs font-bold uppercase tracking-widest text-white transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-2", activeBg)}>
+          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={cn("flex-1 py-2.5 rounded-[6px] text-label text-white transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-2", activeBg)}>
             {isSubmitting ? <><RefreshCw className="animate-spin" size={14} /> Procesando...</> : <><CheckCircle2 size={14} /> {isEditing ? 'Actualizar Ledger' : 'Asentar Operación'}</>}
           </button>
         </div>

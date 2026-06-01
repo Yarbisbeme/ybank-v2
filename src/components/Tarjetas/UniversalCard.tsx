@@ -203,12 +203,12 @@ const UniversalCard: React.FC<UniversalCardProps> = ({
 
         {/* BALANCE */}
         <div className="mt-auto mb-4 pointer-events-none">
-          <p className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-1 ${secondaryOpacity}`}>
+          <p className={`text-label mb-1 ${secondaryOpacity}`}>
             {account?.name || 'Balance Operativo'}
           </p>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-mono font-medium opacity-80">{account?.currency}</span>
-            <p className="text-3xl lg:text-4xl font-mono font-bold tracking-tighter truncate drop-shadow-sm">
+            <span className="text-mono font-medium opacity-80">{account?.currency}</span>
+            <p className="text-3xl lg:text-4xl text-mono font-bold tracking-tighter truncate drop-shadow-sm">
               {account?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -217,12 +217,12 @@ const UniversalCard: React.FC<UniversalCardProps> = ({
         {/* FOOTER */}
         <div className="flex justify-between items-end pointer-events-none">
           <div className="flex flex-col">
-            <p className={`text-[11px] font-mono tracking-[0.25em] font-medium ${secondaryOpacity}`}>
+            <p className={`text-mono tracking-[0.25em] font-medium ${secondaryOpacity}`}>
               •••• {account?.last_4_digits || '0000'}
             </p>
           </div>
           <div className="flex flex-col items-end">
-             <span className="text-[10px] font-black tracking-widest uppercase opacity-60">
+             <span className="text-label opacity-60">
                {account?.type === 'credit_card' ? 'CREDIT' : 'DEBIT'}
              </span>
           </div>

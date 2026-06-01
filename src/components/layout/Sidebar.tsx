@@ -55,7 +55,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-2 mt-10">
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-4">
+        <p className="text-label text-muted-foreground mb-4 px-4">
           Módulos Core
         </p>
         

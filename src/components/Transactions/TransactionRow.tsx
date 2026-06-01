@@ -60,15 +60,15 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
               {getCategoryIcon(tx.category?.icon)}
           </div>
           <div className="min-w-0"> 
-            <p className="text-sm font-bold text-foreground line-clamp-1">{tx.description || 'Operación Genérica'}</p>
-            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate mt-0.5">
+            <p className="text-body font-bold text-foreground line-clamp-1">{tx.description || 'Operación Genérica'}</p>
+            <p className="text-label text-muted-foreground truncate mt-0.5">
               {isReceiver ? `Desde ${tx.account?.name || 'Otra Cuenta'}` : (tx.category?.name || (hasSubTransactions ? 'Desglosado' : 'Transferencia'))} • {safeDate.toLocaleDateString('es-DO', { month: 'short', day: '2-digit' }).replace(',', '')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <p className={`text-sm font-mono font-bold tracking-tight ${amountColor}`}>
+          <p className={`text-mono font-bold tracking-tight ${amountColor}`}>
             {amountPrefix}${Number(displayAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
           {hasSubTransactions && (
@@ -98,25 +98,25 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
             <div className="ml-[44px] mr-4 mb-4 pl-3 border-l border-border/60 space-y-2.5">
               
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Desglose Contable</p>
+                <p className="text-label text-muted-foreground tracking-[0.15em]">Desglose Contable</p>
                 <p 
                   onClick={handleOpenEditModal}
-                  className="text-[8px] font-bold text-primary cursor-pointer hover:underline uppercase tracking-[0.2em]"
+                  className="text-label text-primary cursor-pointer hover:underline tracking-[0.15em]"
                 >
                   Auditar
                 </p>
               </div>
               
               {items.map((sub: any, i: number) => (
-                <div key={sub.id || i} className="flex justify-between items-start text-xs group/sub">
+                <div key={sub.id || i} className="flex justify-between items-start text-body text-xs group/sub">
                   <div className="flex items-start gap-2 text-foreground truncate pr-2">
                     <span className="text-muted-foreground opacity-50 mt-[-2px]">↳</span>
                     <div className="flex flex-col">
-                      <span className="font-bold uppercase tracking-wide text-[10px] leading-tight text-foreground">{sub.name || 'CATEGORÍA'}</span>
-                      {sub.category?.name && <span className="text-muted-foreground text-[10px] truncate leading-tight ">{sub.category?.name}</span>}
+                      <span className="font-bold uppercase tracking-wide text-label leading-tight text-foreground">{sub.name || 'CATEGORÍA'}</span>
+                      {sub.category?.name && <span className="text-muted-foreground text-body truncate leading-tight ">{sub.category?.name}</span>}
                     </div>
                   </div>
-                  <span className="font-mono font-medium text-muted-foreground shrink-0 text-[11px] mt-0.5">
+                  <span className="text-mono font-medium text-muted-foreground shrink-0 mt-0.5">
                     ${Number(sub.unit_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>

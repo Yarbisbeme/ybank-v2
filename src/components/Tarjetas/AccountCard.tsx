@@ -24,8 +24,8 @@ const ScotiaCard: React.FC<ScotiaCardProps> = ({ account }) => {
         <div className="flex justify-between items-start">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs opacity-60 uppercase tracking-widest font-bold mb-1">{account.type}</p>
-              <h3 className="text-lg font-bold">{account.name}</h3>
+              <p className="text-label opacity-60 mb-1">{account.type}</p>
+              <h3 className="text-section font-bold">{account.name}</h3>
             </div>
           </div>
           
@@ -52,12 +52,12 @@ const ScotiaCard: React.FC<ScotiaCardProps> = ({ account }) => {
 
             {/* Datos de la cuenta (Personalizado para Dashboard) */}
             <div className="flex flex-col">
-               <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold">
+               <span className="text-label opacity-60">
                  {name}
                </span>
                <div className="flex items-baseline gap-2">
-                 <span className="text-sm font-medium text-gray-400">{currency}</span>
-                 <p className="text-3xl font-bold tracking-tighter">
+                 <span className="text-mono font-medium opacity-60">{currency}</span>
+                 <p className="text-3xl text-mono font-bold tracking-tighter">
                    {current_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                  </p>
                </div>
@@ -67,7 +67,7 @@ const ScotiaCard: React.FC<ScotiaCardProps> = ({ account }) => {
 
         {/* Inferior: Visa Infinite */}
         <div className="flex justify-between items-end">
-          <p className="text-sm font-mono tracking-[0.3em] text-gray-400">
+          <p className="text-mono tracking-[0.3em] opacity-60">
             •••• •••• •••• {last_4_digits || '0000'}
           </p>
           
@@ -75,7 +75,7 @@ const ScotiaCard: React.FC<ScotiaCardProps> = ({ account }) => {
             <span className="text-4xl font-black italic tracking-tighter text-gray-200">
               VISA
             </span>
-            <span className="text-[9px] font-bold tracking-[0.4em] uppercase text-gray-400 mt-1">
+            <span className="text-label opacity-60 mt-1">
               Infinite
             </span>
           </div>
