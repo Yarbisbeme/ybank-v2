@@ -4,18 +4,15 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import SettingsHeader from '@/components/settings/SettingsHeader'
-import ProfileSection from '@/components/settings/ProfileSection'
 import PreferencesSection from '@/components/settings/PreferencesSection'
 import SecuritySection from '@/components/settings/SecuritySection'
 import NotificationsSection from '@/components/settings/NotificationsSection'
-
-type SettingsTab = 'profile' | 'preferences' | 'security' | 'notifications'
+import { SettingsTab } from '@/types'
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
+  const [activeTab, setActiveTab] = useState<SettingsTab>('preferences')
 
   const tabs: Array<{ id: SettingsTab; label: string }> = [
-    { id: 'profile', label: 'Perfil' },
     { id: 'preferences', label: 'Preferencias' },
     { id: 'security', label: 'Seguridad' },
     { id: 'notifications', label: 'Notificaciones' }
@@ -61,7 +58,6 @@ export default function SettingsPage() {
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === 'profile' && <ProfileSection />}
           {activeTab === 'preferences' && <PreferencesSection />}
           {activeTab === 'security' && <SecuritySection />}
           {activeTab === 'notifications' && <NotificationsSection />}

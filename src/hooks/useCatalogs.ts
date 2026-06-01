@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { ProfileUpdateInput } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { useYBankStore } from '@/store/useYBankStore';
+import { storageService } from '@/lib/actions/storageService';
 
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
 
@@ -413,4 +414,14 @@ export function useCurrency() {
   };
 
   return { currency, formatMoney };
+}
+
+export function useUploadAvatar() {
+  return useMutation({
+    mutationFn: async ({ file, userId }: { file: File, userId: string }) => {
+      // Delegamos la responsabilidad al servicio correspondiente
+      const url = await storageService.uploadAvatar(file, userId)
+      return { url }
+    }
+  })
 }

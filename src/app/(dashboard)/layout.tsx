@@ -32,14 +32,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
     console.log("📡 Layout: Fallo de red en Auth, permitiendo renderizado de shell.");
   }
 
-  // 🚨 Solo redirigir si estamos SEGUROS de que no hay usuario Y hay red
-  // En localhost/offline, es mejor dejar que el cliente maneje la sesión.
   if (!user && process.env.NODE_ENV === 'production') {
     // Opcional: podrías chequear la cookie aquí también si quieres ser extra estricto
   }
 
-  // 2. Datos Iniciales con Fallback
-  let profile = { onboarding_completed: true, primary_account_id: null };
+  let profile: any = { 
+    onboarding_completed: true, 
+    primary_account_id: null,
+    full_name: '',
+    avatar_url: '' 
+  };
+  
   let initialData: DashboardInitialData = { 
     accounts: [], 
     tags: [], 
@@ -49,15 +52,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   };
 
   try {
-    // Intentamos traer el perfil
+    // 💡 2. Le pedimos a Supabase que traiga también el nombre y la foto de la BD
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('onboarding_completed, primary_account_id')
+      .select('onboarding_completed, primary_account_id, full_name, avatar_url')
       .single();
     
-    if (profileData) profile = profileData as any;
+    if (profileData) profile = profileData;
 
-    // Intentamos la hidratación masiva
+    // ... (el resto del Promise.all queda igual)
     const [accounts, txData, tags, categoriesTree, institutions] = await Promise.all([
       getAccounts(),
       getTransactions({}),
@@ -77,10 +80,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     console.warn("📡 Layout: Modo Offline. Se enviará un initialData vacío.");
   }
 
+  // 💡 3. AHORA usamos los datos "frescos" de la tabla profile, y usamos el auth como plan B
   const navbarUser = {
-    name: user?.user_metadata?.full_name || user?.email || 'Usuario',
+    name: profile.full_name || user?.user_metadata?.full_name || user?.email || 'Usuario',
     email: user?.email || '',
-    avatarUrl: user?.user_metadata?.avatar_url
+    avatarUrl: profile.avatar_url || user?.user_metadata?.avatar_url
   };
 
   return (

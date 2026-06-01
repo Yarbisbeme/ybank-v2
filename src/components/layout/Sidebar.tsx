@@ -93,14 +93,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <ButtonOla 
           onClick={() => openModal('transaction')} 
           label="Nueva Operación"
         />
       </div>
 
-      <div className="pt-6 border-t border-border">
+      <div className="py-4 border-t border-border">
         <button 
           onClick={handleSecureLogout} 
           className="flex items-center gap-3 px-4 py-3 w-full rounded-[10px] text-muted-foreground font-bold text-sm hover:text-destructive hover:bg-destructive/10 transition-colors"

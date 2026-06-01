@@ -8,6 +8,7 @@ export type ModalType = 'transaction' | 'account' | 'tag' | null;
 export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'cash';
 export type CurrencyCode = 'DOP' | 'USD';
 // 💡 Corrección: PascalCase
+export type SettingsTab = 'profile' | 'preferences' | 'security' | 'notifications'
 export type CustomTextTheme = 'light' | 'dark';
 export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots' | 'curve';
 export type operation = 'buy' | 'sell'
