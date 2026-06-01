@@ -98,7 +98,7 @@ export default function UniversalModal({ children, title, maxWidth = 'max-w-4xl'
               )}
             </div>
 
-            <div className="relative flex-1 overflow-y-auto scrollbar-hide z-10 pb-4">
+            <div className="relative flex-1 overflow-y-auto scrollbar-hide z-10">
               {children}
             </div>
             
