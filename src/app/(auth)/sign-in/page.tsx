@@ -61,23 +61,24 @@ export default function SignIn() {
     } catch (error) {
       toast.error("Ocurrió un error inesperado");
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
   return (
-    <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-white font-inter selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+    // 💡 bg-background y selection adaptativa
+    <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-background font-inter selection:bg-primary/20 selection:text-primary overflow-hidden transition-colors">
       <div className="h-full w-full overflow-hidden flex">
         
         {/* === COLUMNA IZQUIERDA === */}
-        <div className="flex w-full lg:w-1/2 flex-col justify-between bg-white overflow-y-auto h-full min-h-svh p-8 sm:px-10 sm:py-8">
+        {/* 💡 bg-card y border-border en lugar de bg-white puro */}
+        <div className="flex w-full lg:w-1/2 flex-col justify-between bg-card border-r border-border overflow-y-auto h-full min-h-svh p-8 sm:px-10 sm:py-8">
           
           {/* Logo Header */}
           <div className="flex items-center justify-between shrink-0">
             <Logo />
           </div>
 
-          {/* 💡 Formulario ÚNICO */}
           <motion.div 
             variants={containerVariants}
             initial="hidden"
@@ -88,7 +89,8 @@ export default function SignIn() {
               <div className="mb-2">
                 <TituloHover title={`Bienvenido de nuevo.`} />
               </div>
-              <p className="text-neutral-500 font-medium text-lg">
+              {/* 💡 text-muted-foreground para el subtítulo */}
+              <p className="text-muted-foreground font-medium text-lg">
                 Gestión patrimonial inteligente, simplificada.
               </p>
             </motion.div>
@@ -100,31 +102,32 @@ export default function SignIn() {
             >
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div className="group relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                   <input 
                     type="email" 
                     placeholder="Correo electrónico"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="text-slate-600 w-full border-2 border-neutral-200 bg-neutral-50/50 pl-12 pr-4 py-4 font-medium outline-none transition-all focus:border-blue-600 focus:bg-white rounded-lg"
+                    // 💡 Inputs adaptativos idénticos a SignUp
+                    className="w-full border-2 border-border bg-surface-2/50 pl-12 pr-4 py-4 font-medium text-foreground placeholder:text-muted-foreground/60 outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 rounded-[8px]"
                   />
                 </div>
 
                 <div className="group relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                   <input 
                     type={showPassword ? "text" : "password"} 
                     placeholder="Contraseña"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="text-slate-600 w-full border-2 border-neutral-200 bg-neutral-50/50 pl-12 pr-12 py-4 font-medium outline-none transition-all focus:border-blue-600 focus:bg-white rounded-lg"
+                    className="w-full border-2 border-border bg-surface-2/50 pl-12 pr-12 py-4 font-mono text-foreground placeholder:text-muted-foreground/60 placeholder:font-sans outline-none transition-all focus:border-primary focus:bg-background focus:ring-4 focus:ring-primary/10 rounded-[8px]"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -135,23 +138,24 @@ export default function SignIn() {
                   whileTap={{ scale: 0.98 }}
                   type="submit" 
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 bg-neutral-900 py-4 rounded-lg font-bold text-white transition-all hover:bg-neutral-800 shadow-xl shadow-neutral-200 disabled:opacity-70"
+                  // 💡 Botón principal con semántica YBank y sombra técnica
+                  className="flex w-full items-center justify-center gap-2 bg-primary py-4 rounded-[8px] font-bold text-primary-foreground transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-70 mt-2"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : "Entrar al panel"}
                 </motion.button>
               </form>
 
               <div className="relative flex items-center py-8">
-                <div className="grow border-t border-neutral-100"></div>
-                <span className="mx-4 shrink-0 text-[10px] font-black tracking-[0.2em] text-neutral-400 uppercase">
+                <div className="grow border-t border-border"></div>
+                <span className="mx-4 shrink-0 text-[10px] font-black tracking-[0.2em] text-muted-foreground uppercase">
                   OTRAS OPCIONES
                 </span>
-                <div className="grow border-t border-neutral-100"></div>
+                <div className="grow border-t border-border"></div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <form action={signInWithGoogle} className="w-full">
-                  <button type="submit" className="group flex w-full items-center justify-center gap-3 border-2 border-neutral-200 bg-white px-4 py-4 rounded-lg font-bold text-neutral-700 transition-all hover:border-neutral-300 hover:bg-neutral-50 active:scale-95">
+                  <button type="submit" className="group flex w-full items-center justify-center gap-3 border-2 border-border bg-surface-2 px-4 py-4 rounded-[8px] font-bold text-foreground transition-all hover:bg-background hover:border-primary/30 active:scale-95">
                     <Image src="/icons/google.svg" width={20} height={20} alt="G" className="opacity-80 group-hover:opacity-100 transition-opacity" />
                     <span className="hidden sm:inline">Google</span>
                   </button>
@@ -162,14 +166,14 @@ export default function SignIn() {
           </motion.div>
 
           {/* Footer */}
-          <div className="flex shrink-0 flex-col items-center justify-between gap-4 text-xs text-neutral-500 sm:flex-row border-t border-neutral-100 pt-6 mt-auto">
+          <div className="flex shrink-0 flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row border-t border-border pt-6 mt-auto">
             <p className="font-medium">
               ¿No tienes cuenta?{" "}
-              <Link href="/sign-up" className="font-bold text-blue-600 hover:underline">
+              <Link href="/sign-up" className="font-bold text-primary hover:underline">
                 Aplicar ahora
               </Link>
             </p>
-            <div className="flex items-center gap-1.5 text-neutral-400 font-bold uppercase tracking-wider text-[9px]">
+            <div className="flex items-center gap-1.5 text-muted-foreground font-bold uppercase tracking-wider text-[9px]">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
               <span>Seguridad Bancaria E2E</span>
             </div>
@@ -177,8 +181,9 @@ export default function SignIn() {
         </div>
 
         {/* === COLUMNA DERECHA === */}
-        <div className="relative hidden w-1/2 flex-col items-center justify-center bg-neutral-50 p-12 lg:flex border-l border-neutral-200">
-          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        {/* 💡 Fondo adaptativo bg-surface-2 con patrón de puntos responsivo */}
+        <div className="relative hidden w-1/2 flex-col items-center justify-center bg-surface-2 p-12 lg:flex">
+          <div className="absolute inset-0 opacity-[0.15] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
           <motion.div 
             initial={{ opacity: 0, rotateY: -20 }}
             animate={{ opacity: 1, rotateY: 0 }}
@@ -196,8 +201,8 @@ export default function SignIn() {
             transition={{ delay: 0.8 }}
             className="mt-12 text-center relative z-10"
           >
-            <h3 className="text-2xl font-black text-neutral-900">Control Automático</h3>
-            <p className="mt-2 text-neutral-500 font-medium max-w-xs mx-auto">
+            <h3 className="text-2xl font-black text-foreground mt-12">Control Automático</h3>
+            <p className="mt-2 text-muted-foreground font-medium max-w-xs mx-auto">
               Tu infraestructura financiera personal en un solo panel de control.
             </p>
           </motion.div>

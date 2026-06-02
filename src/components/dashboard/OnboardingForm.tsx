@@ -7,7 +7,7 @@ import { completeOnboarding } from '@/lib/actions/auth';
 import { createAccount } from '@/lib/actions/accounts'; 
 import { CurrencyCode } from '@/types';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils'; // 💡 Asegúrate de tener este import
+import { cn } from '@/lib/utils';
 
 interface Institution {
   id: string;
@@ -86,24 +86,24 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
     }
   };
 
-  // 💡 Animación Spring (Resorte) estilo iOS / YBANK
+  // Animación Spring (Resorte) estilo iOS / YBANK
   const variants = {
     initial: { opacity: 0, y: 15, scale: 0.98 },
     animate: { opacity: 1, y: 0, scale: 1 },
     exit: { opacity: 0, y: -15, scale: 0.98 },
   };
 
-  // 💡 Clases maestras redefinidas
-  const cardClasses = "flex flex-col gap-6 bg-card p-8 rounded-[24px] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.1)] border border-border/50";
-  const inputClasses = "w-full h-12 px-4 bg-surface-2/50 rounded-[10px] border border-border/60 focus:bg-background focus:border-primary/40 focus:ring-1 focus:ring-primary/20 text-sm font-bold text-foreground placeholder:text-muted-foreground/50 outline-none transition-all disabled:opacity-50";
-  const labelClasses = "text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block ml-1";
+  // Clases maestras redefinidas
+  const cardClasses = "flex flex-col gap-6 bg-card p-8 rounded-[24px] shadow-xl border border-border";
+  const inputClasses = "w-full h-12 px-4 bg-surface-2 rounded-[10px] border border-border focus:bg-background focus:border-primary/50 focus:ring-1 focus:ring-primary/30 text-body font-bold text-foreground placeholder:text-muted-foreground/50 outline-none transition-all disabled:opacity-50";
+  const labelClasses = "text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5 block ml-1";
 
   return (
     <div className="max-w-md w-full mx-auto p-6 relative">
       
-      {/* 💡 Indicador de progreso técnico */}
+      {/* Indicador de progreso técnico */}
       <div className="absolute -top-6 left-0 w-full flex justify-center">
-        <div className="bg-surface-2 border border-border px-3 py-1 rounded-full flex items-center gap-2 shadow-sm">
+        <div className="bg-card border border-border px-3 py-1 rounded-full flex items-center gap-2 shadow-sm">
            <div className="flex gap-1">
              {[1, 2, 3, 4].map((s) => (
                <div key={s} className={cn("h-1.5 rounded-full transition-all duration-300", s === step ? "w-4 bg-primary" : s < step ? "w-1.5 bg-foreground" : "w-1.5 bg-border")} />
@@ -140,13 +140,13 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
               />
             </div>
 
-            <button 
-              onClick={handleNext} 
-              disabled={!isValidStep1}
-              className="mt-2 flex items-center justify-center gap-2 w-full h-12 rounded-[10px] bg-foreground text-background text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
-            >
-              Continuar <ArrowRight size={14} />
-            </button>
+          <button 
+            onClick={handleNext} 
+            disabled={!isValidStep1}
+            className="btn-primary mt-2 flex items-center justify-center gap-2 w-full h-12 rounded-[10px] text-label transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
+          >
+            Continuar <ArrowRight size={14} />
+          </button>
           </motion.div>
         )}
 
@@ -177,13 +177,13 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
             </div>
 
             <div className="flex gap-3 mt-2">
-              <button onClick={handleBack} className="flex items-center justify-center w-12 h-12 bg-surface-2 border border-border rounded-[10px] text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors">
+              <button onClick={handleBack} className="bg-surface-2 border border-border text-foreground hover:bg-surface-3 flex items-center justify-center w-12 h-12 rounded-[10px] transition-colors">
                 <ArrowLeft size={16} />
               </button>
               <button 
                 onClick={handleNext} 
                 disabled={!isValidStep2}
-                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] bg-foreground text-background text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                className="btn-primary flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-label transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
               >
                 Asegurar Bóveda <ArrowRight size={14} />
               </button>
@@ -233,10 +233,10 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
                 </div>
               </div>
 
-              {/* 💡 HERO INPUT para el balance */}
+              {/* HERO INPUT para el balance */}
               <div className="pt-2">
                 <label htmlFor="initialBalance" className={labelClasses}>Balance Actual (Apertura)</label>
-                <div className="flex items-center justify-center py-4 px-4 rounded-[12px] bg-surface-2/30 border border-border/50 focus-within:border-primary/40 focus-within:bg-background transition-all">
+                <div className="flex items-center justify-center py-4 px-4 rounded-[12px] bg-surface-2 border border-border focus-within:border-primary/50 focus-within:bg-background transition-all">
                   <div className="flex items-center text-3xl font-mono font-black text-foreground">
                     <span className="text-xl text-emerald-500 mr-2 -mt-1">$</span>
                     <input 
@@ -257,13 +257,13 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
             </div>
 
             <div className="flex gap-3 mt-2">
-              <button onClick={handleBack} className="flex items-center justify-center w-12 h-12 bg-surface-2 border border-border rounded-[10px] text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors">
+              <button onClick={handleBack} className="bg-surface-2 border border-border text-foreground hover:bg-surface-3 flex items-center justify-center w-12 h-12 rounded-[10px] transition-colors">
                 <ArrowLeft size={16} />
               </button>
               <button 
                 onClick={handleNext} 
                 disabled={!isValidStep3}
-                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] bg-foreground text-background text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
+                className="btn-primary flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-label transition-all active:scale-[0.98] disabled:opacity-30 disabled:pointer-events-none shadow-md"
               >
                 Configurar Nodo <ArrowRight size={14} />
               </button>
@@ -274,7 +274,8 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
         {step === 4 && (
           <motion.div key="step4" variants={variants} initial="initial" animate="animate" exit="exit" transition={{ type: "spring", stiffness: 300, damping: 25 }} className={cardClasses}>
             <div className="flex items-center gap-4 border-b border-border/50 pb-5">
-              <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-[12px] flex items-center justify-center shrink-0">
+              {/* 💡 Reemplazamos el azul duro por tu color primary */}
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-[12px] flex items-center justify-center shrink-0">
                 <Globe size={22} strokeWidth={2.5} />
               </div>
               <div>
@@ -301,15 +302,15 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
             </div>
             
             <div className="flex gap-3 mt-2">
-               <button onClick={handleBack} disabled={loading} className="flex items-center justify-center w-12 h-12 bg-surface-2 border border-border rounded-[10px] text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors disabled:opacity-50">
+               <button onClick={handleBack} disabled={loading} className="bg-surface-2 border border-border text-foreground hover:bg-surface-3 flex items-center justify-center w-12 h-12 rounded-[10px] transition-colors disabled:opacity-50">
                 <ArrowLeft size={16} />
               </button>
               <button 
                 onClick={handleSubmit} 
                 disabled={loading}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-[11px] font-black uppercase tracking-[0.15em] transition-all active:scale-[0.98] shadow-[0_10px_20px_-10px_rgba(37,99,235,0.5)]",
-                  loading ? "bg-muted text-muted-foreground cursor-wait" : "bg-primary text-white hover:bg-primary/90"
+                  "flex-1 flex items-center justify-center gap-2 h-12 rounded-[10px] text-label transition-all active:scale-[0.98]",
+                  loading ? "bg-muted text-muted-foreground cursor-wait" : "btn-primary hover:bg-primary/90 shadow-[0_10px_20px_-10px] shadow-primary/40"
                 )}
               >
                 {loading ? "Sincronizando..." : <><CheckCircle2 size={16} /> Inicializar YBANK</>}

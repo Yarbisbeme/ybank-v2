@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, KeyboardEvent } from 'react';
+import { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { Tag as TagIcon, X, Plus, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { createPortal } from 'react-dom';
 
 interface TagType {
   id: string;
@@ -25,7 +26,49 @@ export default function TagInput({
 }: TagInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  
+  const [mounted, setMounted] = useState(false);
+  
+  // 💡 1. Nuevos estados para el motor inteligente
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const [openUpwards, setOpenUpwards] = useState(false);
+  
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 💡 2. EL MOTOR DE POSICIONAMIENTO EN TIEMPO REAL
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const updatePosition = () => {
+      if (containerRef.current) {
+        const bounding = containerRef.current.getBoundingClientRect();
+        setRect(bounding);
+
+        // Cuando el teclado se abre en móvil, window.innerHeight se reduce drásticamente.
+        // Si el espacio debajo del input es menor a 220px, abrimos el menú hacia ARRIBA.
+        const spaceBelow = window.innerHeight - bounding.bottom;
+        setOpenUpwards(spaceBelow < 220); 
+      }
+    };
+
+    // Calculamos inmediatamente
+    updatePosition();
+
+    // 💡 3. Escuchamos el Scroll y el Teclado (Resize)
+    // El 'true' al final es VITAL: permite escuchar el scroll DENTRO del modal
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isFocused, inputValue]); // Actualiza también si escribes algo nuevo
 
   const selectedTags = availableTags.filter(t => selectedTagIds.includes(t.id));
   
@@ -68,9 +111,8 @@ export default function TagInput({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" ref={containerRef}>
       
-      {/* CONTENEDOR DE ENTRADA */}
       <div 
         onClick={() => inputRef.current?.focus()}
         className={cn(
@@ -78,7 +120,6 @@ export default function TagInput({
           "border-b border-border/60 focus-within:border-primary/50"
         )}
       >
-        {/* Chips de Etiquetas (Neo-Terminal Style) */}
         <AnimatePresence>
           {selectedTags.map(tag => (
             <motion.span 
@@ -104,7 +145,6 @@ export default function TagInput({
           ))}
         </AnimatePresence>
 
-        {/* Input de Auditoría */}
         <input
           ref={inputRef}
           type="text"
@@ -118,51 +158,66 @@ export default function TagInput({
         />
       </div>
 
-      {/* DROPDOWN DE BÚSQUEDA (YBANK Dropdown Identity) */}
-      <AnimatePresence>
-        {isFocused && (inputValue || filteredTags.length > 0) && (
-          <motion.div 
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            className="absolute top-[calc(100%+4px)] left-0 w-full bg-card border border-border shadow-xl rounded-[6px] z-50 overflow-hidden max-h-48 overflow-y-auto py-1"
-          >
-            {filteredTags.map(tag => (
-              <div
-                key={tag.id}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleSelect(tag.id);
-                }}
-                className="px-3 py-2 hover:bg-surface-2 cursor-pointer flex items-center justify-between group transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Hash size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="text-[11px] font-bold text-foreground uppercase tracking-tight">{tag.name}</span>
+      {mounted && createPortal(
+        <AnimatePresence>
+          {isFocused && (inputValue || filteredTags.length > 0) && rect && (
+            <motion.div 
+              // 💡 4. Animamos desde abajo si se abre hacia arriba, o desde arriba si se abre hacia abajo
+              initial={{ opacity: 0, y: openUpwards ? 10 : -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: openUpwards ? 10 : -10 }}
+              className={cn(
+                "fixed bg-card border border-border shadow-2xl z-[9999] overflow-hidden max-h-48 overflow-y-auto py-1",
+                // Redondeamos la esquina contraria a la que toca el input
+                openUpwards ? "rounded-t-[8px] rounded-b-[4px]" : "rounded-b-[8px] rounded-t-[4px]"
+              )}
+              style={{
+                left: rect.left,
+                width: rect.width,
+                // 💡 5. LA MAGIA MATEMÁTICA: Pegar arriba o abajo dependiendo del espacio
+                ...(openUpwards 
+                  ? { bottom: window.innerHeight - rect.top + 4 } 
+                  : { top: rect.bottom + 4 }
+                )
+              }}
+            >
+              {filteredTags.map(tag => (
+                <div
+                  key={tag.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(tag.id);
+                  }}
+                  className="px-3 py-2 hover:bg-surface-2 cursor-pointer flex items-center justify-between group transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Hash size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="text-[11px] font-bold text-foreground uppercase tracking-tight">{tag.name}</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">SELECCIONAR</span>
                 </div>
-                <span className="text-[9px] font-mono text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">SELECCIONAR</span>
-              </div>
-            ))}
+              ))}
 
-            {/* CREACIÓN DE NUEVO REGISTRO */}
-            {inputValue.trim() && !exactMatchExists && (
-              <div
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onCustomTagCreate(inputValue.trim());
-                  setInputValue('');
-                }}
-                className="px-3 py-2 hover:bg-primary/5 cursor-pointer flex items-center gap-2 border-t border-border/50"
-              >
-                <Plus size={14} className="text-primary" />
-                <span className="text-[11px] font-black text-primary uppercase tracking-widest">
-                  CREAR ETIQUETA: "{inputValue.trim()}"
-                </span>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {inputValue.trim() && !exactMatchExists && (
+                <div
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onCustomTagCreate(inputValue.trim());
+                    setInputValue('');
+                  }}
+                  className="px-3 py-2 hover:bg-primary/5 cursor-pointer flex items-center gap-2 border-t border-border/50"
+                >
+                  <Plus size={14} className="text-primary" />
+                  <span className="text-[11px] font-black text-primary uppercase tracking-widest">
+                    CREAR ETIQUETA: "{inputValue.trim()}"
+                  </span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body 
+      )}
     </div>
   );
 }

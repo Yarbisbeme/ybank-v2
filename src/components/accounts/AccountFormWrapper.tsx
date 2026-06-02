@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { CreateAccountInput, EditCreateAccount, Institution } from '@/types'; 
-import { createAccount, updateAccount } from '@/lib/actions/accounts'; 
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import NodeConfigModal from './EditableUniversalCard';
-import EditableUniversalCard from './EditableUniversalCard';
 import AccountDetailsPanel from './AccountDetailsPanel';
 import { CheckCircle2, Power, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSaveAccount } from '@/hooks/useCatalogs';
+import UniversalCard from '../Tarjetas/UniversalCard';
 
 const emptyInstitution: Institution = {
   id: '', name: '', logo_url: null, exchange_rate_adjustment: 0, exchange_rate_buy_adjustment: 0, created_at: new Date().toISOString(), brand_color_primary: '#1e3a8a'
@@ -28,6 +27,8 @@ export default function AccountFormWrapper({
   const router = useRouter(); 
   const [isSubmitting, setIsSubmitting] = useState(false); 
 
+  const { mutateAsync: saveAccount } = useSaveAccount();
+
   const [accountData, setAccountData] = useState<EditCreateAccount>(() => {
     if (initialData) {
       return {
@@ -45,10 +46,14 @@ export default function AccountFormWrapper({
     };
   });
 
-  const handleChange = (field: keyof EditCreateAccount, value: any) => {
-    setAccountData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field: string | Record<string, any>, value?: any) => {
+    setAccountData(prev => {
+      if (typeof field === 'object' && field !== null) {
+        return { ...prev, ...field };
+      }
+      return { ...prev, [field as string]: value };
+    });
   };
-
   const handleSave = async () => {
     if (isSubmitting) return;
     if (!accountData.name.trim()) return toast.error('El nombre del nodo es obligatorio.');
@@ -58,27 +63,30 @@ export default function AccountFormWrapper({
     setIsSubmitting(true);
     try {
       const inputData = {
-        name: accountData.name, type: accountData.type, currency: accountData.currency,
+        id: accountData.id,
+        name: accountData.name, 
+        type: accountData.type, 
+        currency: accountData.currency,
         initial_balance: accountData.initial_balance ?? 0, 
+        current_balance: accountData.current_balance ?? 0, 
         institution_id: accountData.institution_id || accountData.institution?.id || '', 
         last_4_digits: accountData.last_4_digits || undefined,
         credit_limit: accountData.credit_limit || undefined,
         is_active: accountData.is_active ?? true,
+        color: accountData.color,
+        custom_pattern: accountData.custom_pattern,
+        custom_text_theme: accountData.custom_text_theme,
+        expiry_date: accountData.expiry_date || undefined,
+        cutoff_day: accountData.cutoff_day || undefined,
       };
 
-      const result = (isEditing && accountData.id) ? await updateAccount(accountData.id, inputData) : await createAccount(inputData);
-
-      if (result?.success) {
-        toast.success(isEditing ? 'Configuración actualizada' : 'Nodo creado con éxito');
-        onSuccess?.();
-        router.refresh(); 
-      } else {
-        throw new Error(result?.error || 'Error al guardar');
-      }
+      await saveAccount(inputData);
+      onSuccess?.();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || 'Error al guardar la configuración');
+    } finally {
       setIsSubmitting(false);
-    } 
+    }
   };
 
   return (
@@ -87,9 +95,13 @@ export default function AccountFormWrapper({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12"> 
   
         <div className="lg:col-span-6 w-full">
-          {/* Limitamos el max-w para que la tarjeta no se vea como un banner gigante */}
           <div className="max-w-[400px] mx-auto"> 
-            <EditableUniversalCard data={accountData} onChange={handleChange} institutions={institutions} />
+            <UniversalCard 
+              account={accountData} 
+              isEditable={true}     
+              onChange={handleChange} 
+              institutionsList={institutions} 
+            />
           </div>
         </div>
 

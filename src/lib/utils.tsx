@@ -183,10 +183,16 @@ export const breakdownTax = (finalPrice: number) => {
   };
 };
 
-export const formatCurrency = (value: number | string) => {
+export const formatCurrency = (
+  value: number | string, 
+  currency: 'DOP' | 'USD' = 'DOP'
+) => {
   const num = Number(value);
   if (isNaN(num)) return '';
+
   return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(num);

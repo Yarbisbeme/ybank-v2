@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { Switch } from '../filters/Switch'
 
 interface NotificationsData {
   transactions: boolean
@@ -25,132 +27,115 @@ export default function NotificationsSection() {
     setNotifications(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const handleSave = () => {
-    console.log('Notification preferences saved:', notifications)
-  }
+  // Mantenemos el contenedor principal como tarjeta
+  const sectionClasses = "bg-card border border-border p-6 rounded-[12px] space-y-4"
+  const headerClasses = "text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4"
 
   return (
     <div className="space-y-6">
-      {/* Transaction Notifications */}
-      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Notificaciones de Transacciones</h2>
-        <div className="space-y-3">
-          <label className="flex items-center justify-between cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="font-medium">Todas las Transacciones</p>
-              <p className="text-sm text-muted-foreground">Recibe una notificación para cada transacción</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.transactions}
-              onChange={() => handleToggle('transactions')}
-              className="w-5 h-5"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="font-medium">Transferencias Grandes</p>
-              <p className="text-sm text-muted-foreground">Solo para transacciones mayores a €1,000</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.transfers}
-              onChange={() => handleToggle('transfers')}
-              className="w-5 h-5"
-            />
-          </label>
+      
+      {/* 1. Transacciones */}
+      <div className={sectionClasses}>
+        <h2 className={headerClasses}>Notificaciones de Transacciones</h2>
+        {/* Cambiamos el espaciado para que parezca una lista cohesionada */}
+        <div className="flex flex-col gap-1">
+          <NotificationRow 
+            label="Todas las Transacciones" 
+            sub="Recibe una notificación inmediata por cada movimiento."
+            checked={notifications.transactions}
+            onChange={() => handleToggle('transactions')}
+          />
+          <NotificationRow 
+            label="Transferencias Grandes" 
+            sub="Solo para montos mayores a $1,000 USD."
+            checked={notifications.transfers}
+            onChange={() => handleToggle('transfers')}
+          />
         </div>
       </div>
 
-      {/* Security Notifications */}
-      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Alertas de Seguridad</h2>
-        <label className="flex items-center justify-between cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-          <div>
-            <p className="font-medium">Cambios de Seguridad</p>
-            <p className="text-sm text-muted-foreground">Cambios de contraseña, nuevos dispositivos, etc.</p>
-          </div>
-          <input
-            type="checkbox"
+      {/* 2. Seguridad */}
+      <div className={sectionClasses}>
+        <h2 className={headerClasses}>Alertas de Seguridad</h2>
+        <div className="flex flex-col gap-1">
+          <NotificationRow 
+            label="Cambios de Seguridad" 
+            sub="Cambios de contraseña, nuevos dispositivos y accesos."
             checked={notifications.security}
             onChange={() => handleToggle('security')}
-            className="w-5 h-5"
             disabled
           />
-        </label>
-      </div>
-
-      {/* Marketing & Reports */}
-      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Marketing y Reportes</h2>
-        <div className="space-y-3">
-          <label className="flex items-center justify-between cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="font-medium">Ofertas y Promociones</p>
-              <p className="text-sm text-muted-foreground">Recibe información sobre ofertas especiales</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.promotions}
-              onChange={() => handleToggle('promotions')}
-              className="w-5 h-5"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="font-medium">Reporte Semanal</p>
-              <p className="text-sm text-muted-foreground">Resumen de tu actividad cada semana</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.weeklyReport}
-              onChange={() => handleToggle('weeklyReport')}
-              className="w-5 h-5"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="font-medium">Reporte Mensual</p>
-              <p className="text-sm text-muted-foreground">Análisis completo de tu mes</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={notifications.monthlyReport}
-              onChange={() => handleToggle('monthlyReport')}
-              className="w-5 h-5"
-            />
-          </label>
         </div>
       </div>
 
-      {/* Notification Channels */}
-      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Canales de Notificación</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <input type="checkbox" defaultChecked className="w-5 h-5" />
-            <span className="font-medium">📧 Email</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <input type="checkbox" defaultChecked className="w-5 h-5" />
-            <span className="font-medium">🔔 Push</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-            <input type="checkbox" className="w-5 h-5" />
-            <span className="font-medium">💬 SMS</span>
-          </label>
+      {/* 3. Reportes */}
+      <div className={sectionClasses}>
+        <h2 className={headerClasses}>Marketing y Reportes</h2>
+        <div className="flex flex-col gap-1">
+          <NotificationRow label="Ofertas y Promociones" disabled checked={notifications.promotions} onChange={() => handleToggle('promotions')} />
+          <NotificationRow label="Reporte Semanal" checked={notifications.weeklyReport} onChange={() => handleToggle('weeklyReport')} />
+          <NotificationRow label="Reporte Mensual" checked={notifications.monthlyReport} onChange={() => handleToggle('monthlyReport')} />
         </div>
       </div>
 
+      {/* 4. Canales */}
+      <div className={sectionClasses}>
+        <h2 className={headerClasses}>Canales de Notificación</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <ChannelCard label="Email" active />
+          <ChannelCard label="Push" active />
+          <ChannelCard label="SMS" />
+        </div>
+      </div>
+
+      {/* Botón Guardar - Ajustado al estilo primario de YBank */}
       <button
-        onClick={handleSave}
-        className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium"
+        onClick={() => console.log('Saved:', notifications)}
+        className="w-full md:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-[8px] font-black text-[12px] uppercase tracking-[0.2em] transition-all hover:opacity-90 active:scale-[0.98]"
       >
-        Guardar Preferencias de Notificaciones
+        Guardar Preferencias
       </button>
+    </div>
+  )
+}
+
+// Sub-componentes
+function NotificationRow({ label, sub, checked, onChange, disabled }: any) {
+  return (
+    // 💡 CAMBIO CRUCIAL: Eliminamos bg-surface-2. Usamos fondo transparente y hover.
+    // Solo mantenemos un borde inferior muy sutil para separar filas si es necesario, 
+    // o simplemente confiamos en el padding.
+    <div className="flex items-center justify-between py-3 px-2 rounded-[8px] hover:bg-black/20 transition-colors gap-4">
+      <div className="flex-1 min-w-0"> 
+        <p className="text-[13px] font-bold text-foreground truncate">{label}</p>
+        {sub && (
+          <p className="text-[11px] text-muted-foreground mt-0.5 truncate leading-tight">
+            {sub}
+          </p>
+        )}
+      </div>
+      
+      <div className="shrink-0">
+        <Switch checked={checked} onChange={onChange} disabled={disabled} />
+      </div>
+    </div>
+  );
+}
+
+function ChannelCard({ label, active = false }: { label: string, active?: boolean }) {
+  return (
+    // 💡 APLICAMOS EL ACENTO NEGRO: Las tarjetas inactivas son el "pozo negro" (bg-surface-2)
+    <div className={cn(
+      "p-4 border rounded-[8px] flex items-center gap-3 transition-colors",
+      active 
+        ? "border-primary bg-primary/10" // Activo: Resalta con el azul eléctrico
+        : "border-border bg-surface-2"   // Inactivo: Se hunde en el negro absoluto
+    )}>
+      <div className={cn(
+        "w-4 h-4 rounded-full border-2", 
+        active ? "bg-primary border-primary" : "border-muted-foreground"
+      )} />
+      <span className="text-[12px] font-bold text-foreground">{label}</span>
     </div>
   )
 }

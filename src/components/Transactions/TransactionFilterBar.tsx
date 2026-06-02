@@ -108,7 +108,7 @@ export default function TransactionFilterBar() {
   return (
     <div className="flex flex-col xl:flex-row xl:items-center gap-2.5 py-2 w-full relative z-20">
       
-      <div className="flex items-center p-1 h-8 bg-surface-2 border border-border rounded-[8px] w-full xl:w-auto overflow-x-auto scrollbar-hide shrink-0 snap-x">
+      <div className="flex items-center p-1 h-8 bg-black/5 dark:bg-black/40 border border-border rounded-[8px] w-full xl:w-auto overflow-x-auto scrollbar-hide shrink-0 snap-x">
         <div className="h-full w-full min-w-max flex items-center">
           <FilterTab active={!type} onClick={() => setFilter('type', null)} label="Global" />
           <FilterTab active={type === 'income'} onClick={() => setFilter('type', 'income')} label="Ingresos" />
@@ -219,11 +219,12 @@ export default function TransactionFilterBar() {
           {/* BOTÓN TRIPARTITO DE SELECCIÓN */}
           <motion.button 
             layout="position"
-            key={actionBtn.label} // Fuerza animación limpia si el botón cambia drásticamente
+            key={actionBtn.label}
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             onClick={actionBtn.onClick} disabled={isFetchingAll}
             className={cn(
               "flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-[6px] text-[9px] font-bold uppercase tracking-widest transition-all active:scale-95 border disabled:opacity-50",
+              // 💡 Eliminamos hover:bg-card si el fondo es bg-surface-2 (negro)
               actionBtn.classes
             )}
           >

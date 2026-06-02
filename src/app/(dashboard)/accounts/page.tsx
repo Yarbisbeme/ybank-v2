@@ -30,11 +30,11 @@ export default function AccountsPage() {
         <AccountDetailsHeader />
       </section>
 
-      <section className="pt-8">
-        <div className="flex items-center gap-2 mb-4">
-           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-             Registro de Operaciones del Nodo
-           </h2>
+      <section className="sm:bg-card sm:p-4 sm:rounded-t-[16px] sm:-mx-4 sm:border sm:border-border">
+        <div className="flex items-center gap-2 sm:py-4 justify-center sm:block py-1">
+           <h3 className="font-bold uppercase tracking-[0.1em] text-muted-foreground">
+             Transacciones Globales
+           </h3>
         </div>
         <TransactionFilterBar />
         <ClientTransactionTable /> 

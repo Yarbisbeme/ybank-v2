@@ -4,9 +4,19 @@ import { useState } from 'react';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation'; 
 import UniversalCard from '../Tarjetas/UniversalCard';
-import { cn } from '@/lib/utils'; // Asegúrate de tener tu helper cn o usa strings normales
 
-export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
+// 💡 AÑADIMOS LA INTERFAZ PARA LAS PROPS
+interface MobileWalletStackProps {
+  accounts: any[];
+  primaryAccountId?: string | null;
+  onToggleFavorite?: (accountId: string, e: React.MouseEvent) => void;
+}
+
+export default function MobileWalletStack({ 
+  accounts,
+  primaryAccountId, // 💡 RECIBIMOS
+  onToggleFavorite  // 💡 RECIBIMOS
+}: MobileWalletStackProps) {
 
   const [activeIdx, setActiveIdx] = useState(0);
   const router = useRouter(); 
@@ -76,6 +86,8 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
                   <UniversalCard 
                     account={acc} 
                     institution={acc.institution} 
+                    isFavorite={primaryAccountId === acc.id}
+                    onToggleFavorite={onToggleFavorite}
                   />
                 </div>
               </motion.div>
@@ -84,7 +96,7 @@ export default function MobileWalletStack({ accounts }: { accounts: any[] }) {
         </AnimatePresence>
       </div>
 
-      {/* 🔘 INDICADORES DE CONTEXTO (Estilo Paginación Inteligente) */}
+      {/* 🔘 INDICADORES DE CONTEXTO */}
       {accounts.length > 1 && (
         <div className="flex items-center justify-center gap-1.5 mt-2 pb-4">
           {accounts.map((acc, idx) => {

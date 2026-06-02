@@ -2,20 +2,20 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, Bell, Menu, X, 
+  Search, Menu, X, 
   LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle,
-  Loader2
+  Sun, Moon // 💡 1. Importamos iconos para el tema
 } from 'lucide-react';
 import { NavbarProps } from '@/types';
 import { useModalStore } from '@/store/useModalStore'; 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import GlobalSearch from './GlobalSearch';
 import { signOut } from '@/lib/actions/auth'; 
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
-import { useGlobalSearch } from '@/hooks/useCatalogs'; // 👈 Importamos el nuevo hook
+import { useGlobalSearch } from '@/hooks/useCatalogs'; 
 import { SidebarLink } from '../SidebarLink';
+import { useTheme } from '@teispace/next-themes';
 
 export default function Navbar({ user, accounts = [], transactions = [], tags = [], categories = [] }: NavbarProps) {
   
@@ -25,7 +25,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const [avatarError, setAvatarError] = useState(false); 
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState(''); // 💡 Estado para el retraso intencional
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   const openModal = useModalStore(state => state.openModal);
   const queryClient = useQueryClient();
@@ -35,9 +35,19 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
 
-  // =========================================================================
-  // 🧠 DEBOUNCE: Espera 300ms de inactividad antes de buscar en la BD
-  // =========================================================================
+  // 💡 3. Estados y lógica para el tema
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevenir hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -45,24 +55,9 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // 💡 Ejecutamos el hook de búsqueda profunda
   const { data: searchData } = useGlobalSearch(debouncedQuery);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-      if (e.key === 'Escape') {
-        setIsSearchOpen(false);
-        setIsMobileMenuOpen(false); 
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
+  // ... (El resto de tus useEffects se mantienen igual) ...
   useEffect(() => {
     setLoadingPath(null);
     setIsMobileMenuOpen(false);
@@ -77,37 +72,24 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
   const searchResults = useMemo(() => {
+    // ... (Tu lógica de búsqueda se mantiene intacta) ...
     if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [], categories: [] };
-    
     const query = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const cleanText = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
     const allFlatCategories = categories.flatMap(cat => [cat, ...(cat.subcategories || [])]);
     const uniqueCategories = allFlatCategories.filter((cat, index, self) => self.findIndex(c => c.id === cat.id) === index);
-
-    // =========================================================================
-    // 📡 MODO OFFLINE: EL ESCÁNER DE CACHÉ PROFUNDO
-    // =========================================================================
     const allCachedQueries = queryClient.getQueriesData({ queryKey: ['transactions'] });
     let offlineTransactions: any[] = [...transactions]; 
-    
     allCachedQueries.forEach(([_, data]: any) => {
-      if (data && data.transactions) {
-        offlineTransactions = [...offlineTransactions, ...data.transactions];
-      }
+      if (data && data.transactions) offlineTransactions = [...offlineTransactions, ...data.transactions];
     });
-
-    const uniqueOfflineTransactions = offlineTransactions.filter((tx, index, self) => 
-      self.findIndex(t => t.id === tx.id) === index
-    );
-
+    const uniqueOfflineTransactions = offlineTransactions.filter((tx, index, self) => self.findIndex(t => t.id === tx.id) === index);
     const isOnlineAndSearched = typeof navigator !== 'undefined' && navigator.onLine && debouncedQuery.length > 2 && searchData?.transactions;
 
     return {
       accounts: accounts.filter(acc => cleanText(acc.name).includes(query)),
       tags: tags.filter(tag => cleanText(tag.name).includes(query)),
       categories: uniqueCategories.filter(cat => cleanText(cat.name).includes(query)),
-      
       transactions: isOnlineAndSearched
         ? searchData.transactions 
         : uniqueOfflineTransactions.filter(tx =>
@@ -117,43 +99,21 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
     };
   }, [searchQuery, debouncedQuery, accounts, transactions, tags, categories, searchData, queryClient]);
 
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  const handleSecureLogout = async () => {
-    closeMenu(); 
-    queryClient.clear()
-    await signOut(); 
-  };
-
+  const toggleSection = (section: string) => { setExpandedSections(prev => ({ ...prev, [section]: !prev[section] })); };
+  const handleSecureLogout = async () => { closeMenu(); queryClient.clear(); await signOut(); };
   const handleNavigationClick = (e: React.MouseEvent, targetPath: string) => {
-    if (pathname === targetPath) {
-      e.preventDefault();
-      closeMenu();
-    } else {
-      setLoadingPath(targetPath);
-    }
+    if (pathname === targetPath) { e.preventDefault(); closeMenu(); } else { setLoadingPath(targetPath); }
   };
 
   const closeSearch = () => {
     setIsSearchOpen(false);
-    setTimeout(() => {
-      setSearchQuery('');
-      setDebouncedQuery('');
-    }, 150);
+    setTimeout(() => { setSearchQuery(''); setDebouncedQuery(''); }, 150);
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen(true);
-      }
-      if (e.key === 'Escape') {
-        closeSearch(); // 👈 Aquí
-        setIsMobileMenuOpen(false); 
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setIsSearchOpen(true); }
+      if (e.key === 'Escape') { closeSearch(); setIsMobileMenuOpen(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -215,10 +175,16 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
             <Plus size={14} strokeWidth={2.5} /> Nuevo Nodo
           </button>
 
-          <button className="flex items-center justify-center w-8 h-8 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors relative">
-            <Bell size={18} strokeWidth={2.5} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
-          </button>
+          {/* 💡 4. Switch de Tema para Desktop (Oculto en móvil) */}
+          {mounted && (
+            <button 
+              onClick={toggleTheme}
+              className="hidden md:flex items-center justify-center w-8 h-8 rounded-[6px] text-muted-foreground hover:text-foreground hover:bg-surface-2 border border-transparent hover:border-border transition-all ml-1"
+              title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}
+            >
+              {theme === 'dark' ? <Sun size={16} strokeWidth={2.5} /> : <Moon size={16} strokeWidth={2.5} />}
+            </button>
+          )}
         </div>
       </header>
 
@@ -236,51 +202,41 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex flex-row items-center cursor-pointer" onClick={closeMenu}> 
             <Image src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority className="w-[26px] h-auto object-contain dark:invert" />
-            <span className="text-foreground font-bold text-[24px] tracking-tighter">Bank</span>
+            <span className="text-foreground font-bold text-[24px] tracking-tighter ml-1">Bank</span>
           </div>
-          <button onClick={closeMenu} className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors">
-            <X size={20} strokeWidth={2.5} />
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {/* 💡 5. Switch de Tema para Móvil (Dentro del menú superior) */}
+            {mounted && (
+              <button 
+                onClick={toggleTheme}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors"
+                title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}
+              >
+                {theme === 'dark' ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
+              </button>
+            )}
+            <button onClick={closeMenu} className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors">
+              <X size={20} strokeWidth={2.5} />
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-4">
             Módulos Core
           </p>
-          <SidebarLink 
-            href="/dashboard" label="Consola" icon={LayoutDashboard} 
-            isActive={pathname === '/dashboard'} 
-            isLoading={loadingPath === '/dashboard'}
-            onClick={(e) => handleNavigationClick(e, '/dashboard')} 
-          />
-          <SidebarLink 
-            href="/accounts" label="Nodos" icon={Server} 
-            isActive={pathname === '/accounts'} 
-            isLoading={loadingPath === '/accounts'}
-            onClick={(e) => handleNavigationClick(e, '/accounts')} 
-          />
-          <SidebarLink 
-            href="/settings" label="Preferencias" icon={Settings} 
-            isActive={pathname === '/settings'} 
-            isLoading={loadingPath === '/settings'}
-            onClick={(e) => handleNavigationClick(e, '/settings')} 
-          />
+          <SidebarLink href="/dashboard" label="Consola" icon={LayoutDashboard} isActive={pathname === '/dashboard'} isLoading={loadingPath === '/dashboard'} onClick={(e) => handleNavigationClick(e, '/dashboard')} />
+          <SidebarLink href="/accounts" label="Nodos" icon={Server} isActive={pathname === '/accounts'} isLoading={loadingPath === '/accounts'} onClick={(e) => handleNavigationClick(e, '/accounts')} />
+          <SidebarLink href="/settings" label="Preferencias" icon={Settings} isActive={pathname === '/settings'} isLoading={loadingPath === '/settings'} onClick={(e) => handleNavigationClick(e, '/settings')} />
         </nav>
 
         <div className="p-5 border-t border-border flex flex-col gap-4 shrink-0 bg-card pb-safe">
-          
           <div className="grid grid-cols-2 gap-3">
-            <button 
-              onClick={() => { closeMenu(); openModal('transaction'); }} 
-              className="flex items-center justify-center gap-2 bg-foreground text-background font-bold rounded-[10px] transition-transform active:scale-95 text-xs py-2.5 shadow-sm"
-            >
+            <button onClick={() => { closeMenu(); openModal('transaction'); }} className="flex items-center justify-center gap-2 bg-foreground text-background font-bold rounded-[10px] transition-transform active:scale-95 text-xs py-2.5 shadow-sm">
               <PlusCircle size={14} /> Operación
             </button>
-            
-            <button 
-              onClick={() => { closeMenu(); openModal('account'); }} 
-              className="flex items-center justify-center gap-2 bg-surface-2 border border-border text-foreground font-bold rounded-[10px] hover:border-primary/50 transition-all active:scale-95 text-xs py-2.5"
-            >
+            <button onClick={() => { closeMenu(); openModal('account'); }} className="flex items-center justify-center gap-2 bg-surface-2 border border-border text-foreground font-bold rounded-[10px] hover:border-primary/50 transition-all active:scale-95 text-xs py-2.5">
               <Plus size={14} /> Nodo
             </button>
           </div>
@@ -300,28 +256,15 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
               </div>
             </div>
 
-            <button 
-              onClick={handleSecureLogout} 
-              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-[6px] transition-colors shrink-0"
-              title="Cerrar Sesión"
-            >
+            <button onClick={handleSecureLogout} className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-[6px] transition-colors shrink-0" title="Cerrar Sesión">
               <LogOut size={16} strokeWidth={2.5} />
             </button>
           </div>
-
         </div>
 
       </div>
 
-      <GlobalSearch
-        isOpen={isSearchOpen}
-        onClose={closeSearch}
-        query={searchQuery}
-        setQuery={setSearchQuery}
-        results={searchResults}
-        expanded={expandedSections}
-        onToggleSection={toggleSection}
-      />
+      <GlobalSearch isOpen={isSearchOpen} onClose={closeSearch} query={searchQuery} setQuery={setSearchQuery} results={searchResults} expanded={expandedSections} onToggleSection={toggleSection} />
     </>
   );
 }

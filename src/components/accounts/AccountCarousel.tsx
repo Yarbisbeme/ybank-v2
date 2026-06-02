@@ -1,15 +1,29 @@
 'use client'
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Zap, Loader2 } from 'lucide-react';
 import DesktopAccounts from './DesktopAccounts';
 import MobileWalletStack from './MobileWalletCard'; 
-import { useAccounts } from '@/hooks/useCatalogs'; 
+import { useAccounts, useProfile, useUpdateProfile } from '@/hooks/useCatalogs'; 
 
 export default function AccountCarousel() {
   const desktopScrollRef = useRef<HTMLDivElement>(null);
   
-  const { data: accounts = [], isLoading } = useAccounts();
+  const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
+  const { data: profile, isLoading: isLoadingProfile } = useProfile();
+  const updateProfileMutation = useUpdateProfile();
+
+  const sortedAccounts = useMemo(() => {
+    if (accounts.length === 0) return [];
+    if (!profile?.primary_account_id) return accounts;
+
+    const favoriteAcc = accounts.find(a => a.id === profile.primary_account_id);
+    if (!favoriteAcc) return accounts;
+
+    const otherAccs = accounts.filter(a => a.id !== profile.primary_account_id);
+    
+    return [favoriteAcc, ...otherAccs];
+  }, [accounts, profile?.primary_account_id]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (desktopScrollRef.current) {
@@ -41,7 +55,18 @@ export default function AccountCarousel() {
     return () => container.removeEventListener('wheel', handleWheel);
   }, []);
 
-  if (isLoading) {
+  const handleToggleFavorite = (accountId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const newPrimaryId = profile?.primary_account_id === accountId ? null : accountId;
+
+    updateProfileMutation.mutate({ 
+      primary_account_id: newPrimaryId 
+    });
+  };
+
+  if (isLoadingAccounts || isLoadingProfile) {
     return (
       <div className="w-full h-[200px] bg-card/50 animate-pulse rounded-[10px] border border-border border-dashed flex flex-col items-center justify-center gap-2">
         <Loader2 size={24} className="animate-spin text-primary/30" />
@@ -53,7 +78,7 @@ export default function AccountCarousel() {
   if (accounts.length === 0) return null;
 
   return (
-    <section className="relative w-full sm:pb-8">
+    <section className="relative w-full">
       
       {/* VERSIÓN ESCRITORIO */}
       <div className="hidden md:block">
@@ -89,15 +114,17 @@ export default function AccountCarousel() {
         </div>
 
         <DesktopAccounts 
-          accounts={accounts} 
+          accounts={sortedAccounts} 
           scrollRef={desktopScrollRef}
+          primaryAccountId={profile?.primary_account_id}
+          onToggleFavorite={handleToggleFavorite}
         />
 
       </div>
 
       {/* VERSIÓN MÓVIL */}
       <div className="block md:hidden">
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 mb-4">
               <Zap size={16} className="text-muted-foreground" />
               <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 Ecosistema de Nodos
@@ -106,7 +133,11 @@ export default function AccountCarousel() {
                 {accounts.length}
               </span>
         </div>
-        <MobileWalletStack accounts={accounts} />
+        <MobileWalletStack 
+          accounts={sortedAccounts} 
+          primaryAccountId={profile?.primary_account_id}
+          onToggleFavorite={handleToggleFavorite}
+        />
       </div>
     </section>
   );

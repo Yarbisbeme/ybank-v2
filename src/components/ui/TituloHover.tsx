@@ -7,7 +7,7 @@ const TituloHover = ({ title,  }: { title: string }) => {
             text-5xl sm:text-7xl md:text-8xl
             font-medium tracking-[-0.03em]
             leading-[0.95]
-            text-neutral-950
+            text-foreground
             whitespace-pre-line
             pb-2
           "
@@ -18,7 +18,7 @@ const TituloHover = ({ title,  }: { title: string }) => {
             className="
               pointer-events-none
               absolute inset-0 block
-              text-[#0179FE]
+              text-primary
               leading-[0.95]
               whitespace-pre-line
 

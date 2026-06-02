@@ -47,7 +47,7 @@ export default function Sidebar() {
         <img 
           src="/icons/logoY.svg" 
           alt="YBank" 
-          className="w-[30px] h-auto object-contain dark:invert" 
+          className="w-[30px] h-auto object-contain" 
         />
         <span className="text-foreground font-bold text-[30px] tracking-tighter">
             Bank
@@ -55,7 +55,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-2 mt-10">
-        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-4">
+        <p className="text-label text-muted-foreground mb-4 px-4">
           Módulos Core
         </p>
         
@@ -93,14 +93,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <ButtonOla 
           onClick={() => openModal('transaction')} 
           label="Nueva Operación"
         />
       </div>
 
-      <div className="pt-6 border-t border-border">
+      <div className="py-4 border-t border-border">
         <button 
           onClick={handleSecureLogout} 
           className="flex items-center gap-3 px-4 py-3 w-full rounded-[10px] text-muted-foreground font-bold text-sm hover:text-destructive hover:bg-destructive/10 transition-colors"

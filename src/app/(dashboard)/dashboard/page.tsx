@@ -10,7 +10,7 @@ import ClientTransactionTable from '@/components/Transactions/ClientTransactionT
 export default function DashboardPage() {
   
   return (
-    <div className="max-w-[1400px] mx-auto sm:px-4 md:px-8 sm:py-6 space-y-8 md:space-y-10">
+    <div className="max-w-[1400px] mx-auto mt-6 sm:mt-0 sm:px-4 md:px-8 space-y-8 md:space-y-10">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-auto">
         <div className="md:col-span-12 lg:col-span-8"> 
           <HeroBalance /> 
@@ -24,11 +24,11 @@ export default function DashboardPage() {
       <div>
         <AccountCarousel />
       </div>
-      <section className="Transacciones">
-        <div className="flex items-center gap-2 mb-4">
-           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-             Registro Operativo Global
-           </h2>
+      <section className="sm:bg-card sm:p-4 sm:rounded-t-[16px] sm:-mx-4 sm:border sm:border-border">
+        <div className="flex items-center gap-2 sm:py-4 justify-center sm:block py-1">
+           <h3 className="font-bold uppercase tracking-[0.1em] text-muted-foreground">
+             Transacciones Globales
+           </h3>
         </div>
         
         <TransactionFilterBar />

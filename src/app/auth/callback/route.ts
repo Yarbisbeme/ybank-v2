@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         const expiresIn = (session as any).provider_token_expires_in || 3600;
         const expirationDate = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-        await supabase
+        const { error: dbError } = await supabase
           .from('profiles')
           .upsert({
             id: user.id, // Requerido para saber qué fila insertar/mapear

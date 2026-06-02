@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Option {
   id: string;
@@ -14,9 +15,10 @@ interface SearchableDropdownProps {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  disabled?: boolean;
 }
 
-export default function SearchableDropdown({ options, value, onChange, placeholder }: SearchableDropdownProps) {
+export default function SearchableDropdown({ options, value, onChange, placeholder, disabled = false }: SearchableDropdownProps) {
   
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -24,8 +26,13 @@ export default function SearchableDropdown({ options, value, onChange, placehold
 
   const selectedOption = options.find(opt => opt.id === value);
 
+  // 💡 LA SOLUCIÓN: Limpiar al abrir, restaurar al cerrar
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      // Cuando se abre, vaciamos el input para que el filtro muestre TODAS las opciones
+      setInputValue('');
+    } else {
+      // Cuando se cierra, volvemos a poner el nombre de la opción seleccionada
       setInputValue(selectedOption ? selectedOption.label : '');
     }
   }, [isOpen, selectedOption]);
@@ -46,57 +53,54 @@ export default function SearchableDropdown({ options, value, onChange, placehold
   }, []);
 
   return (
-    <div className="relative w-full" ref={wrapperRef}>
+    <div className={cn("relative w-full", disabled && "opacity-50 pointer-events-none")} ref={wrapperRef}>
       
       {/* EL INPUT PRINCIPAL */}
       <div className="w-full bg-transparent flex items-center justify-between cursor-text py-1">
-        
-        {/* 💡 MEJORA: flex-row y items-center para que estén en la misma línea */}
         <div className="flex flex-row items-center min-w-0 w-full pr-2">
-          
           <input
             type="text"
-            // 💡 flex-1 hace que el input empuje al subLabel hacia la derecha
-            className="flex-1 bg-transparent border-none outline-none text-sm text-slate-800 font-bold p-0 focus:ring-0 truncate placeholder:font-medium placeholder:text-slate-400"
-            placeholder={placeholder}
+            disabled={disabled}
+            className="flex-1 bg-transparent border-none outline-none text-sm text-foreground font-bold p-0 focus:ring-0 truncate placeholder:font-medium placeholder:text-muted-foreground/50 disabled:cursor-not-allowed transition-colors"
+            // 💡 UX EXTRA: Si está abierto, el placeholder muestra el nombre de la opción actual como guía
+            placeholder={isOpen && selectedOption ? selectedOption.label : placeholder}
             value={inputValue}
             onChange={(e) => {
               setInputValue(e.target.value);
               setIsOpen(true); 
             }}
-            onFocus={(e) => {
+            onFocus={() => {
               setIsOpen(true);
-              e.target.select(); 
+              // Ya no necesitamos e.target.select() porque el texto se borra automáticamente
             }}
           />
 
-          {/* 💡 EL SUB-LABEL A LA DERECHA */}
+          {/* EL SUB-LABEL A LA DERECHA */}
           {selectedOption && !isOpen && selectedOption.subLabel && (
-            // whitespace-nowrap evita que el nombre del banco se rompa en dos líneas
-            <span className="text-xs font-medium text-slate-400 ml-3 whitespace-nowrap">
+            <span className="text-xs font-medium text-muted-foreground ml-3 whitespace-nowrap">
               {selectedOption.subLabel}
             </span>
           )}
-
         </div>
         
         {/* Flechita decorativa */}
         <button 
           type="button" 
+          disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
-          className="p-1 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0"
+          className="p-1 hover:bg-surface-2 rounded-[6px] transition-colors flex-shrink-0"
           tabIndex={-1} 
         >
-          <ChevronDown size={16} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown size={16} className={cn("text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
         </button>
       </div>
 
       {/* MENÚ DESPLEGABLE */}
       {isOpen && (
-        <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-white border border-slate-100 shadow-xl rounded-2xl z-50 overflow-hidden flex flex-col max-h-60">
+        <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-card border border-border shadow-2xl rounded-[8px] z-[9999] overflow-hidden flex flex-col max-h-60">
           <div className="overflow-y-auto py-1 scrollbar-hide">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-slate-400 text-center">No se encontraron resultados</div>
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center font-medium">No se encontraron resultados</div>
             ) : (
               filteredOptions.map(opt => (
                 <div
@@ -105,22 +109,21 @@ export default function SearchableDropdown({ options, value, onChange, placehold
                     onChange(opt.id);
                     setIsOpen(false);
                   }}
-                  className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-center justify-between group transition-colors"
+                  className="px-4 py-2.5 hover:bg-surface-2 cursor-pointer flex items-center justify-between group transition-colors"
                 >
-                  {/* 💡 MEJORA EN LA LISTA: También ponemos label y subLabel en la misma línea */}
                   <div className="flex-1 flex flex-row items-center justify-between min-w-0 pr-3">
-                    <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700 truncate pr-2">
+                    <span className="text-sm font-bold text-foreground group-hover:text-primary truncate pr-2 transition-colors">
                       {opt.label}
                     </span>
                     
                     {opt.subLabel && (
-                      <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
+                      <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                         {opt.subLabel}
                       </span>
                     )}
                   </div>
 
-                  {value === opt.id && <Check size={16} className="text-blue-600 flex-shrink-0 ml-1" />}
+                  {value === opt.id && <Check size={16} className="text-primary flex-shrink-0 ml-1" />}
                 </div>
               ))
             )}

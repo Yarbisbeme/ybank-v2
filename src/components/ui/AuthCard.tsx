@@ -56,12 +56,12 @@ export function AuthCard({
           {/* Logo  */}
           <div className="flex row items-center">
             <Image src="/icons/logoY.svg" width={24} height={24} alt="Logo"/>
-            <span className="text-lg tracking-widest text-white/80">Bank</span>
+            <span className="text-section tracking-widest text-white/80">Bank</span>
           </div>
 
           {/* Contactless Icon */}
           <div className="flex flex-col items-end">
-             <span className="font-mono text-[8px] tracking-widest text-white/40 uppercase">
+             <span className="text-label text-white/40">
                 {type}
              </span>
              <svg className="w-5 h-5 text-white/30 mt-1 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -77,7 +77,7 @@ export function AuthCard({
         </div>
         {/* CUERPO: Número */}
         <div className="relative z-10 mt-auto mb-2">
-          <div className="font-mono text-lg sm:text-lg tracking-widest text-white/90 drop-shadow-md">
+          <div className="text-mono text-lg sm:text-lg tracking-widest text-white/90 drop-shadow-md">
             •••• •••• •••• {last4}
           </div>
         </div>
@@ -85,12 +85,12 @@ export function AuthCard({
         {/* PIE: Nombre y Fecha */}
         <div className="relative z-10 flex justify-between items-end">
           <div className="flex flex-col">
-            <span className="text-[7px] text-white/40 uppercase tracking-wider mb-0.5">Card Holder</span>
-            <span className="font-mono text-xs sm:text-xs text-white/70 uppercase tracking-wide">{name}</span>
+            <span className="text-label text-white/40 mb-0.5">Card Holder</span>
+            <span className="text-mono text-xs sm:text-xs text-white/70 uppercase tracking-wide">{name}</span>
           </div>
           <div className="flex flex-col items-end">
-             <span className="text-[7px] text-white/40 uppercase tracking-wider mb-0.5">Expires</span>
-             <span className="font-mono text-xs sm:text-xs text-white/70">{expiry}</span>
+             <span className="text-label text-white/40 mb-0.5">Expires</span>
+             <span className="text-mono text-xs sm:text-xs text-white/70">{expiry}</span>
           </div>
         </div>
       </div>
@@ -112,19 +112,19 @@ export function AuthCard({
           >
             <div className="flex items-center justify-between ">
               <div className="flex items-center gap-3 ">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-bold text-blue-600 shadow-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-label font-bold text-blue-600 shadow-sm">
                   AWS
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-[12px] font-bold text-neutral-900 leading-tight">
+                  <p className="text-body font-bold text-neutral-900 leading-tight">
                     Amazon Web <br /> Services
                   </p>
-                  <p className="text-[9px] font-medium text-neutral-400">
+                  <p className="text-label text-neutral-400">
                     Infraestructura • Reciente
                   </p>
                 </div>
               </div>
-              <span className="text-xs font-semibold text-neutral-900 tabular-nums">
+              <span className="text-mono font-semibold text-neutral-900 tabular-nums">
                 -$240.00
               </span>
             </div>

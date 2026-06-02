@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { 
   ArrowDownRight, ArrowUpRight, ArrowRightLeft, Calendar, 
   Grid as GridIcon, CreditCard, AlignLeft, Send, Trash2,
-  Info, CheckCircle2, RefreshCw, SplitSquareHorizontal, ChevronDown
+  CheckCircle2, RefreshCw, SplitSquareHorizontal, ChevronDown
 } from 'lucide-react';
 import { Account, Tag, Category } from '@/types'; 
 import TagInput from './TagInput';
@@ -42,7 +42,6 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const calendarTriggerRef = useRef<HTMLDivElement>(null);
   
   const isEditing = !!initialData;
-  const hasExistingSplit = isEditing && initialData?.type === 'expense' && initialData?.items && initialData.items.length > 0;
   
   const { mutate: createTagOptimistic } = useSaveTag();
   const { mutate: saveTx, isPending: isSubmitting } = useSaveTransaction();
@@ -57,7 +56,9 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
   const [destinationAccountId, setDestinationAccountId] = useState(initialData?.transfer_to_account_id || '');
 
+  // 💡 El estado 'isSplit' ahora es el único jefe de la interfaz
   const [isSplit, setIsSplit] = useState(initialData?.type === 'expense' && initialData?.items?.length > 0);
+  
   const [items, setItems] = useState<any[]>(
     initialData?.type === 'expense' && initialData?.items?.length > 0 
     ? initialData.items.map((i: any) => ({ ...i, _id: crypto.randomUUID() })) 
@@ -68,7 +69,10 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags || []);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags?.map((t: any) => t.tag?.id) || []);
 
-  useEffect(() => { if (type !== 'expense') setIsSplit(false); }, [type]);
+  // 💡 Si el usuario cambia a Traspaso o Ingreso, apagamos el desglose automáticamente
+  useEffect(() => { 
+    if (type !== 'expense') setIsSplit(false); 
+  }, [type]);
 
   const accountOptions = (accounts || []).map(acc => ({ id: acc.id, label: acc.name, subLabel: acc.institution?.name || 'Banco' }));
   const activeCategories = (categories || []).filter(c => c.type === type);
@@ -95,7 +99,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!hasExistingSplit && type === 'expense' && isSplit) {
+    if (type === 'expense' && isSplit) {
       const splitTotal = items.reduce((sum, item) => sum + Number(item.unit_price || 0), 0);
       if (Math.abs(splitTotal - Number(amount)) > 0.01) { 
         toast.error('La suma del desglose no coincide con el monto total.');
@@ -107,33 +111,32 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       }
     }
 
-    // 💡 1. Construimos el payload con camelCase (como espera tu backend)
+    // 💡 1. Payload base protegido
     const payload: any = { 
       id: initialData?.id, 
       type, 
-      accountId: accountId, 
+      accountId: accountId || null, 
       date, 
-      note,                 // 👈 ¡Volvemos a usar 'note' como esperaba tu Server Action!
-      tagIds: selectedTags  
+      note,                 
+      tagIds: selectedTags,
+      amount: parseFloat(amount) || 0
     };
 
-    if (!hasExistingSplit) {
-      payload.amount = parseFloat(amount);
-      
-      if (type === 'transfer') {
-        payload.destinationAccountId = destinationAccountId && destinationAccountId !== '' ? destinationAccountId : null;
-        payload.categoryId = null; 
-      } else {
-        payload.categoryId = (type === 'expense' && isSplit) ? null : categoryId;
-        payload.destinationAccountId = null;
-      }
+    // 💡 2. Asignación estricta de destino e ítems según el tipo de transacción final
+    if (type === 'transfer') {
+      payload.destinationAccountId = destinationAccountId || null;
+      payload.categoryId = null; 
+      payload.items = []; // Avisamos al backend que limpie cualquier desglose viejo
+    } else {
+      payload.destinationAccountId = null;
+      payload.categoryId = (type === 'expense' && isSplit) ? null : (categoryId || null);
       
       payload.items = (type === 'expense' && isSplit) ? items.map(item => ({
         ...item,
-        unit_price: parseFloat(item.unit_price),
+        unit_price: parseFloat(item.unit_price) || 0,
         quantity: parseInt(item.quantity) || 1,
-        total_price: parseFloat(item.unit_price) * (parseInt(item.quantity) || 1)
-      })) : [];
+        total_price: (parseFloat(item.unit_price) || 0) * (parseInt(item.quantity) || 1)
+      })) : []; // Si el usuario cerró el desglose, enviamos array vacío para borrarlo
     }
 
     saveTx(payload, { onSuccess: () => onSuccess() });
@@ -149,18 +152,19 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const activeBg = type === 'expense' ? 'bg-rose-600' : type === 'income' ? 'bg-emerald-600' : 'bg-primary';
 
   return (
-    <div className="w-full bg-card rounded-[12px] border border-border shadow-sm flex flex-col font-sans relative overflow-visible">
+    <div className="w-full h-full bg-card rounded-[12px] border border-border shadow-sm flex flex-col font-sans relative overflow-visible">
       
-      {/* TABS */}
+      {/* TABS (LIBERADOS) */}
       <div className="border-b border-border bg-surface-2/30">
         <div className="flex bg-surface-2 p-1.5 rounded-[6px] relative">
           {(['expense', 'income', 'transfer'] as const).map((t) => {
             const isActive = type === t;
             return (
               <button 
-                key={t} type="button" disabled={hasExistingSplit} onClick={() => setType(t)} 
+                key={t} type="button" onClick={() => setType(t)} 
+                // 💡 Eliminamos el disabled para que puedas cambiar libremente
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors relative z-10 disabled:opacity-50",
+                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors relative z-10",
                   isActive ? activeColor : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -180,13 +184,14 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
           
           {/* HERO AMOUNT INPUT */}
           <div className="flex flex-col items-center justify-center py-4 px-4 rounded-[8px] bg-surface-2/30 border border-border/50 focus-within:border-primary/30 focus-within:bg-background transition-all">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
-              {hasExistingSplit ? 'Monto Desglosado' : 'Importe Operativo'}
+            <p className="text-label text-muted-foreground mb-1">
+              {(type === 'expense' && isSplit) ? 'Monto Desglosado' : 'Importe Operativo'}
             </p>
             <div className="flex items-center text-4xl sm:text-5xl font-mono font-black text-foreground relative">
               <span className={cn("text-2xl sm:text-3xl mr-1.5 -mt-1 transition-colors", activeColor)}>$</span>
               <input 
-                type="text" inputMode="decimal" placeholder="0.00" value={amount} onChange={handleAmountChange} disabled={hasExistingSplit} required 
+                type="text" inputMode="decimal" placeholder="0.00" value={amount} onChange={handleAmountChange} 
+                disabled={type === 'expense' && isSplit} required // 💡 Solo se bloquea si el desglose está activo
                 className={cn("w-full max-w-[280px] bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30 focus:ring-0 p-0 tracking-tighter disabled:opacity-60 transition-colors", amount ? "text-foreground" : "text-muted-foreground/30")}
                 autoFocus={!isEditing} 
               />
@@ -197,16 +202,17 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             
             {/* NODO ORIGEN */}
             <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><CreditCard size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" />{type === 'transfer' ? 'Nodo Origen' : 'Nodo Operativo'}</label>
+              <label className="text-label text-muted-foreground flex items-center gap-1.5"><CreditCard size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" />{type === 'transfer' ? 'Nodo Origen' : 'Nodo Operativo'}</label>
               <SearchableDropdown options={accountOptions} value={accountId} onChange={setAccountId} placeholder="Seleccionar Nodo..." />
             </div>
 
-            {/* NODO DESTINO / CLASIFICACIÓN */}
+            {/* NODO DESTINO / CLASIFICACIÓN (RECONSTRUIDO) */}
             <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              {hasExistingSplit ? (
-                <div className="h-full flex items-center gap-2 p-1"><Info size={14} className="text-muted-foreground shrink-0" /><p className="text-[10px] font-medium text-muted-foreground leading-tight">Desglose activo.</p></div>
-              ) : type === 'transfer' ? (
-                <><label className="text-[9px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Send size={10} /> Nodo Destino</label><SearchableDropdown options={accountOptions.filter(acc => acc.id !== accountId)} value={destinationAccountId} onChange={setDestinationAccountId} placeholder="Seleccionar Destino..." /></>
+              {type === 'transfer' ? (
+                <>
+                  <label className="text-label text-primary flex items-center gap-1.5"><Send size={10} /> Nodo Destino</label>
+                  <SearchableDropdown options={accountOptions.filter(acc => acc.id !== accountId)} value={destinationAccountId} onChange={setDestinationAccountId} placeholder="Seleccionar Destino..." />
+                </>
               ) : (
                 <>
                   <div className="flex items-center justify-between">
@@ -215,18 +221,22 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
                       <button type="button" onClick={() => setIsSplit(!isSplit)} className="text-[9px] font-bold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors bg-primary/10 px-1.5 py-0.5 rounded-[4px]"><SplitSquareHorizontal size={10} /> {isSplit ? 'Cerrar Desglose' : 'Desglosar Recibo'}</button>
                     )}
                   </div>
-                  {!isSplit ? <SearchableDropdown options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Buscar categoría..." /> : <div className="flex-1 flex items-center px-2 py-1 mt-0.5 bg-primary/5 border border-primary/20 rounded-[4px]"><p className="text-[10px] font-medium text-primary/80">Modo desglose activo.</p></div>}
+                  {!isSplit ? (
+                    <SearchableDropdown options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Buscar categoría..." />
+                  ) : (
+                    <div className="flex-1 flex items-center px-2 py-1 mt-0.5 bg-primary/5 border border-primary/20 rounded-[4px]"><p className="text-[10px] font-medium text-primary/80">Modo desglose activo.</p></div>
+                  )}
                 </>
               )}
             </div>
 
-            {/* 💡 FECHA VALOR: SUPER SIMPLE AHORA */}
+            {/* FECHA VALOR */}
             <div 
               ref={calendarTriggerRef}
-              className="relative group flex flex-col justify-between p-2.5 h-[54px] rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:border-primary/40 transition-all cursor-pointer"
+              className="relative group flex flex-col h-full justify-between p-2.5 h-[54px] rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:border-primary/40 transition-all cursor-pointer"
               onClick={() => setShowCalendar(true)}
             >
-              <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5 cursor-pointer transition-colors group-hover:text-primary pointer-events-none">
+              <label className="text-label text-muted-foreground flex items-center gap-1.5 cursor-pointer transition-colors group-hover:text-primary pointer-events-none">
                 <Calendar size={10} /> Fecha Valor
               </label>
               
@@ -239,14 +249,14 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             </div>
 
             {/* ETIQUETAS Y NOTAS */}
-            <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-               <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">Etiquetas Analíticas</label>
+            <div className="focus-within:z-[110] group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+               <label className="text-label text-muted-foreground flex items-center gap-1.5">Etiquetas Analíticas</label>
                <TagInput availableTags={availableTags} selectedTagIds={selectedTags} onChange={setSelectedTags} onCustomTagCreate={handleCustomTagCreate} />
             </div>
 
             <div className="md:col-span-2 group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
-              <textarea rows={1} placeholder="Nota u observación contable..." className="w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
+              <label className="text-label text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
+              <textarea rows={1} placeholder="Nota u observación contable..." className="pl-2 w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
           </div>
         </div>
@@ -268,13 +278,12 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
             </button>
           )}
 
-          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={cn("flex-1 py-2.5 rounded-[6px] text-xs font-bold uppercase tracking-widest text-white transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-2", activeBg)}>
+          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={cn("flex-1 py-2.5 rounded-[6px] text-label text-white transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-2", activeBg)}>
             {isSubmitting ? <><RefreshCw className="animate-spin" size={14} /> Procesando...</> : <><CheckCircle2 size={14} /> {isEditing ? 'Actualizar Ledger' : 'Asentar Operación'}</>}
           </button>
         </div>
       </form>
 
-      {/* 💡 2. LLAMADA AL CALENDARIO INTELIGENTE */}
       <YBankCalendarPicker 
         isOpen={showCalendar} 
         mode="single"

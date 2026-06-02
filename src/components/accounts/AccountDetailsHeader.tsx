@@ -10,16 +10,13 @@ import { toast } from 'sonner';
 export default function AccountDetailsHeader() {
   const openModal = useModalStore((state) => state.openModal);
   
-  // 💡 Obtenemos el ID directamente de la URL de forma síncrona
   const searchParams = useSearchParams();
   const urlAccountId = searchParams.get('accountId'); 
   
   const { data: accounts = [], isLoading } = useAccounts();
 
-  // Determinamos qué cuenta mostrar de manera ultra-segura
   const activeAccount = useMemo(() => {
     if (accounts.length === 0) return null;
-    // Si hay un ID en la URL, lo usamos; si no, por defecto mostramos la primera cuenta de la caché
     return accounts.find(a => a.id === urlAccountId) || accounts[0];
   }, [accounts, urlAccountId]);
 
@@ -72,7 +69,6 @@ export default function AccountDetailsHeader() {
   );
 }
 
-// ... (ActionButton se queda exactamente igual)
 
 function ActionButton({ 
   icon, 

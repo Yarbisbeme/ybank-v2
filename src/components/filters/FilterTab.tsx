@@ -21,26 +21,27 @@ export default function FilterTab({ active, onClick, label }: FilterTabProps) {
       {active && (
         <motion.div 
           layoutId="active-pill"
-          className="absolute inset-0 bg-foreground shadow-sm rounded-[6px] -z-10 overflow-hidden"
+          className="absolute inset-0 bg-primary shadow-sm rounded-[6px] -z-10 overflow-hidden"
           transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
         >
           <motion.div
             key={`wave-${label}`} 
-            initial={{ y: '160%', opacity: 1 }}
+            initial={{ y: '180%', opacity: 1 }}
             animate={{ y: '-30%', opacity: 0 }}
             transition={{
               y: { duration: 0.7, ease: 'backOut' }, 
               opacity: { duration: 0.3, delay: 0.5 }
             }}
-            className="absolute inset-0 z-10 h-[200%] w-[200%] origin-bottom-left rotate-[-8deg] -translate-x-[20%]"
+            className="absolute inset-0 z-10 h-[300%] w-[200%] origin-bottom-left rotate-[-8deg] -translate-x-[20%]"
           >
-            <WaveLayer color="#014ba0" className="opacity-70" /> 
-            <WaveLayer color="#0179FE" className="opacity-100 translate-y-2" />
-            <div className="absolute -bottom-[98%] left-0 h-full w-full bg-[#0179FE]" />
+            {/* 💡 FIX: Colores claros para que la ola contraste con el fondo oscuro al subir */}
+            <WaveLayer color="var(--wave-1)" className="opacity-40" /> 
+            <WaveLayer color="var(--wave-2)" className="opacity-80 translate-y-1" />
+            <div className="absolute -bottom-[98%] left-0 h-full w-full bg-[var(--wave-2)]" />
           </motion.div>
         </motion.div>
       )}
-      
+            
       <span className="relative z-30">{label}</span>
     </button>
   );
