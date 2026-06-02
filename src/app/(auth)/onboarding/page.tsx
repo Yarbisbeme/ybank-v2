@@ -1,4 +1,3 @@
-// src/app/onboarding/page.tsx
 import OnboardingForm from "@/components/dashboard/OnboardingForm";
 import { Logo } from "@/components/ui/Logo";
 import { getInstitutions } from "@/lib/actions/institutions";
@@ -18,18 +17,17 @@ export default async function OnboardingPage() {
     const needsPassword = !user?.app_metadata?.providers?.includes('email');
 
   return (
-    <main className="min-h-screen bg-[#F8F9FB] flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-4 transition-colors">
       <div className="mb-8">
         <Logo />
       </div>
       
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-slate-900">Personaliza tu experiencia</h1>
-          <p className="text-slate-500 font-medium mt-2">Solo tomará un minuto configurar tu YBank.</p>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">Personaliza tu experiencia</h1>
+          <p className="text-muted-foreground font-medium mt-2">Solo tomará un minuto configurar tu YBank.</p>
         </div>
 
-        {/* Pasamos los flags para que el formulario sepa qué pasos mostrar */}
         <OnboardingForm 
             initialStep={!hasName ? 1 : needsPassword ? 2 : 3} 
             defaultName={user?.user_metadata?.full_name || ""}

@@ -14,8 +14,10 @@ export default function SettingsPage() {
 
   const tabs: Array<{ id: SettingsTab; label: string }> = [
     { id: 'preferences', label: 'Preferencias' },
+    /** 
     { id: 'security', label: 'Seguridad' },
     { id: 'notifications', label: 'Notificaciones' }
+     */
   ]
 
   return (
@@ -59,8 +61,10 @@ export default function SettingsPage() {
           transition={{ duration: 0.2 }}
         >
           {activeTab === 'preferences' && <PreferencesSection />}
+          {/** 
           {activeTab === 'security' && <SecuritySection />}
           {activeTab === 'notifications' && <NotificationsSection />}
+          */}
         </motion.div>
       </AnimatePresence>
     </div>

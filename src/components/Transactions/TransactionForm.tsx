@@ -256,7 +256,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
 
             <div className="md:col-span-2 group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
               <label className="text-label text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
-              <textarea rows={1} placeholder="Nota u observación contable..." className="w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
+              <textarea rows={1} placeholder="Nota u observación contable..." className="pl-2 w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
           </div>
         </div>

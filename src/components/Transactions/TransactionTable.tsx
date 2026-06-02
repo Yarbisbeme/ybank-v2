@@ -91,7 +91,7 @@ export default function TransactionTable({
             <button 
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className="btn-secondary flex items-center gap-1 px-3 py-1.5 rounded-[6px] border border-border text-label text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+              className="btn-secondary flex items-center gap-1 px-3 py-1.5 rounded-[6px] border border-border text-label disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
             >
               Sig <ChevronRight size={12} strokeWidth={3} />
             </button>
