@@ -40,7 +40,7 @@ export default function TransactionsLedgerPage() {
       </div>
 
       {/* CORE DE TRANSACCIONES REUTILIZADO */}
-      <section className="space-y-4">
+      <section className="sm:bg-card sm:p-4 sm:rounded-t-[16px] sm:-mx-4 sm:border sm:border-border">
         <TransactionFilterBar />
         <ClientTransactionTable />
       </section>

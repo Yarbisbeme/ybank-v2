@@ -247,7 +247,6 @@ export default function YBankCalendarPicker({
 }
 
 function PresetBtn({ label, isActive, onClick }: { label: string, isActive?: boolean, onClick: () => void }) {
-  
   return (
     <button
       type="button"
@@ -264,16 +263,15 @@ function PresetBtn({ label, isActive, onClick }: { label: string, isActive?: boo
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-foreground shadow-sm rounded-[6px] -z-10 overflow-hidden"
+          className="absolute inset-0 bg-primary shadow-sm rounded-[6px] -z-10 overflow-hidden"
         >
           <motion.div
             key={`wave-container-${label}`} 
             initial={{ y: '130%' }}
-            animate={{ y: '-30%' }}
+            animate={{ y: '-25%' }}
             transition={{ y: { duration: 0.9, ease: 'backOut' } }}
             className="absolute inset-0 z-10 h-[200%] w-[160%] origin-bottom-left rotate-[-8deg]"
           >
-            {/* 💡 ANIMACIÓN BIDIRECCIONAL: Oscila de ida y vuelta suavemente */}
             <motion.div
               animate={{ x: ['-40%', '0%', '-40%'] }}
               transition={{ 
@@ -283,9 +281,10 @@ function PresetBtn({ label, isActive, onClick }: { label: string, isActive?: boo
               }}
               className="absolute inset-0 h-full w-full"
             >
-              <WaveLayer color="#014ba0" className="opacity-70" /> 
-              <WaveLayer color="#0179FE" className="opacity-90 translate-y-2" />
-              <div className="absolute -bottom-[98%] left-0 h-full w-full bg-[#0179FE]" />
+              {/* 💡 FIX: Tonos claros en las capas para mantener el efecto fluido visible */}
+              <WaveLayer color="var(--wave-1)" className="opacity-40" /> 
+              <WaveLayer color="var(--wave-2)" className="opacity-80 translate-y-1" />
+              <div className="absolute -bottom-[98%] left-0 h-full w-full bg-[var(--wave-2)]" />
             </motion.div>
           </motion.div>
         </motion.div>
@@ -296,7 +295,6 @@ function PresetBtn({ label, isActive, onClick }: { label: string, isActive?: boo
     </button>
   );
 }
-
 // ==========================================
 // COMPONENTES DE ONDA (WAVE ANIMATION)
 // ==========================================

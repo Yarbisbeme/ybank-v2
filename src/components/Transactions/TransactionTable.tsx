@@ -28,9 +28,9 @@ export default function TransactionTable({
   
   if (!transactions || transactions.length === 0) {
     return (
-      <div className="flex flex-col w-full items-center justify-center py-12 px-4 text-center border border-dashed border-border rounded-[10px] bg-surface-2/30 mt-4">
-        <div className="p-3 bg-surface-2 rounded-full flex items-center justify-center mb-3">
-          <RefreshCw size={20} className="text-muted-foreground" />
+      <div className="flex flex-col w-full items-center justify-center py-12 px-4 text-center border border-dashed border-border rounded-[10px] mt-4">
+        <div className="p-3 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+          <RefreshCw size={20} className="text-primary" />
         </div>
         <h3 className="text-label text-muted-foreground">Sin Telemetría</h3>
       </div>

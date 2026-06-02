@@ -24,7 +24,7 @@ export default function DashboardPage() {
       <div>
         <AccountCarousel />
       </div>
-      <section className="sm:bg-white sm:p-4 sm:rounded-t-[16px] sm:-mx-4 sm:border-1">
+      <section className="sm:bg-card sm:p-4 sm:rounded-t-[16px] sm:-mx-4 sm:border sm:border-border">
         <div className="flex items-center gap-2 sm:py-4 justify-center sm:block py-1">
            <h3 className="font-bold uppercase tracking-[0.1em] text-muted-foreground">
              Transacciones Globales

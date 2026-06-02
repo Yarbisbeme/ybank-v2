@@ -42,10 +42,6 @@
     #1F2937 100%
   );
 
-  /* Glass */
-  --glass-bg: rgba(245, 245, 244, 0.65); /* Off White translúcido */
-  --glass-border: rgba(17, 24, 39, 0.1);
-
   /* Sombras modernas (Ajustadas a Near Black) */
   --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
   --shadow-sm: 0 2px 6px rgba(17, 24, 39, 0.06);
@@ -77,15 +73,6 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type="number"] {
   -moz-appearance: textfield;
-}
-
-/* Glass moderno */
-.glassmorphism {
-  background: var(--glass-bg);
-  backdrop-filter: blur(14px) saturate(120%);
-  -webkit-backdrop-filter: blur(14px) saturate(120%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-sm);
 }
 
 /* Card base bancaria YBANK */
@@ -278,46 +265,56 @@ input[type="number"] {
   --sidebar-ring: #2563EB;
 
   --surface-2: #E5E7EB;
+  --wave-1: #014ba0;
+  --wave-2: #0179FE;
+
 }
 
 .dark {
-  --background: #0F172A; /* Terminal Dark */
-  --foreground: #F5F5F4; /* Off White */
+  --background: #0B1120; /* Un tono apenas más profundo que el 0F172A para mayor contraste */
+  --foreground: #F5F5F4;
   
-  --card: #111827; /* Near Black para cards oscuras */
+  --card: #0F172A; /* Tus tarjetas azuladas originales */
   --card-foreground: #F5F5F4;
   
-  --popover: #111827;
+  --popover: #0F172A;
   --popover-foreground: #F5F5F4;
   
-  --primary: #2563EB; /* Electric Blue para botones primarios en Dark */
+  /* 2. EL ADN YBANK: Azul Eléctrico para dar vida */
+  --primary: #2563EB; 
   --primary-foreground: #FFFFFF;
-  
-  --secondary: #1F2937;
-  --secondary-foreground: #F5F5F4;
-  
-  --muted: #1F2937;
-  --muted-foreground: #9CA3AF;
-  
-  --accent: #2563EB; /* Electric Blue */
+  --accent: #2563EB; 
   --accent-foreground: #FFFFFF;
   
-  --destructive: #7f1d1d;
+  /* 3. 💡 EL ACENTO NEGRO ESTRATÉGICO */
+  /* Reemplazamos los grises genéricos por Negro Absoluto.
+     Esto hará que las cajas de texto y componentes interactivos se vean "incrustados". */
+  --input: #000000;
+  --surface-2: #000000; 
+  --secondary: #000000;
+  --secondary-foreground: #F5F5F4;
+  --muted: #000000;
+  --muted-foreground: #9CA3AF;
   
-  --border: rgba(245, 245, 244, 0.08);
-  --surface-2: #1F2937; 
-  --input: #1e293b;
+  --destructive: #ef4444;
+  
+  --border: rgba(245, 245, 244, 0.08); /* Bordes sutiles cristalinos */
   --ring: #2563EB;
   
-  --sidebar: #0F172A;
+  /* 4. EL SIDEBAR COMO ANCLA NEGRA */
+  /* Al poner el menú en negro absoluto, separas visualmente la navegación
+     del área de trabajo (que será azulada), dándole una jerarquía increíble. */
+  --sidebar: #000000;
   --sidebar-foreground: #F5F5F4;
   --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #111827;
+  --sidebar-accent: #0F172A; /* Los hovers en el sidebar iluminan con el tono azulado */
   --sidebar-accent-foreground: #F5F5F4;
-  --sidebar-border: rgba(245, 245, 244, 0.1);
+  --sidebar-border: rgba(245, 245, 244, 0.08);
   --sidebar-ring: #2563EB;
 
+  --wave-1: #60A5FA;
+  --wave-2: #93C5FD;
 }
 
 /* Limpiar el icono del dropdown en los selects */

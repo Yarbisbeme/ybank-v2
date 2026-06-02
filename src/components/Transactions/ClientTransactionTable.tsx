@@ -30,10 +30,7 @@ export default function ClientTransactionTable() {
   const baseTransactions = data?.transactions || [];
   const totalItems = data?.total || 0;
   const filters = useFilterStore();
-
-  // =========================================================================
-  // ☢️ OPCIÓN NUCLEAR: Aplanamiento Forzado en Tiempo de Renderizado
-  // =========================================================================
+  
   const transactions = useMemo(() => {
     // Si no estamos filtrando por categoría, dejamos todo intacto
     if (!filters.categoryId) return baseTransactions;

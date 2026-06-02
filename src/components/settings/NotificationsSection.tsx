@@ -27,6 +27,7 @@ export default function NotificationsSection() {
     setNotifications(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  // Mantenemos el contenedor principal como tarjeta
   const sectionClasses = "bg-card border border-border p-6 rounded-[12px] space-y-4"
   const headerClasses = "text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4"
 
@@ -36,7 +37,8 @@ export default function NotificationsSection() {
       {/* 1. Transacciones */}
       <div className={sectionClasses}>
         <h2 className={headerClasses}>Notificaciones de Transacciones</h2>
-        <div className="space-y-2">
+        {/* Cambiamos el espaciado para que parezca una lista cohesionada */}
+        <div className="flex flex-col gap-1">
           <NotificationRow 
             label="Todas las Transacciones" 
             sub="Recibe una notificación inmediata por cada movimiento."
@@ -55,19 +57,21 @@ export default function NotificationsSection() {
       {/* 2. Seguridad */}
       <div className={sectionClasses}>
         <h2 className={headerClasses}>Alertas de Seguridad</h2>
-        <NotificationRow 
-          label="Cambios de Seguridad" 
-          sub="Cambios de contraseña, nuevos dispositivos y accesos."
-          checked={notifications.security}
-          onChange={() => handleToggle('security')}
-          disabled
-        />
+        <div className="flex flex-col gap-1">
+          <NotificationRow 
+            label="Cambios de Seguridad" 
+            sub="Cambios de contraseña, nuevos dispositivos y accesos."
+            checked={notifications.security}
+            onChange={() => handleToggle('security')}
+            disabled
+          />
+        </div>
       </div>
 
       {/* 3. Reportes */}
       <div className={sectionClasses}>
         <h2 className={headerClasses}>Marketing y Reportes</h2>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-1">
           <NotificationRow label="Ofertas y Promociones" disabled checked={notifications.promotions} onChange={() => handleToggle('promotions')} />
           <NotificationRow label="Reporte Semanal" checked={notifications.weeklyReport} onChange={() => handleToggle('weeklyReport')} />
           <NotificationRow label="Reporte Mensual" checked={notifications.monthlyReport} onChange={() => handleToggle('monthlyReport')} />
@@ -84,9 +88,10 @@ export default function NotificationsSection() {
         </div>
       </div>
 
+      {/* Botón Guardar - Ajustado al estilo primario de YBank */}
       <button
         onClick={() => console.log('Saved:', notifications)}
-        className="w-full md:w-auto px-8 py-4 bg-blue-600 text-background rounded-[8px] font-black text-[12px] uppercase tracking-[0.2em] transition-all hover:opacity-90 active:scale-[0.98]"
+        className="w-full md:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-[8px] font-black text-[12px] uppercase tracking-[0.2em] transition-all hover:opacity-90 active:scale-[0.98]"
       >
         Guardar Preferencias
       </button>
@@ -94,11 +99,13 @@ export default function NotificationsSection() {
   )
 }
 
-// Sub-componentes para mantener el código limpio
+// Sub-componentes
 function NotificationRow({ label, sub, checked, onChange, disabled }: any) {
   return (
-    <div className="flex items-center justify-between p-4 bg-surface-2 rounded-[8px] border border-border/50 gap-4">
-      {/* 💡 FIX: Usamos flex-1 y min-w-0 para que el texto NO empuje el switch */}
+    // 💡 CAMBIO CRUCIAL: Eliminamos bg-surface-2. Usamos fondo transparente y hover.
+    // Solo mantenemos un borde inferior muy sutil para separar filas si es necesario, 
+    // o simplemente confiamos en el padding.
+    <div className="flex items-center justify-between py-3 px-2 rounded-[8px] hover:bg-black/20 transition-colors gap-4">
       <div className="flex-1 min-w-0"> 
         <p className="text-[13px] font-bold text-foreground truncate">{label}</p>
         {sub && (
@@ -108,7 +115,6 @@ function NotificationRow({ label, sub, checked, onChange, disabled }: any) {
         )}
       </div>
       
-      {/* 💡 FIX: Usamos shrink-0 para asegurar que el switch nunca cambie su tamaño */}
       <div className="shrink-0">
         <Switch checked={checked} onChange={onChange} disabled={disabled} />
       </div>
@@ -118,11 +124,17 @@ function NotificationRow({ label, sub, checked, onChange, disabled }: any) {
 
 function ChannelCard({ label, active = false }: { label: string, active?: boolean }) {
   return (
+    // 💡 APLICAMOS EL ACENTO NEGRO: Las tarjetas inactivas son el "pozo negro" (bg-surface-2)
     <div className={cn(
       "p-4 border rounded-[8px] flex items-center gap-3 transition-colors",
-      active ? "border-primary bg-primary/5" : "border-border bg-surface-2"
+      active 
+        ? "border-primary bg-primary/10" // Activo: Resalta con el azul eléctrico
+        : "border-border bg-surface-2"   // Inactivo: Se hunde en el negro absoluto
     )}>
-      <div className={cn("w-4 h-4 rounded-full border-2", active ? "bg-primary border-primary" : "border-muted-foreground")} />
+      <div className={cn(
+        "w-4 h-4 rounded-full border-2", 
+        active ? "bg-primary border-primary" : "border-muted-foreground"
+      )} />
       <span className="text-[12px] font-bold text-foreground">{label}</span>
     </div>
   )
