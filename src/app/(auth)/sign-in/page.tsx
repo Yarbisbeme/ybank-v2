@@ -57,16 +57,15 @@ export default function SignIn() {
         setErrorShake(true);
         setTimeout(() => setErrorShake(false), 500);
         toast.error(result.error || "Credenciales incorrectas");
+        setLoading(false);
       }
     } catch (error) {
       toast.error("Ocurrió un error inesperado");
-    } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
   return (
-    // 💡 bg-background y selection adaptativa
     <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-background font-inter selection:bg-primary/20 selection:text-primary overflow-hidden transition-colors">
       <div className="h-full w-full overflow-hidden flex">
         

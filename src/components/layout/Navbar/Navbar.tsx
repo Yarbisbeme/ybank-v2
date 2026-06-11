@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Menu, X, 
   LayoutDashboard, Server, Settings, LogOut, Plus, PlusCircle,
-  Sun, Moon // 💡 1. Importamos iconos para el tema
+  Sun, Moon
 } from 'lucide-react';
 import { NavbarProps } from '@/types';
 import { useModalStore } from '@/store/useModalStore'; 
@@ -14,7 +14,7 @@ import { signOut } from '@/lib/actions/auth';
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGlobalSearch } from '@/hooks/useCatalogs'; 
-import { SidebarLink } from '../SidebarLink';
+import { SidebarLink } from './SidebarLink';
 import { useTheme } from '@teispace/next-themes';
 
 export default function Navbar({ user, accounts = [], transactions = [], tags = [], categories = [] }: NavbarProps) {
@@ -35,11 +35,9 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
 
-  // 💡 3. Estados y lógica para el tema
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Prevenir hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -57,7 +55,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
 
   const { data: searchData } = useGlobalSearch(debouncedQuery);
 
-  // ... (El resto de tus useEffects se mantienen igual) ...
   useEffect(() => {
     setLoadingPath(null);
     setIsMobileMenuOpen(false);
@@ -72,7 +69,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
   const searchResults = useMemo(() => {
-    // ... (Tu lógica de búsqueda se mantiene intacta) ...
     if (!searchQuery.trim()) return { accounts: [], transactions: [], tags: [], categories: [] };
     const query = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const cleanText = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -133,7 +129,7 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
           <div className="md:hidden flex flex-row items-center cursor-pointer"> 
             <Image 
               src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority
-              className="w-[26px] h-auto object-contain dark:invert"
+              className="w-[26px] h-auto object-contain"
             />
             <span className="text-foreground font-bold text-[24px] tracking-tighter">Bank</span>
           </div>
@@ -201,12 +197,11 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
         
         <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
           <div className="flex flex-row items-center cursor-pointer" onClick={closeMenu}> 
-            <Image src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority className="w-[26px] h-auto object-contain dark:invert" />
+            <Image src="/icons/logoY.svg" alt="YBank" width={24} height={24} priority className="w-[26px] h-auto object-contain" />
             <span className="text-foreground font-bold text-[24px] tracking-tighter ml-1">Bank</span>
           </div>
           
           <div className="flex items-center gap-2">
-            {/* 💡 5. Switch de Tema para Móvil (Dentro del menú superior) */}
             {mounted && (
               <button 
                 onClick={toggleTheme}
@@ -216,9 +211,6 @@ export default function Navbar({ user, accounts = [], transactions = [], tags = 
                 {theme === 'dark' ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
               </button>
             )}
-            <button onClick={closeMenu} className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-[6px] transition-colors">
-              <X size={20} strokeWidth={2.5} />
-            </button>
           </div>
         </div>
 

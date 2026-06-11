@@ -6,6 +6,10 @@ import QueryProvider from './QueryProvider';
 import ModalProvider from './ModalProvider';
 import StoreInitializer from './StoreInitializer';
 
+// 💡 1. Importaciones nuevas para el vigilante de sesión
+import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@supabase/ssr';
+
 interface DashboardProvidersProps {
   children: React.ReactNode;
   primaryAccountId: string | null;
@@ -17,6 +21,40 @@ interface DashboardProvidersProps {
     institutions: any[];
     transactions: any[];
   };
+}
+
+// 🛡️ NUEVO COMPONENTE: El Vigilante Activo de Sesión
+function AuthWatcher() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    // Escucha eventos de autenticación en tiempo real
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Si el usuario cierra sesión explícitamente o el token muere
+      if (event === 'SIGNED_OUT') {
+        console.log("🔒 [YBank Auth] Sesión terminada. Limpiando datos...");
+        
+        // Vaciamos la memoria caché para evitar el "Modo Fantasma"
+        queryClient.clear();
+        
+        // Expulsamos al usuario de vuelta al login y forzamos el refresco del Layout
+        router.push('/sign-in');
+        router.refresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, queryClient]);
+
+  return null;
 }
 
 // 💧 Este componente se encarga de inyectar los datos del servidor a la caché de TanStack Query
@@ -63,6 +101,9 @@ export default function DashboardProviders({
 }: DashboardProvidersProps): React.JSX.Element {
   return (
     <QueryProvider>
+      {/* 💡 2. Inyectamos nuestro vigilante dentro del QueryProvider para que tenga acceso a limpiar la caché */}
+      <AuthWatcher />
+      
       {/* El Hydrator debe estar dentro del QueryProvider */}
       <DataHydrator initialData={initialData} />
       

@@ -105,7 +105,7 @@ export default function Home() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:grid-rows-2 h-auto md:h-[600px]">
 
           {/* CAJA 1: TARJETA PRINCIPAL (Grande) */}
-          <div className="group relative col-span-1 md:col-span-7 md:row-span-2 overflow-hidden rounded-[12px] border border-border bg-card p-8 sm:p-12 transition-all hover:border-primary/50 shadow-sm">
+          <div className="group relative col-span-1 md:col-span-7 md:row-span-2 overflow-hidden rounded-[6px] border border-border bg-card p-8 sm:p-12 transition-all hover:border-primary/50 shadow-sm">
             <div className="flex h-full flex-col justify-between">
               <div>
                 <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-2">
@@ -152,7 +152,7 @@ export default function Home() {
           </div>
 
           {/* CAJA 2: MÉTRICAS (Arriba Derecha) */}
-          <div className="group col-span-1 md:col-span-5 rounded-[12px] border border-border bg-card p-8 transition-all hover:border-primary/50 shadow-sm flex flex-col justify-center">
+          <div className="group col-span-1 md:col-span-5 rounded-[6px] border border-border bg-card p-8 transition-all hover:border-primary/50 shadow-sm flex flex-col justify-center">
             <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-surface-2">
               <LayoutGrid className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
             </div>
@@ -168,7 +168,7 @@ export default function Home() {
           </div>
 
           {/* CAJA 3: SEGURIDAD (Abajo Derecha) */}
-          <div className="group col-span-1 md:col-span-5 rounded-[12px] border border-border bg-primary p-8 text-primary-foreground transition-all hover:brightness-110 shadow-sm">
+          <div className="group col-span-1 md:col-span-5 rounded-[6px] border border-border bg-primary p-8 text-primary-foreground transition-all hover:brightness-110 shadow-sm">
             <div className="flex h-full flex-col justify-between">
               <div>
                 <ShieldCheck className="h-8 w-8 text-white mb-4" />

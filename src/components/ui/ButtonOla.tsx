@@ -12,7 +12,7 @@ export function ButtonOla({ label, href, onClick }: ButtonOlaProps) {
   
   const containerClasses = `
     group relative flex items-center justify-center overflow-hidden
-    bg-black px-8 py-3 font-semibold text-white rounded-lg
+    bg-black px-8 py-3 font-semibold text-white rounded-[10px]
     transition-shadow duration-300 w-full
     hover:shadow-[0_0_40px_rgba(1,121,254,0.45)]
   `;
