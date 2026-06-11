@@ -1,5 +1,5 @@
+import { createSupabaseClient } from '@/lib/supabase/createServerClient';
 import { NextResponse } from 'next/server';
-import { createSupabaseClient } from '@/lib/supabase/createServerClient'; // Ajusta la ruta a tu cliente
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -20,15 +20,25 @@ export async function GET(request: Request) {
         const expiresIn = (session as any).provider_token_expires_in || 3600;
         const expirationDate = new Date(Date.now() + expiresIn * 1000).toISOString();
 
+        // 💡 CAMBIO 1: Usamos UPDATE en lugar de UPSERT
         const { error: dbError } = await supabase
           .from('profiles')
-          .upsert({
-            id: user.id, // Requerido para saber qué fila insertar/mapear
+          .update({
             google_access_token: session.provider_token,
             ...(session.provider_refresh_token && { google_refresh_token: session.provider_refresh_token }),
             google_token_expires_at: expirationDate,
             updated_at: new Date().toISOString()
-          });
+          })
+          .eq('id', user.id); // 💡 Apuntamos directamente a la fila que ya existe
+
+        // 💡 CAMBIO 2: Imprimimos el error para saber si PostgreSQL nos está bloqueando
+        if (dbError) {
+          console.error("🚨 Error al guardar tokens de Google:", dbError.message);
+        } else {
+          console.log("✅ Tokens de Google guardados exitosamente.");
+        }
+      } else {
+         console.warn("⚠️ Google no envió el provider_token en la sesión.");
       }
 
       const { data: profile } = await supabase

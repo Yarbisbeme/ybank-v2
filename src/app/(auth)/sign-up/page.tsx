@@ -52,23 +52,22 @@ export default function SignUp() {
       if (result.success) {
         toast.success("¡Cuenta creada! Revisa tu correo para confirmar.");
         router.push("/onboarding");
+        setLoading(false);
       } else {
         toast.error(result.error || "Error al crear la cuenta");
+        setLoading(false);
       }
     } catch (error) {
       toast.error("Ocurrió un error inesperado");
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    // 💡 1. bg-background y selection adaptativa a la marca
     <section className="relative flex min-h-svh w-full sm:items-center justify-center bg-background font-inter selection:bg-primary/20 selection:text-primary overflow-hidden transition-colors">
       <div className="h-full w-full overflow-hidden flex">
         
         {/* === COLUMNA IZQUIERDA: AUTH === */}
-        {/* 💡 2. Eliminamos los bg-white forzados */}
         <div className="flex w-full lg:w-1/2 flex-col justify-between overflow-y-auto h-full min-h-svh p-8 sm:px-10 sm:py-8 bg-card border-r border-border">
           
           <div className="flex items-center justify-between shrink-0">
@@ -83,7 +82,6 @@ export default function SignUp() {
           >
             <motion.div variants={itemVariants}>
               <div className="mb-2">
-                {/* 💡 3. Adaptamos TextReveal para que funcione en ambos modos */}
                 <TextReveal baseColor="text-foreground" hoverColor="text-primary" tamano="text-6xl 2xl:text-8xl font-bold tracking-tight">
                   Crea<br />tu cuenta.
                 </TextReveal>
@@ -97,7 +95,6 @@ export default function SignUp() {
               
               {/* FORMULARIO DE REGISTRO */}
               <form onSubmit={handleSignUp} className="space-y-4">
-                {/* Input Nombre */}
                 <div className="group relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                   <input 
@@ -110,7 +107,6 @@ export default function SignUp() {
                   />
                 </div>
 
-                {/* Input Email */}
                 <div className="group relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                   <input 
@@ -123,7 +119,6 @@ export default function SignUp() {
                   />
                 </div>
 
-                {/* Input Password */}
                 <div className="group relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                   <input 
@@ -139,7 +134,6 @@ export default function SignUp() {
                 <button 
                   type="submit" 
                   disabled={loading}
-                  // 💡 5. Usamos btn-primary global para los botones
                   className="flex w-full items-center justify-center gap-2 bg-primary py-4 rounded-[8px] font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-70 shadow-lg shadow-primary/20 mt-2"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : "Comenzar ahora"}
@@ -155,7 +149,6 @@ export default function SignUp() {
               <form action={signInWithGoogle}>
                 <button
                   type="submit"
-                  // 💡 6. Botón secundario adaptativo (claro/oscuro)
                   className="group relative flex w-full items-center justify-center gap-3 rounded-[8px] border-2 border-border bg-surface-2 px-4 py-4 font-bold text-foreground transition-all duration-300 hover:bg-background hover:border-primary/30 active:scale-95"
                 >
                   <Image 
@@ -190,7 +183,6 @@ export default function SignUp() {
         </div>
 
         <div className="relative hidden w-1/2 flex-col items-center justify-center bg-surface-2 p-12 lg:flex">
-            {/* Patrón de puntos (adaptado al tema) */}
             <div className="absolute inset-0 opacity-[0.15] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
             
             <motion.div 
