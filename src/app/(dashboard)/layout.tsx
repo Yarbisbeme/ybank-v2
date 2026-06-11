@@ -9,6 +9,7 @@ import { getInstitutions } from '@/lib/actions/institutions';
 import DashboardProviders from '@/components/providers/DashboardProviders';
 import PWAFooter from '@/components/layout/PWAFooter';
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
+import { redirect } from "next/navigation";
 
 interface DashboardInitialData {
   accounts: any[];
@@ -24,11 +25,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // 1. Auth Blindado
   let user = null;
   try {
-    const { data } = await supabase.auth.getUser();
+    // 💡 Capturamos explícitamente el 'error' que devuelve Supabase
+    const { data, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      // 💡 Si el error es de sesión (401 o falta de token), lo sacamos de inmediato
+      if (authError.status === 401 || authError.name === 'AuthSessionMissingError') {
+        console.warn("🚨 Layout: Credenciales inválidas o expiradas. Redirigiendo...");
+        redirect('/sign-in?error=session_expired');
+      }
+      
+      // Si es otro tipo de error, lo lanzamos al catch
+      throw authError;
+    }
+
     user = data.user;
   } catch (e) {
-    // Si falla el fetch a Supabase, confiamos en el Middleware. 
-    // No redirigimos aquí para evitar el bucle offline.
     console.log("📡 Layout: Fallo de red en Auth, permitiendo renderizado de shell.");
   }
 

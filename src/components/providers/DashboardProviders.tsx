@@ -23,7 +23,6 @@ interface DashboardProvidersProps {
   };
 }
 
-// 🛡️ NUEVO COMPONENTE: El Vigilante Activo de Sesión
 function AuthWatcher() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -34,16 +33,18 @@ function AuthWatcher() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // Escucha eventos de autenticación en tiempo real
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Si el usuario cierra sesión explícitamente o el token muere
-      if (event === 'SIGNED_OUT') {
-        console.log("🔒 [YBank Auth] Sesión terminada. Limpiando datos...");
+      // 💡 Detectamos si el navegador del cliente tiene conexión activa a internet
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+      // 2. La app arranca (INITIAL_SESSION), estamos ONLINE, pero la sesión es inválida (!session)
+      if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session && isOnline)) {
+        console.log("🔒 [YBank Auth] Sesión inválida detectada en línea. Limpiando caché y redirigiendo...");
         
-        // Vaciamos la memoria caché para evitar el "Modo Fantasma"
+        // Purgamos la caché de TanStack para no dejar datos residuales
         queryClient.clear();
         
-        // Expulsamos al usuario de vuelta al login y forzamos el refresco del Layout
+        // Redirección fulminante al login
         router.push('/sign-in');
         router.refresh();
       }
