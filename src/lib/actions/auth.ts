@@ -43,9 +43,10 @@ export async function signInWithGoogle() {
   const supabase = await createSupabaseClient();
 
   const getURL = () => {
-    let url = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL ?? 'http://localhost:3000/';
-    url = url.includes('http') ? url : `https://${url}`;
-    return url.endsWith('/') ? url.slice(0, -1) : url;
+    if (process.env.NODE_ENV === 'production') {
+      return 'https://ybank-v2.vercel.app';
+    }
+    return 'http://localhost:3000';
   }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
