@@ -8,11 +8,6 @@ import { useState, useEffect } from 'react'
 function RestoreGatekeeper({ children }: { children: React.ReactNode }) {
   const isRestoring = useIsRestoring();
 
-  // 🚪 LOG: Vigilar la puerta de la caché
-  useEffect(() => {
-    console.log(`🚪 [Gatekeeper] isRestoring: ${isRestoring}`);
-  }, [isRestoring]);
-
   if (isRestoring) {
     return null; 
   }
@@ -31,31 +26,26 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
     },
   }))
 
-  const [persister, setPersister] = useState<any>(null);
+  const [persister, setPersister] = useState<ReturnType<typeof createAsyncStoragePersister> | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log("💾 [IDB] Inicializando conexión con IndexedDB...");
       import('idb-keyval').then(({ get, set, del }) => {
         const idbPersister = createAsyncStoragePersister({
           storage: {
             getItem: async (key) => {
-              console.log(`📦 [IDB-GET] Intentando leer la llave: ybank-offline-${key}`);
               const data = await get(`ybank-offline-${key}`);
-              console.log(`📦 [IDB-GET] Resultado: ${data ? `¡Datos encontrados! (${data.length} caracteres)` : 'Vacío/Nulo'}`);
               return data;
             },
             setItem: async (key, value) => {
-              console.log(`✍️ [IDB-SET] Guardando datos en: ybank-offline-${key}`);
               await set(`ybank-offline-${key}`, value);
             },
             removeItem: async (key) => await del(`ybank-offline-${key}`),
           },
         })
         setPersister(idbPersister);
-        console.log("✅ [IDB] Persister configurado y listo.");
       }).catch((err) => {
-        console.error("❌ [IDB] Error fatal al importar idb-keyval:", err);
+        console.error("[IDB] Error al importar idb-keyval:", err);
       });
     }
   }, []);
@@ -71,7 +61,6 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
         persister, 
         maxAge: 1000 * 60 * 60 * 24 * 7 
       }}
-      onSuccess={() => console.log("🚀 [TanStack] ¡Hidratación desde IndexedDB completada con éxito!")}
     >
       <RestoreGatekeeper>
         {children}

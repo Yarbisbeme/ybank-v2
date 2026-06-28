@@ -1,8 +1,9 @@
 'use server'
 
-import { Account, CreateAccountInput, UpdateAccountInput } from '@/types'
+import { Account, Operation } from '@/types'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { getSmartRate } from '@/services/rates'
+import { createAccountSchema, updateAccountSchema, getFirstError } from '@/lib/validation'
 
 const ACCOUNT_SELECT_QUERY = `
   *,
@@ -56,7 +57,11 @@ export async function getAccountById(id: string) {
 // =========================================================
 // 3. CREATE - Crear nueva cuenta
 // =========================================================
-export async function createAccount(input: CreateAccountInput) {
+export async function createAccount(input: any) {
+  const parsed = createAccountSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const valid = parsed.data
   const supabase = await createSupabaseClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -64,20 +69,20 @@ export async function createAccount(input: CreateAccountInput) {
 
   const { data, error } = await supabase.from('accounts').insert({
     user_id: user.id,
-    name: input.name,
-    institution_id: input.institution_id,
-    type: input.type,
-    currency: input.currency,
-    initial_balance: input.initial_balance,
-    current_balance: input.initial_balance,
-    last_4_digits: input.last_4_digits || null,
-    credit_limit: input.credit_limit || null,
-    cutoff_day: input.cutoff_day || null, 
-    expiry_date: input.expiry_date || null,
-    color: input.color || '#0f172a',
-    custom_pattern: input.custom_pattern || 'geometric',
-    custom_text_theme: input.custom_text_theme || 'light',
-    is_active: input.is_active ?? true
+    name: valid.name,
+    institution_id: valid.institution_id,
+    type: valid.type,
+    currency: valid.currency,
+    initial_balance: valid.initial_balance,
+    current_balance: valid.initial_balance,
+    last_4_digits: valid.last_4_digits || null,
+    credit_limit: valid.credit_limit || null,
+    cutoff_day: valid.cutoff_day || null, 
+    expiry_date: valid.expiry_date || null,
+    color: valid.color || '#0f172a',
+    custom_pattern: valid.custom_pattern || 'geometric',
+    custom_text_theme: valid.custom_text_theme || 'light',
+    is_active: valid.is_active
   })
   .select(ACCOUNT_SELECT_QUERY)
   .single()
@@ -90,17 +95,20 @@ export async function createAccount(input: CreateAccountInput) {
 // =========================================================
 // 4. UPDATE - Incluye personalización (Color, Pattern, Theme)
 // =========================================================
-export async function updateAccount(accountId: string, input: UpdateAccountInput) {
+export async function updateAccount(accountId: string, input: any) {
+  const parsed = updateAccountSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
   const supabase = await createSupabaseClient()
 
   const { data, error } = await supabase
     .from('accounts')
     .update({
-        ...input,
+        ...parsed.data,
         updated_at: new Date().toISOString()
     })
     .eq('id', accountId)
-    .select(ACCOUNT_SELECT_QUERY) // 💡 MEJORA: Devolvemos la data actualizada
+    .select(ACCOUNT_SELECT_QUERY)
     .single()
 
   if (error) return { success: false, error: error.message }
@@ -134,22 +142,20 @@ export async function archiveAccount(accountId: string) {
 // 6. CALCULATOR - Normalizador de Capital
 // =========================================================
 export async function calculateNormalizedTotal(accounts: any[]) {
-  let totalDOP = 0;
+  const dopTotal = accounts
+    .filter(a => a.currency === 'DOP')
+    .reduce((sum, a) => sum + (a.current_balance || 0), 0)
 
-  for (const account of accounts) {
-    const accountBalance = account.current_balance || 0; 
-    const institutionId = account.institution?.id || account.institution_id;
+  const usdAccounts = accounts.filter(a => a.currency === 'USD')
+  if (usdAccounts.length === 0) return dopTotal
 
-    if (account.currency === 'DOP') {
-      totalDOP += accountBalance;
-    } 
-    else if (account.currency === 'USD') {
-      const rateInfo = await getSmartRate(institutionId, 'buy');
-      const conversionRate = rateInfo ? rateInfo.rate : 58.00; 
-      
-      totalDOP += (accountBalance * conversionRate);
-    }
-  }
+  const rates = await Promise.all(
+    usdAccounts.map(a =>
+      getSmartRate(a.institution?.id || a.institution_id, Operation.BUY)
+        .then(r => ({ balance: a.current_balance || 0, rate: r?.rate ?? 58.00 }))
+    )
+  )
 
-  return totalDOP; 
+  const usdTotal = rates.reduce((sum, r) => sum + r.balance * r.rate, 0)
+  return dopTotal + usdTotal
 }

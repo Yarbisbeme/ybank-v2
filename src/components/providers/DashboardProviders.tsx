@@ -39,12 +39,7 @@ function AuthWatcher() {
 
       // 2. La app arranca (INITIAL_SESSION), estamos ONLINE, pero la sesión es inválida (!session)
       if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session && isOnline)) {
-        console.log("🔒 [YBank Auth] Sesión inválida detectada en línea. Limpiando caché y redirigiendo...");
-        
-        // Purgamos la caché de TanStack para no dejar datos residuales
         queryClient.clear();
-        
-        // Redirección fulminante al login
         router.push('/sign-in');
         router.refresh();
       }

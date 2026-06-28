@@ -2,12 +2,13 @@
 
 import { redirect } from 'next/navigation';
 import { createSupabaseClient } from '../supabase/createServerClient';
+import { signUpSchema, loginSchema, completeOnboardingSchema, getFirstError } from '@/lib/validation';
 
-/**
- * 📝 REGISTRO CON EMAIL
- * Crea el usuario en auth.users y dispara el flujo de onboarding.
- */
-export async function signUpWithEmail({ email, password, fullName }: any) {
+export async function signUpWithEmail(input: { email: string; password: string; fullName: string }) {
+  const parsed = signUpSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const { email, password, fullName } = parsed.data
   const supabase = await createSupabaseClient();
 
   const { data, error } = await supabase.auth.signUp({
@@ -22,11 +23,20 @@ export async function signUpWithEmail({ email, password, fullName }: any) {
   });
 
   if (error) return { success: false, error: error.message };
-  return { success: true, user: JSON.parse(JSON.stringify(data.user)) }
+
+  const needsEmailConfirmation = !data.session;
+  return {
+    success: true,
+    user: JSON.parse(JSON.stringify(data.user)),
+    needsEmailConfirmation
+  }
 }
 
-//🔐 LOGIN CON EMAIL Y CONTRASEÑA
-export async function loginWithEmail({ email, password }: any) {
+export async function loginWithEmail(input: { email: string; password: string }) {
+  const parsed = loginSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const { email, password } = parsed.data
   const supabase = await createSupabaseClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -65,12 +75,16 @@ export async function signInWithGoogle() {
   if (data.url) return redirect(data.url);
 }
 
-export async function completeOnboarding(formData: {
+export async function completeOnboarding(input: {
   fullName: string;
   password?: string;
   currency: string;
   primaryAccountId?: string;
 }) {
+  const parsed = completeOnboardingSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const formData = parsed.data
   const supabase = await createSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 

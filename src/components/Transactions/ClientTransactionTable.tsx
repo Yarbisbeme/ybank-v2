@@ -31,45 +31,7 @@ export default function ClientTransactionTable() {
   const totalItems = data?.total || 0;
   const filters = useFilterStore();
   
-  const transactions = useMemo(() => {
-    // Si no estamos filtrando por categoría, dejamos todo intacto
-    if (!filters.categoryId) return baseTransactions;
-
-    const flat: any[] = [];
-    
-    baseTransactions.forEach((tx: any) => {
-      let addedAsChild = false;
-      
-      // 1. Si la transacción tiene desgloses
-      if (tx.items && tx.items.length > 0) {
-        const matching = tx.items.filter((i: any) => i.category_id === filters.categoryId);
-        
-        if (matching.length > 0) {
-          matching.forEach((item: any) => {
-            flat.push({
-              ...tx,
-              id: `${tx.id}-item-${item.id}`, // ID virtual para la calculadora
-              amount: Number(item.unit_price) * Number(item.quantity || 1), // Monto exacto del hijo
-              category_id: item.category_id,
-              category: item.category || tx.category,
-              description: `${tx.description} ↳ ${item.name || 'Desglose'}`,
-              items: [], // 🚨 DESTRUIMOS EL ACORDEÓN FÍSICAMENTE AQUÍ
-              is_split_child: true, // Nuestra bandera escudo
-              type: 'expense' // Lo forzamos a gasto para los colores y matemáticas
-            });
-          });
-          addedAsChild = true;
-        }
-      }
-
-      // 2. Solo pasamos al padre si no encontramos hijos y el padre coincide
-      if (!addedAsChild && tx.category_id === filters.categoryId) {
-        flat.push({ ...tx, items: [] });
-      }
-    });
-    
-    return flat;
-  }, [baseTransactions, filters.categoryId]);
+  const transactions = baseTransactions
   
   const isQueryLoading = isLoadingTx || isLoadingAccounts || !activeAccountId;
 

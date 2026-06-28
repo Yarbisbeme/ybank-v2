@@ -32,7 +32,9 @@ export async function updateProfile(payload: ProfileUpdateInput) {
   if (payload.full_name !== undefined) updateData.full_name = payload.full_name;
   if (payload.avatar_url !== undefined) updateData.avatar_url = payload.avatar_url;
   if (payload.currency_preference !== undefined) updateData.currency_preference = payload.currency_preference;
-  if (payload.theme_preference !== undefined) updateData.theme_preference = payload.theme_preference;
+  if (payload.theme_preference !== undefined && payload.theme_preference !== 'auto') {
+    updateData.theme_preference = payload.theme_preference;
+  }
   
   if (payload.primary_account_id !== undefined) {
     updateData.primary_account_id = payload.primary_account_id;

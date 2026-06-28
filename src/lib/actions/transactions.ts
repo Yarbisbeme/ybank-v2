@@ -3,6 +3,8 @@
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { getSmartRate } from '@/services/rates'
 import { ExtendedGetTransactionsParams } from '@/types/database.types'
+import { createTransactionSchema, updateTransactionSchema, getFirstError } from '@/lib/validation'
+import { Operation } from '@/types/index'
 
 // ==========================================
 // 1. GET TRANSACTIONS (Con Filtros y Paginación)
@@ -181,16 +183,21 @@ export async function getTransactionById(id: string) {
 // 2. SAVE TRANSACTION
 // ==========================================
 export async function saveTransaction(payload: any) {
+    const schema = payload.id ? updateTransactionSchema : createTransactionSchema
+    const parsed = schema.safeParse(payload)
+    if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+    const v = parsed.data
     const transactionInput: any = {
-        type: payload.type,
-        amount: parseFloat(payload.amount),
-        date: payload.date,
-        description: payload.note, 
-        account_id: payload.accountId,
-        category_id: payload.categoryId || null,
-        transfer_to_account_id: payload.destinationAccountId || null,
-        tags: payload.tagIds || [], 
-        items: payload.items || [], 
+        type: v.type,
+        amount: parseFloat(v.amount as any),
+        date: v.date,
+        description: v.note,
+        account_id: v.accountId,
+        category_id: v.categoryId || null,
+        transfer_to_account_id: v.destinationAccountId || null,
+        tags: v.tagIds || [],
+        items: v.items || [],
     };
 
     if (payload.id) {
@@ -235,11 +242,11 @@ export async function createTransaction(input: any) {
       const sourceAcc = accounts.find(a => a.id === input.account_id)
       const targetAcc = accounts.find(a => a.id === input.transfer_to_account_id)
       if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
-        let operation: 'buy' | 'sell' = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? 'buy' : 'sell';
+        let operation: Operation = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? Operation.BUY : Operation.SELL;
         const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation)
         if (rateInfo) {
           cleanInput.exchange_rate = rateInfo.rate; 
-          cleanInput.target_amount = Number((operation === 'buy' ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
+          cleanInput.target_amount = Number((operation === Operation.BUY ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
         }
       }
     }
@@ -322,12 +329,12 @@ export async function updateTransaction(id: string, input: any) {
             const targetAcc = accounts.find(a => a.id === cleanInput.transfer_to_account_id);
 
             if (sourceAcc && targetAcc && sourceAcc.currency !== targetAcc.currency) {
-                let operation: 'buy' | 'sell' = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? 'buy' : 'sell';
+                let operation: Operation = sourceAcc.currency === 'USD' && targetAcc.currency === 'DOP' ? Operation.BUY : Operation.SELL;
                 const rateInfo = await getSmartRate(sourceAcc.institution_id || '', operation);
                 
                 if (rateInfo) {
                     cleanInput.exchange_rate = rateInfo.rate;
-                    cleanInput.target_amount = Number((operation === 'buy' ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
+                    cleanInput.target_amount = Number((operation === Operation.BUY ? originalTransferAmount * rateInfo.rate : originalTransferAmount / rateInfo.rate).toFixed(2));
                 }
             }
         }

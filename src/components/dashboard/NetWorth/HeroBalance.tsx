@@ -19,10 +19,6 @@ export default function HeroBalance() {
 
   const transactions = Array.isArray(queryData) ? queryData : (queryData?.transactions || []);
 
-  // 📊 LOGS TÁCTICOS:
-  console.log(`💳 [Hook-Cuentas] Status: ${statusAccs} | Fetch: ${fetchAccs} | Datos: ${accounts.length}`);
-  console.log(`💸 [Hook-Transacciones] Status: ${statusTx} | Fetch: ${fetchTx} | Datos: ${transactions.length}`);
-
   // =========================================================================
   // 🔄 TRIGGER DE SINCRONIZACIÓN DINÁMICA
   // =========================================================================
@@ -39,7 +35,6 @@ export default function HeroBalance() {
 
     // 3. Si tenemos el banco y la tasa aún no se ha calculado para él, disparamos la petición al servidor
     if (institutionId && preferredRate?.institutionName !== focusAccount?.institution?.name) {
-      console.log(`📡 [YBank Engine] Detectado banco "${focusAccount?.institution?.name}". Sincronizando tasa viva...`);
       updateRateContext(institutionId);
     }
   }, [accounts, isLoadingAccs, preferredRate, updateRateContext]);

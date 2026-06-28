@@ -29,19 +29,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const { data, error: authError } = await supabase.auth.getUser();
     
     if (authError) {
-      // 💡 Si el error es de sesión (401 o falta de token), lo sacamos de inmediato
       if (authError.status === 401 || authError.name === 'AuthSessionMissingError') {
-        console.warn("🚨 Layout: Credenciales inválidas o expiradas. Redirigiendo...");
         redirect('/sign-in?error=session_expired');
       }
-      
-      // Si es otro tipo de error, lo lanzamos al catch
       throw authError;
     }
 
     user = data.user;
   } catch (e) {
-    console.log("📡 Layout: Fallo de red en Auth, permitiendo renderizado de shell.");
+    // Auth failed - continue with null user, production guard below
   }
 
   if (!user && process.env.NODE_ENV === 'production') {
@@ -89,7 +85,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       transactions: txData.transactions
     };
   } catch (error) {
-    console.warn("📡 Layout: Modo Offline. Se enviará un initialData vacío.");
+    // Offline mode - send empty initialData
   }
 
   // 💡 3. AHORA usamos los datos "frescos" de la tabla profile, y usamos el auth como plan B

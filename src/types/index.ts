@@ -3,15 +3,86 @@ import { ReactNode } from "react";
 // ==========================================
 // 1. VALORES FIJOS Y TIPOS GLOBALES
 // ==========================================
-export type TransactionType = 'income' | 'expense' | 'transfer' | 'payment';
+
+// 🎯 Enums sincronizados con Supabase (ver migración add_missing_enums)
+
+export const TransactionType = {
+  INCOME: 'income',
+  EXPENSE: 'expense',
+  TRANSFER: 'transfer',
+  PAYMENT: 'payment',
+} as const;
+export type TransactionType = typeof TransactionType[keyof typeof TransactionType];
+
+export const AccountType = {
+  CHECKING: 'checking',
+  SAVINGS: 'savings',
+  CREDIT_CARD: 'credit_card',
+  INVESTMENT: 'investment',
+  CASH: 'cash',
+} as const;
+export type AccountType = typeof AccountType[keyof typeof AccountType];
+
+export const CurrencyCode = {
+  DOP: 'DOP',
+  USD: 'USD',
+} as const;
+export type CurrencyCode = typeof CurrencyCode[keyof typeof CurrencyCode];
+
+export const CustomPattern = {
+  SOLID: 'solid',
+  WAVES: 'waves',
+  GEOMETRIC: 'geometric',
+  MESH: 'mesh',
+  LINES: 'lines',
+  DOTS: 'dots',
+  CURVE: 'curve',
+} as const;
+export type CustomPattern = typeof CustomPattern[keyof typeof CustomPattern];
+
+export const CustomTextTheme = {
+  LIGHT: 'light',
+  DARK: 'dark',
+} as const;
+export type CustomTextTheme = typeof CustomTextTheme[keyof typeof CustomTextTheme];
+
+export const TransactionStatus = {
+  PENDING: 'pending',
+  PENDING_MATCH: 'pending_match',
+  POSTED: 'posted',
+  COMPLETED: 'completed',
+  RECONCILED: 'reconciled',
+} as const;
+export type TransactionStatus = typeof TransactionStatus[keyof typeof TransactionStatus];
+
+export const TaxType = {
+  ITBIS: 'ITBIS',
+  PROPINA: 'PROPINA',
+  NONE: 'NONE',
+} as const;
+export type TaxType = typeof TaxType[keyof typeof TaxType];
+
+export const Operation = {
+  BUY: 'buy',
+  SELL: 'sell',
+} as const;
+export type Operation = typeof Operation[keyof typeof Operation];
+
+export const PaymentMethod = {
+  CASH: 'cash',
+  CARD: 'card',
+  TRANSFER: 'transfer',
+  MOBILE_PAY: 'mobile_pay',
+  CHECK: 'check',
+  DIRECT_DEBIT: 'direct_debit',
+  OTHER: 'other',
+} as const;
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+
+// UI types (no están en Supabase)
 export type ModalType = 'transaction' | 'account' | 'tag' | null;
-export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'cash';
-export type CurrencyCode = 'DOP' | 'USD';
-// 💡 Corrección: PascalCase
-export type SettingsTab = 'profile' | 'preferences' | 'security' | 'notifications'
-export type CustomTextTheme = 'light' | 'dark';
-export type CustomPattern = 'solid' | 'waves' | 'geometric' | 'mesh' | 'lines' | 'dots' | 'curve';
-export type operation = 'buy' | 'sell'
+export type SettingsTab = 'profile' | 'preferences' | 'security' | 'notifications';
+export type CategoryType = 'income' | 'expense';
 
 // ==========================================
 // 2. ENTIDADES DE LA BASE DE DATOS
@@ -68,15 +139,14 @@ export interface Account {
 // 💡 Corrección: Categoría unificada
 export interface Category {
   id: string;
-  user_id: string | null; // Null = Categoría del sistema
+  user_id: string | null;
   parent_id: string | null;
   name: string;
-  type: 'income' | 'expense';
+  type: CategoryType;
   icon: string;
   color: string;
   created_at: string;
   
-  // Relaciones
   subcategories?: Category[];
 }
 
@@ -90,22 +160,20 @@ export interface Transaction {
   account_id: string;
   category_id: string | null;
   
-  // Transferencias
   transfer_to_account_id: string | null;
   
   type: TransactionType;
   description: string;
-  date: string; // ISO String
-  status: 'pending' | 'posted' | 'reconciled';
+  date: string;
+  status: TransactionStatus;
+  payment_method: PaymentMethod | null;
   
-  // Multi-moneda Core
-  amount: number;          // Lo que sale (siempre positivo)
-  target_amount?: number;  // Lo que entra (en transferencias multi-moneda)
-  exchange_rate?: number;  // Tasa de cambio aplicada
+  amount: number;
+  target_amount?: number;
+  exchange_rate?: number;
   
   created_at: string;
 
-  // Relaciones (Joins)
   account?: Account;           
   transfer_to_account?: Account; 
   category?: Category;
@@ -223,6 +291,7 @@ export interface CreateTransactionInput {
   description: string;
   date: string; 
   amount: number; 
+  payment_method?: PaymentMethod;
   
   target_amount?: number;
   exchange_rate?: number;
@@ -270,7 +339,7 @@ export interface SmartRateResult {
   rate: number;           
   baseRate: number;       
   margin: number;         
-  operation: operation; 
+  operation: Operation; 
   institutionName: string; 
 }
 
@@ -289,7 +358,7 @@ export interface ModalState {
 }
 
 export interface FilterState {
-  type: 'income' | 'expense' | 'transfer' | null;
+  type: TransactionType | null;
   categoryId: string | null;
   tagId: string | null;
   accountId: string | null;
@@ -303,11 +372,11 @@ export interface FilterState {
 export interface ProfileUpdateInput {
   full_name?: string;
   avatar_url?: string | null;
-  currency_preference?: string;
+  currency_preference?: CurrencyCode;
   primary_account_id?: string | null; 
-  theme_preference?: string;
+  theme_preference?: CustomTextTheme | 'auto';
   monthly_savings_goal?: string | number;
-  theme?: 'light' | 'dark' | 'auto';
+  theme?: CustomTextTheme | 'auto';
   onboarding_completed?: boolean;
 }
 
@@ -318,9 +387,58 @@ export interface TransactionItem {
   quantity: number;
   unit_price: number;
   tax_amount: number;
-  tax_type: 'ITBIS' | 'PROPINA' | 'NONE' | string;
+  tax_type: TaxType;
   discount_amount: number;
   total_price: number;
   category_id: string;
   created_at: string;
+}
+
+export interface BaseItem {
+  _id?: string;
+  id?: string;
+  name?: string;
+  unit_price?: string | number;
+  quantity?: number;
+  category_id?: string;
+  category?: Category;
+}
+
+export interface SplitItem extends BaseItem {
+  _id: string;
+  name: string;
+  unit_price: string;
+  quantity: number;
+  category_id: string;
+  category?: Category;
+}
+
+export interface DisplayItem extends BaseItem {
+  id: string;
+  name?: string;
+  unit_price?: number;
+  quantity?: number;
+  category?: Category;
+  category_id?: string;
+}
+
+export interface TransactionFormData {
+  id?: string;
+  type: TransactionType;
+  account_id: string;
+  category_id?: string | null;
+  transfer_to_account_id?: string | null;
+  description: string;
+  note?: string;
+  date: string;
+  amount: number;
+  payment_method?: PaymentMethod | null;
+  target_amount?: number;
+  exchange_rate?: number;
+  tags?: string[] | { tag?: { id: string } }[];
+  items?: BaseItem[];
+  is_split_child?: boolean;
+  category?: Category;
+  account?: Account;
+  transfer_to_account?: Account;
 }

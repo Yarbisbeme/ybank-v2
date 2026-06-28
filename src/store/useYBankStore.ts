@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getSmartRate } from '@/services/rates'; 
-import { YBankStore } from '@/types';
+import { YBankStore, Operation } from '@/types';
 
 export const useYBankStore = create<YBankStore>()(
   persist(
@@ -23,7 +23,7 @@ export const useYBankStore = create<YBankStore>()(
         set({ isCalculatingRate: true }); 
         
         try {
-          const rateData = await getSmartRate(institutionId, 'sell'); 
+          const rateData = await getSmartRate(institutionId, Operation.SELL); 
           
           // 🛡️ ESCUDO 2: Solo actualizamos si el servidor nos devolvió algo válido
           if (rateData) {

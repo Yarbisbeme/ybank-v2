@@ -3,11 +3,12 @@
 import { Plus, Trash2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SearchableDropdown from '../ui/SearchableDropdown';
+import { BaseItem } from '@/types';
 
 interface ExpenseSplitSectionProps {
-  items: any[];
-  setItems: React.Dispatch<React.SetStateAction<any[]>>;
-  categoryOptions: any[];
+  items: BaseItem[];
+  setItems: React.Dispatch<React.SetStateAction<BaseItem[]>>;
+  categoryOptions: { id: string; label: string; subLabel: string }[];
   amount: string;
 }
 
@@ -27,7 +28,7 @@ export default function ExpenseSplitSection({ items, setItems, categoryOptions, 
     if (items.length > 1) setItems(items.filter(i => i._id !== id));
   };
 
-  const updateItem = (id: string, field: string, value: any) => {
+  const updateItem = (id: string, field: keyof BaseItem, value: string | number) => {
     setItems(items.map(i => i._id === id ? { ...i, [field]: value } : i));
   };
 
@@ -41,14 +42,15 @@ export default function ExpenseSplitSection({ items, setItems, categoryOptions, 
       </div>
 
       <div className="flex flex-col px-4 md:px-5 py-1">
-        {items.map((item, index) => (
-          /* 💡 Añadido relative y hover:z-20 para que el dropdown flote por encima de las demás filas */
-          <div key={item._id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 py-2 md:border-b border-border/30 last:border-0 items-center relative hover:z-20 group">
+        {items.map((item, index) => {
+          const itemId = item._id || '';
+          return (
+          <div key={itemId} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 py-2 md:border-b border-border/30 last:border-0 items-center relative hover:z-20 group">
             
             <div className="col-span-1 md:col-span-5 relative">
               <span className="md:hidden text-[9px] font-bold uppercase text-muted-foreground mb-0.5 block">Concepto</span>
               <input
-                type="text" placeholder="Ej. Leche, Papel, etc." value={item.name} onChange={(e) => updateItem(item._id, 'name', e.target.value)}
+                type="text" placeholder="Ej. Leche, Papel, etc." value={item.name || ''} onChange={(e) => updateItem(itemId, 'name', e.target.value)}
                 className="w-full bg-surface-2/30 md:bg-transparent border border-border/50 md:border-transparent rounded-[6px] md:rounded-none px-2.5 md:px-0 py-1.5 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-primary/20 md:focus:ring-0 md:focus:border-b-primary md:border-b transition-all placeholder:text-muted-foreground/40"
               />
             </div>
@@ -57,7 +59,7 @@ export default function ExpenseSplitSection({ items, setItems, categoryOptions, 
                <span className="md:hidden text-[9px] font-bold uppercase text-muted-foreground mb-0.5 block">Clasificación</span>
                <div className="border border-border/50 md:border-transparent rounded-[6px] bg-surface-2/30 md:bg-transparent">
                   <SearchableDropdown
-                    options={categoryOptions} value={item.category_id} onChange={(val) => updateItem(item._id, 'category_id', val)} placeholder="Clasificación..."
+                    options={categoryOptions} value={item.category_id || ''} onChange={(val) => updateItem(itemId, 'category_id', val)} placeholder="Clasificación..."
                   />
                </div>
             </div>
@@ -67,10 +69,10 @@ export default function ExpenseSplitSection({ items, setItems, categoryOptions, 
                 <span className="md:hidden text-[9px] font-bold uppercase text-muted-foreground mr-auto block">Importe</span>
                 <span className="text-muted-foreground absolute left-2 md:left-0 md:-ml-3 text-xs">$</span>
                 <input
-                  type="text" inputMode="decimal" placeholder="0.00" value={item.unit_price}
+                  type="text" inputMode="decimal" placeholder="0.00" value={String(item.unit_price || '')}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) updateItem(item._id, 'unit_price', val);
+                    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) updateItem(itemId, 'unit_price', val);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && index === items.length - 1) { e.preventDefault(); addItem(); }
@@ -80,14 +82,14 @@ export default function ExpenseSplitSection({ items, setItems, categoryOptions, 
               </div>
               
               <button
-                type="button" onClick={() => removeItem(item._id)} disabled={items.length === 1}
+                type="button" onClick={() => removeItem(itemId)} disabled={items.length === 1}
                 className="p-1.5 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-[4px] transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
               >
                 <Trash2 size={14} />
               </button>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-2 px-5 pt-3 border-t border-border/50">
