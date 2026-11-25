@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:types": "supabase gen types typescript --remote --schema public > src/shared/supabase/database.types.ts",
-    "analyze:n8n": "tsx scripts/analyze-n8n.ts"
+    "analyze:n8n": "tsx scripts/analyze-n8n.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -41,6 +42,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.7",
     "@types/react": "^19",

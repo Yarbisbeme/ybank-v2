@@ -68,7 +68,11 @@ export const updateTransactionSchema = z.object({
 
 export const completeOnboardingSchema = z.object({
   fullName: z.string().min(1, 'El nombre es requerido').max(100),
-  password: z.string().min(6).optional(),
+  // Email sign-ups skip the password step and the form sends ''. Treat it as "not provided".
+  password: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
+  ),
   currency: z.enum(['DOP', 'USD']),
   primaryAccountId: z.string().uuid().optional(),
 })
