@@ -55,3 +55,6 @@ next-env.d.ts
 /e2e/.results
 /e2e/.audit
 /playwright-report
+
+# n8n workflow export: contains OAuth credentials, never commit
+/docs/Gastibiris.json
