@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createSupabaseClient } from '../supabase/createServerClient';
 import { signUpSchema, loginSchema, completeOnboardingSchema, getFirstError } from '@/lib/validation';
+import { publicEnv } from '@/shared/config/env';
 
 export async function signUpWithEmail(input: { email: string; password: string; fullName: string }) {
   const parsed = signUpSchema.safeParse(input)
@@ -18,7 +19,7 @@ export async function signUpWithEmail(input: { email: string; password: string; 
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   });
 

@@ -8,7 +8,7 @@ import StoreInitializer from './StoreInitializer';
 
 // 💡 1. Importaciones nuevas para el vigilante de sesión
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
+import { getSupabaseBrowserClient } from '@/shared/supabase/browser';
 
 interface DashboardProvidersProps {
   children: React.ReactNode;
@@ -28,10 +28,7 @@ function AuthWatcher() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseBrowserClient();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // 💡 Detectamos si el navegador del cliente tiene conexión activa a internet

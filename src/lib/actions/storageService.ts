@@ -1,12 +1,8 @@
-// src/lib/services/storageService.ts
-import { createBrowserClient } from '@supabase/ssr'
+import { getSupabaseBrowserClient } from '@/shared/supabase/browser'
 
 export const storageService = {
   async uploadAvatar(file: File, userId: string): Promise<string> {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabase = getSupabaseBrowserClient()
 
     const fileExt = file.name.split('.').pop()
     const fileName = `${userId}-${Date.now()}.${fileExt}`
