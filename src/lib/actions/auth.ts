@@ -2,12 +2,22 @@
 
 import { redirect } from 'next/navigation';
 import { createSupabaseClient } from '../supabase/createServerClient';
+import { signUpSchema, loginSchema, completeOnboardingSchema, getFirstError } from '@/lib/validation';
+import { publicEnv } from '@/shared/config/env';
+import { PROFILE_COLUMNS } from '@/lib/profile-columns';
+import { headers } from 'next/headers';
+import { resolveOrigin } from '@/shared/config/origin';
 
-/**
- * 📝 REGISTRO CON EMAIL
- * Crea el usuario en auth.users y dispara el flujo de onboarding.
- */
-export async function signUpWithEmail({ email, password, fullName }: any) {
+/** Auth redirects must return to the site the user is on (prod, preview or local). */
+async function authCallbackUrl(): Promise<string> {
+  return `${resolveOrigin(await headers(), publicEnv.NEXT_PUBLIC_SITE_URL)}/auth/callback`;
+}
+
+export async function signUpWithEmail(input: { email: string; password: string; fullName: string }) {
+  const parsed = signUpSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const { email, password, fullName } = parsed.data
   const supabase = await createSupabaseClient();
 
   const { data, error } = await supabase.auth.signUp({
@@ -17,16 +27,25 @@ export async function signUpWithEmail({ email, password, fullName }: any) {
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: await authCallbackUrl(),
     },
   });
 
   if (error) return { success: false, error: error.message };
-  return { success: true, user: JSON.parse(JSON.stringify(data.user)) }
+
+  const needsEmailConfirmation = !data.session;
+  return {
+    success: true,
+    user: JSON.parse(JSON.stringify(data.user)),
+    needsEmailConfirmation
+  }
 }
 
-//🔐 LOGIN CON EMAIL Y CONTRASEÑA
-export async function loginWithEmail({ email, password }: any) {
+export async function loginWithEmail(input: { email: string; password: string }) {
+  const parsed = loginSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const { email, password } = parsed.data
   const supabase = await createSupabaseClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -38,26 +57,15 @@ export async function loginWithEmail({ email, password }: any) {
   return { success: true };
 }
 
-//🌐 SIGN IN CON GOOGLE (OAuth con Scopes de Gmail)
+// Login only (openid/email/profile). No Gmail scopes: they are "restricted" and would
+// show every user Google's unverified-app warning at sign-in.
 export async function signInWithGoogle() {
   const supabase = await createSupabaseClient();
-
-  const getURL = () => {
-    if (process.env.NODE_ENV === 'production') {
-      return 'https://ybank-v2.vercel.app';
-    }
-    return 'http://localhost:3000';
-  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${getURL()}/auth/callback`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-      scopes: 'https://www.googleapis.com/auth/gmail.modify',
+      redirectTo: await authCallbackUrl(),
     },
   });
 
@@ -65,12 +73,16 @@ export async function signInWithGoogle() {
   if (data.url) return redirect(data.url);
 }
 
-export async function completeOnboarding(formData: {
+export async function completeOnboarding(input: {
   fullName: string;
   password?: string;
   currency: string;
   primaryAccountId?: string;
 }) {
+  const parsed = completeOnboardingSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
+
+  const formData = parsed.data
   const supabase = await createSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -104,7 +116,7 @@ export async function completeOnboarding(formData: {
     updated_at: new Date().toISOString(),
     primary_account_id: formData.primaryAccountId,
   })
-  .select('*') // 💡 Pedimos el perfil completo
+  .select(PROFILE_COLUMNS)
   .single();
 
   if (profileError) return { success: false, error: profileError.message };

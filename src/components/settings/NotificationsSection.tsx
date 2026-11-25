@@ -90,7 +90,6 @@ export default function NotificationsSection() {
 
       {/* Botón Guardar - Ajustado al estilo primario de YBank */}
       <button
-        onClick={() => console.log('Saved:', notifications)}
         className="w-full md:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-[8px] font-black text-[12px] uppercase tracking-[0.2em] transition-all hover:opacity-90 active:scale-[0.98]"
       >
         Guardar Preferencias

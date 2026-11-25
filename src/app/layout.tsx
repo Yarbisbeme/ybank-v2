@@ -61,14 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {`
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('YBank SW registrado con éxito');
-                    },
-                    function(err) {
-                      console.log('Fallo el registro del SW: ', err);
-                    }
-                  );
+                  navigator.serviceWorker.register('/sw.js');
                 });
               }
             `}

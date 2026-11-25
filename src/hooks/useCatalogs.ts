@@ -14,6 +14,7 @@ import { ProfileUpdateInput } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { useYBankStore } from '@/store/useYBankStore';
 import { storageService } from '@/lib/actions/storageService';
+import { transactionKeys, TRANSACTIONS_PAGE_SIZE } from '@/lib/transaction-keys';
 
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
 
@@ -89,20 +90,22 @@ export function useTransactionsList(page: number = 1) {
   const rawAccountId = searchParams.get('accountId');
   const queryAccountId = (!rawAccountId || rawAccountId === 'global') ? null : rawAccountId;
 
-  const filterType = filters.type || '';
-  const filterCategoryId = filters.categoryId || '';
-  const filterStartDate = filters.startDate || '';
-  const filterEndDate = filters.endDate || '';
-  const filterTagId = filters.tagId || '';    
-  const filterSearch = filters.search || '';  
-
   return useQuery({
-    queryKey: ['transactions', queryAccountId, filterType, filterCategoryId, filterStartDate, filterEndDate, filterTagId, filterSearch, page],
+    queryKey: transactionKeys.list({
+      accountId: queryAccountId,
+      type: filters.type,
+      categoryId: filters.categoryId,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      tagId: filters.tagId,
+      search: filters.search,
+      page,
+    }),
     queryFn: async () => {
-      
+
       // 🛑 MODO OFFLINE
       if (typeof window !== 'undefined' && !navigator.onLine) {
-        const baseKey = ['transactions', queryAccountId, '', '', '', '', '', '', 1];
+        const baseKey = transactionKeys.list({ accountId: queryAccountId, page: 1 });
         const cachedBaseData: any = queryClient.getQueryData(baseKey);
         if (!cachedBaseData || !cachedBaseData.transactions) return { transactions: [], total: 0 };
         return { transactions: cachedBaseData.transactions, total: cachedBaseData.transactions.length };
@@ -119,8 +122,8 @@ export function useTransactionsList(page: number = 1) {
       };
 
       const response = await getTransactions({
-        page: page, 
-        pageSize: 10, 
+        page: page,
+        pageSize: TRANSACTIONS_PAGE_SIZE,
         accountId: queryAccountId || undefined, 
         filters: activeFilters 
       });

@@ -1,7 +1,7 @@
 'use server'
 
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { SmartRateResult } from '@/types/index'
+import { SmartRateResult, Operation } from '@/types/index'
 
 const API_URL = 'https://open.er-api.com/v6/latest/USD';
 
@@ -26,7 +26,7 @@ async function fetchMarketRate(): Promise<number> {
   }
 }
 
-export async function getSmartRate(institutionId: string, type: 'buy' | 'sell'): Promise<SmartRateResult | null> {
+export async function getSmartRate(institutionId: string, type: Operation): Promise<SmartRateResult | null> {
     const supabase = await createSupabaseClient()
 
     const [marketRate, { data: bank, error }] = await Promise.all([
@@ -50,7 +50,7 @@ export async function getSmartRate(institutionId: string, type: 'buy' | 'sell'):
     let finalRate = 0;
     let margin = 0;
 
-    if (type === 'sell') {
+    if (type === Operation.SELL) {
         // Tasa de Venta (El banco te vende USD a un precio más caro)
         margin = sellSpread; 
         finalRate = marketRate + margin;

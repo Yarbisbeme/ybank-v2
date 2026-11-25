@@ -50,15 +50,18 @@ export default function SignUp() {
       const result = await signUpWithEmail(formData);
       
       if (result.success) {
-        toast.success("¡Cuenta creada! Revisa tu correo para confirmar.");
-        router.push("/onboarding");
-        setLoading(false);
+        if (result.needsEmailConfirmation) {
+          toast.success("Cuenta creada. Revisa tu correo para confirmar tu email antes de continuar.");
+        } else {
+          toast.success("¡Cuenta creada!");
+          router.push("/onboarding");
+        }
       } else {
         toast.error(result.error || "Error al crear la cuenta");
-        setLoading(false);
       }
     } catch (error) {
       toast.error("Ocurrió un error inesperado");
+    } finally {
       setLoading(false);
     }
   };

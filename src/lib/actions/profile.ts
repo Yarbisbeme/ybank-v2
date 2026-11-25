@@ -2,6 +2,7 @@
 
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { ProfileUpdateInput } from '@/types'
+import { PROFILE_COLUMNS } from '@/lib/profile-columns'
 
 export async function getProfile() {
   const supabase = await createSupabaseClient()
@@ -11,7 +12,7 @@ export async function getProfile() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(PROFILE_COLUMNS)
     .eq('id', user.id)
     .single()
 
@@ -32,7 +33,9 @@ export async function updateProfile(payload: ProfileUpdateInput) {
   if (payload.full_name !== undefined) updateData.full_name = payload.full_name;
   if (payload.avatar_url !== undefined) updateData.avatar_url = payload.avatar_url;
   if (payload.currency_preference !== undefined) updateData.currency_preference = payload.currency_preference;
-  if (payload.theme_preference !== undefined) updateData.theme_preference = payload.theme_preference;
+  if (payload.theme_preference !== undefined && payload.theme_preference !== 'auto') {
+    updateData.theme_preference = payload.theme_preference;
+  }
   
   if (payload.primary_account_id !== undefined) {
     updateData.primary_account_id = payload.primary_account_id;
@@ -42,7 +45,7 @@ export async function updateProfile(payload: ProfileUpdateInput) {
     .from('profiles')
     .update(updateData) // Pasamos el objeto limpio
     .eq('id', user.id)
-    .select('*') 
+    .select(PROFILE_COLUMNS) 
     .single()
 
   if (error) return { success: false, error: error.message }

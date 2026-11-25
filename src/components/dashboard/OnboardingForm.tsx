@@ -71,12 +71,11 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
       });
 
       if (result.success) {
-        window.location.href = '/dashboard';
         toast.success("¡Infraestructura lista!");
-        setLoading(false);
-      } else {
-        toast.error(result.error);
+        window.location.href = '/dashboard';
+        return; // keep the button disabled while the browser navigates
       }
+      toast.error(result.error);
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -84,6 +83,8 @@ export default function OnboardingForm({ initialStep, defaultName, institutions 
         toast.error("Error crítico al configurar YBANK");
       }
     }
+    // Any failure must re-enable the button; before, it stayed on "Sincronizando..." forever.
+    setLoading(false);
   };
 
   // Animación Spring (Resorte) estilo iOS / YBANK

@@ -6,7 +6,7 @@ import {
   Grid as GridIcon, CreditCard, AlignLeft, Send, Trash2,
   CheckCircle2, RefreshCw, SplitSquareHorizontal, ChevronDown
 } from 'lucide-react';
-import { Account, Tag, Category } from '@/types'; 
+import { Account, Tag, Category, TransactionFormData, SplitItem, BaseItem } from '@/types'; 
 import TagInput from './TagInput';
 import SearchableDropdown from '../ui/SearchableDropdown';
 import ExpenseSplitSection from './ExpenseSplitSection'; 
@@ -24,7 +24,7 @@ interface TransactionFormProps {
   accounts: Account[];
   tags: Tag[]; 
   categories: Category[];
-  initialData?: any; 
+  initialData?: TransactionFormData; 
   defaultAccountId?: string | null; 
   onSuccess: () => void; 
 }
@@ -57,17 +57,17 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
   const [destinationAccountId, setDestinationAccountId] = useState(initialData?.transfer_to_account_id || '');
 
   // 💡 El estado 'isSplit' ahora es el único jefe de la interfaz
-  const [isSplit, setIsSplit] = useState(initialData?.type === 'expense' && initialData?.items?.length > 0);
+  const [isSplit, setIsSplit] = useState(initialData?.type === 'expense' && !!initialData?.items && initialData.items.length > 0);
   
-  const [items, setItems] = useState<any[]>(
-    initialData?.type === 'expense' && initialData?.items?.length > 0 
-    ? initialData.items.map((i: any) => ({ ...i, _id: crypto.randomUUID() })) 
+  const [items, setItems] = useState<BaseItem[]>(
+    initialData?.type === 'expense' && initialData?.items && initialData.items.length > 0 
+    ? initialData.items.map((i) => ({ ...i, _id: crypto.randomUUID() })) 
     : [{ _id: crypto.randomUUID(), name: '', unit_price: '', quantity: 1, category_id: '' }]
   );
 
   const [date, setDate] = useState(initialData?.date ? initialData.date.split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0]);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags || []);
-  const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags?.map((t: any) => t.tag?.id) || []);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags?.map((t: { tag?: { id: string } }) => t.tag?.id).filter(Boolean) as string[] || []);
 
   // 💡 Si el usuario cambia a Traspaso o Ingreso, apagamos el desglose automáticamente
   useEffect(() => { 
@@ -112,7 +112,7 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
     }
 
     // 💡 1. Payload base protegido
-    const payload: any = { 
+    const payload: Record<string, unknown> = { 
       id: initialData?.id, 
       type, 
       accountId: accountId || null, 
@@ -133,9 +133,9 @@ export default function TransactionForm({ accounts, tags, categories, initialDat
       
       payload.items = (type === 'expense' && isSplit) ? items.map(item => ({
         ...item,
-        unit_price: parseFloat(item.unit_price) || 0,
-        quantity: parseInt(item.quantity) || 1,
-        total_price: (parseFloat(item.unit_price) || 0) * (parseInt(item.quantity) || 1)
+        unit_price: parseFloat(String(item.unit_price)) || 0,
+        quantity: Number(item.quantity) || 1,
+        total_price: (parseFloat(String(item.unit_price)) || 0) * (Number(item.quantity) || 1)
       })) : []; // Si el usuario cerró el desglose, enviamos array vacío para borrarlo
     }
 

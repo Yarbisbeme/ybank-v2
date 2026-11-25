@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { useModalStore } from '@/store/useModalStore';
 import { getCategoryIcon } from '@/lib/utils';
+import { TransactionFormData, BaseItem } from '@/types';
 
-export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccountId?: string | null }) {
+export function TransactionRow({ tx, activeAccountId }: { tx: TransactionFormData, activeAccountId?: string | null }) {
 
   const [isExpanded, setIsExpanded] = useState(false);
   const openModal = useModalStore((state) => state.openModal);
@@ -107,7 +108,7 @@ export function TransactionRow({ tx, activeAccountId }: { tx: any, activeAccount
                 </p>
               </div>
               
-              {items.map((sub: any, i: number) => (
+              {items.map((sub: BaseItem, i: number) => (
                 <div key={sub.id || i} className="flex justify-between items-start text-body text-xs group/sub">
                   <div className="flex items-start gap-2 text-foreground truncate pr-2">
                     <span className="text-muted-foreground opacity-50 mt-[-2px]">↳</span>

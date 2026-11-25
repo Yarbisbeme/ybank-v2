@@ -6,7 +6,13 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:types": "supabase gen types typescript --remote --schema public > src/shared/supabase/database.types.ts",
+    "analyze:n8n": "tsx scripts/analyze-n8n.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -23,7 +29,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
-    "googleapis": "^170.0.0",
     "idb-keyval": "^6.2.2",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",
@@ -32,18 +37,25 @@
     "react-dom": "^19.2.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22.20.7",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "cypress": "^15.14.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.2",
+    "supabase": "^3.4.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "tw-animate-css": "^1.4.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.1.2"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

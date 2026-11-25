@@ -12,7 +12,6 @@ import { useYBankStore } from '@/store/useYBankStore';
 import { cn } from '@/lib/utils';
 
 export default function ClientTransactionTable() {
-  const [currentPage, setCurrentPage] = useState(1);
   const searchParams = useSearchParams();
   
   // 🛑 1. TRAEMOS EL ESTADO DE ZUSTAND
@@ -26,52 +25,24 @@ export default function ClientTransactionTable() {
     return urlAccountId || preferredAccountId || accounts[0]?.id || null;
   }, [urlAccountId, preferredAccountId, accounts]);
 
-  const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
-  const baseTransactions = data?.transactions || [];
-  const totalItems = data?.total || 0;
   const filters = useFilterStore();
-  
-  const transactions = useMemo(() => {
-    // Si no estamos filtrando por categoría, dejamos todo intacto
-    if (!filters.categoryId) return baseTransactions;
 
-    const flat: any[] = [];
-    
-    baseTransactions.forEach((tx: any) => {
-      let addedAsChild = false;
-      
-      // 1. Si la transacción tiene desgloses
-      if (tx.items && tx.items.length > 0) {
-        const matching = tx.items.filter((i: any) => i.category_id === filters.categoryId);
-        
-        if (matching.length > 0) {
-          matching.forEach((item: any) => {
-            flat.push({
-              ...tx,
-              id: `${tx.id}-item-${item.id}`, // ID virtual para la calculadora
-              amount: Number(item.unit_price) * Number(item.quantity || 1), // Monto exacto del hijo
-              category_id: item.category_id,
-              category: item.category || tx.category,
-              description: `${tx.description} ↳ ${item.name || 'Desglose'}`,
-              items: [], // 🚨 DESTRUIMOS EL ACORDEÓN FÍSICAMENTE AQUÍ
-              is_split_child: true, // Nuestra bandera escudo
-              type: 'expense' // Lo forzamos a gasto para los colores y matemáticas
-            });
-          });
-          addedAsChild = true;
-        }
-      }
+  // The page belongs to a specific filter set: changing any filter (or the account
+  // in the URL) goes back to page 1. Derived during render, no effect needed.
+  const filterSignature = JSON.stringify([
+    urlAccountId, filters.type, filters.categoryId, filters.startDate,
+    filters.endDate, filters.tagId, filters.search,
+  ]);
+  const [pageState, setPageState] = useState({ signature: filterSignature, page: 1 });
+  const currentPage = pageState.signature === filterSignature ? pageState.page : 1;
+  const setCurrentPage = (page: number) => setPageState({ signature: filterSignature, page });
 
-      // 2. Solo pasamos al padre si no encontramos hijos y el padre coincide
-      if (!addedAsChild && tx.category_id === filters.categoryId) {
-        flat.push({ ...tx, items: [] });
-      }
-    });
-    
-    return flat;
-  }, [baseTransactions, filters.categoryId]);
-  
-  const isQueryLoading = isLoadingTx || isLoadingAccounts || !activeAccountId;
+  const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
+  const transactions = data?.transactions || [];
+  const totalItems = data?.total || 0;
+
+  // A user without accounts has no activeAccountId: that is an empty state, not loading.
+  const isQueryLoading = isLoadingTx || (isLoadingAccounts && accounts.length === 0);
 
   // Sincronizamos el totalItems hacia Zustand para que la barra de filtros lo lea
   useEffect(() => {
