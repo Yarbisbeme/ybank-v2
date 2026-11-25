@@ -188,9 +188,6 @@ export type Database = {
             | Database["public"]["Enums"]["currency_code"]
             | null
           full_name: string | null
-          google_access_token: string | null
-          google_refresh_token: string | null
-          google_token_expires_at: string | null
           id: string
           monthly_savings_goal: number | null
           onboarding_completed: boolean | null
@@ -208,9 +205,6 @@ export type Database = {
             | Database["public"]["Enums"]["currency_code"]
             | null
           full_name?: string | null
-          google_access_token?: string | null
-          google_refresh_token?: string | null
-          google_token_expires_at?: string | null
           id: string
           monthly_savings_goal?: number | null
           onboarding_completed?: boolean | null
@@ -228,9 +222,6 @@ export type Database = {
             | Database["public"]["Enums"]["currency_code"]
             | null
           full_name?: string | null
-          google_access_token?: string | null
-          google_refresh_token?: string | null
-          google_token_expires_at?: string | null
           id?: string
           monthly_savings_goal?: number | null
           onboarding_completed?: boolean | null
