@@ -29,7 +29,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
-    "googleapis": "^170.0.0",
     "idb-keyval": "^6.2.2",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",
