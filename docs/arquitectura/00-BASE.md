@@ -35,9 +35,9 @@ Antes de elegir patrones hay que saber qué problema resuelven. Para YBank los d
 | **Zustand 5** | Preferencias, filtros, modales, selección | Mínimo, sin boilerplate | `useYBankStore` llama a un Server Action (efectos de red dentro del store); filtros en store **y** `accountId` en URL = dos fuentes de verdad | ✅ Mantener **solo para estado de UI efímero**. Filtros → URL (`nuqs`). Datos del servidor → TanStack, nunca en Zustand. |
 | **Zod 4** | Validación de inputs en algunas acciones | Estándar, v4 rápido | Cobertura parcial; acciones reciben `any` | ✅ Extender a **toda frontera**: env vars, inputs de acciones, respuestas de APIs externas, salida de parsers/IA. |
 | **Tailwind v4 + shadcn + cva** | Estilos y UI | Productivo, consistente | 7 componentes de tarjeta por banco con estilos hardcodeados + `UniversalCard` | ✅ Mantener. Las tarjetas por banco deberían ser **datos** (tema en `institutions`), no componentes. |
-| **framer-motion, lottie-react** | Animación | UI pulida (es un punto fuerte del proyecto) | Lottie pesa; se carga eagerly | ✅ Mantener; cargar Lottie con `dynamic()`. |
+| **framer-motion, lottie-react** | Animación | Animaciones fluidas (❓ no verificado en uso real) | Lottie pesa; se carga eagerly | ✅ Mantener; cargar Lottie con `dynamic()`. |
 | **lucide-react + @iconify/react** | Íconos | — | Dos librerías; Iconify por defecto **descarga íconos de su API en runtime → falla offline** | ⚠️ Consolidar en **lucide** (o Iconify con íconos empaquetados offline). |
-| **@ducanh2912/next-pwa** | Service worker | Funciona | Mantenimiento lento, ata a webpack, hostname de Supabase hardcodeado | ⚠️ Migrar a **Serwist** cuando toquemos PWA; hostname desde env. |
+| **@ducanh2912/next-pwa** | Service worker | ✅ Genera el service worker en el build. ❓ Instalación y offline no probados | Mantenimiento lento, ata a webpack, hostname de Supabase hardcodeado | ⚠️ Migrar a **Serwist** cuando toquemos PWA; hostname desde env. |
 | **googleapis ^170** | (aún sin uso) Gmail | Oficial | Paquete enorme (todas las APIs de Google) | ⚠️ Usar **`@googleapis/gmail`** + `google-auth-library`, mucho más liviano. |
 | **open.er-api.com** | Tasa USD→DOP | Gratis | Fallback `60.50` en `rates.ts` y `58.00` en `accounts.ts` (inconsistente); se llama en cada operación | ⚠️ Tabla `exchange_rates` con snapshot diario (cron). La transacción guarda la tasa usada (ya existe `exchange_rate`). Un solo fallback. |
 | **Cypress** | E2E (vacío: visita youtube.com) | — | Pesado, 0 tests reales | ❌ **Reemplazar**: **Vitest** (dominio/parsers, el 80% del valor) + **Playwright** (2–3 flujos críticos). |
@@ -65,10 +65,12 @@ Navegador ──► Next.js (RSC + Server Actions) ──► Supabase (PostgREST
 
 ### 2.2 Ventajas
 
+> **Regla (2026-11-25):** lo que ya existe se marca ✅ solo si se verificó ejecutándolo o consultándolo; si no, ❓. Un nombre de archivo, un grep o un reporte anterior no cuentan como verificación.
+
 - Un solo despliegue, un solo lenguaje, cero infraestructura propia.
-- RLS como barrera real de seguridad por usuario (bien hecho).
-- Estrategia offline-first pensada (no accidental).
-- La idea de idempotencia por `source_email_id` + `pg_advisory_xact_lock` en la reconciliación es correcta.
+- ✅ RLS **habilitado** en las 8 tablas de `public` (verificado en el volcado). ❓ Que las políticas sean *correctas* no está probado: hay políticas duplicadas (ver `02`) y las de avatares estaban mal (B4, ya corregido).
+- ❓ Estrategia offline-first: el código existe (persistencia en IndexedDB, `offlineFirst`), pero nunca se probó la app sin conexión.
+- ✅ `source_email_id` tiene restricción `UNIQUE` (verificado en el volcado). ❓ El lock y la reconciliación del SQL de n8n no se han ejecutado.
 
 ### 2.3 Desventajas (por gravedad)
 
@@ -159,12 +161,12 @@ El beneficio clave de guardar el correo crudo: **cuando un parser mejora, se rep
 
 ## 3. Prácticas
 
-### 3.1 Lo que se hace bien (conservar)
-- RLS en todas las tablas.
-- Validación Zod en mutaciones principales.
-- Soft delete de cuentas (`is_active`).
-- Optimistic updates con rollback.
-- Idempotencia por `source_email_id`.
+### 3.1 Prácticas presentes (estado de verificación)
+- ✅ RLS habilitado en todas las tablas (volcado). Corrección de políticas: ❓.
+- ❓ Validación Zod en mutaciones principales: el código existe; no hay tests que lo prueben.
+- ❓ Soft delete de cuentas (`is_active`): el código existe; no verificado de punta a punta.
+- ❓ Optimistic updates con rollback: el código existe; nunca se probó un fallo real.
+- ✅ Idempotencia por `source_email_id`: restricción `UNIQUE` en la BD.
 
 ### 3.2 Problemas
 
@@ -227,7 +229,7 @@ El beneficio clave de guardar el correo crudo: **cuando un parser mejora, se rep
 
 **Recomendación: no reescribir desde cero; refactor incremental (*strangler*) sobre el mismo repo.**
 
-- La UI es el activo más valioso y está bien lograda → se conserva y se migra a `features/` por partes.
+- ❓ La UI parece el activo más trabajado, pero **no se ha verificado qué pantallas funcionan de punta a punta**. Antes de decidir qué se conserva, cada pantalla pasa por la auditoría funcional (Fase 0.5).
 - Lo que sí se **reescribe**: la capa de datos (acciones/hooks), el camino de escritura (RPCs + migraciones) y la ingesta (nueva).
 - Cada paso deja la app funcionando y desplegable.
 
@@ -236,6 +238,7 @@ El beneficio clave de guardar el correo crudo: **cuando un parser mejora, se rep
 | Fase | Contenido | Resultado |
 |---|---|---|
 | **0. Fundaciones** | `supabase db pull` → migraciones; tipos generados; `env.ts`; Vitest/Playwright; CI; reglas de lint | Repo reproducible y verificable |
+| **0.5 Auditoría funcional verificada** | Inventario de cada pantalla y flujo (login, onboarding, cuentas, transacciones, filtros, desgloses, tasas, PWA/offline) probado **ejecutándolo**, con evidencia y estado ✅ / ⚠️ a medias / ❌ roto. Tests E2E (Playwright) de los flujos que se conservan | Saber qué funciona de verdad antes de decidir qué se conserva |
 | **1. Seguridad y estabilidad** | Build, proxy, secretos, tokens fuera de `profiles`, `redirect`, `'use server'`, bugs de carga | App sana |
 | **2. Camino de escritura** | RPCs atómicas para transacciones, trigger de saldo versionado, `recalculate_account_balance` | Invariantes del dinero garantizadas |
 | **3. Reorganización por features** | Mover `transactions` primero (la más compleja), luego `accounts`, etc. Key factory, Result, lecturas por GET | Base mantenible |

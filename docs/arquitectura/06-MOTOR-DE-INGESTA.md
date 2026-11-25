@@ -94,7 +94,7 @@ pg_cron (cada minuto) ──► Edge Function `process-emails`
 
 ## 7. Migración desde v4.8
 
-- El v4.8 es **conocimiento valioso** (10 bancos, casos borde como reversos, pagos de TC, PayPal), no código para portar tal cual.
+- El v4.8 **menciona** 10 bancos más PayPal y casos borde (reversos, pagos de TC). ❓ **No se ha ejecutado contra correos reales**, así que no se sabe qué tan bien resuelve cada uno. Primer paso: correr el v4.8 sobre las muestras reales y medir aciertos por banco; eso dice qué conocimiento rescatar y qué reglas están mal. No es código para portar tal cual.
 - Por cada banco: tomar sus reglas del v4.8, convertirlas en un adaptador por plantilla y escribir fixtures que cubran los casos que el v4.8 ya resolvía.
 - Orden sugerido: primero los bancos con más volumen en tus datos.
 - **Necesario para empezar:** muestras reales de cada banco (2–5 por tipo de correo). La importación histórica de Gmail (o exportar `.eml` a mano) es la fuente.

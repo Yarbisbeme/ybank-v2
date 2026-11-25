@@ -44,7 +44,7 @@ Para datos financieros es inaceptable no tener respaldo.
 ### 2.5 Egress de 5 GB/mes
 - Las lecturas pesadas pasan por vistas/RPC paginadas (Fase 2), no por traer tablas completas.
 - La caché offline del cliente reduce las lecturas repetidas.
-- Los avatares se sirven con caché del service worker (ya configurado).
+- Los avatares deberían servirse desde la caché del service worker: la regla existe en `next.config.ts`, pero ❓ no se verificó que funcione.
 
 ## 3. Apps móviles a costo cero
 
@@ -52,7 +52,7 @@ Las tiendas **no son gratis**: Apple Developer cuesta US$99/año y Google Play U
 
 | Opción | Costo | Notas |
 |---|---|---|
-| **PWA instalable** (lo que ya existe) | $0 | Funciona en Android e iOS desde el navegador, con offline. **Recomendado como "app móvil" inicial.** |
+| **PWA instalable** | $0 | Se instala en Android e iOS desde el navegador. La configuración PWA existe, pero ❓ no se ha probado instalarla ni usarla offline. **Recomendado como "app móvil" inicial, después de verificarla.** |
 | Android APK fuera de la tienda (Expo, build local) | $0 | Los amigos lo instalan permitiendo "orígenes desconocidos". Las builds locales de Expo son gratis. |
 | Google Play | US$25 una vez | Si se quiere la tienda en Android. |
 | iOS nativo en App Store / TestFlight | US$99/año | **Fuera del presupuesto.** En iOS, la PWA es la vía gratuita. |
