@@ -16,7 +16,7 @@ jobs:
     env:
       # Placeholder values: the build validates env vars but never calls Supabase.
       NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
       NEXT_PUBLIC_SITE_URL: https://ybankapp.com
     steps:
       - uses: actions/checkout@v4

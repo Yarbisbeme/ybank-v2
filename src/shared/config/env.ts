@@ -9,7 +9,8 @@ import { z } from 'zod'
 
 export const publicEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  // Supabase's current client key (`sb_publishable_...`), which replaces the legacy anon JWT.
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
   NEXT_PUBLIC_SITE_URL: z.url().default('http://localhost:3000'),
 })
 
@@ -45,7 +46,9 @@ export function parseEnv<S extends z.ZodType>(schema: S, input: Record<string, s
 
 export const publicEnv: PublicEnv = parseEnv(publicEnvSchema, {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  // Legacy name accepted as a fallback while environments migrate; remove once none use it.
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
 })
 

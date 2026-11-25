@@ -6,6 +6,6 @@ let client: SupabaseClient | undefined
 
 /** Single browser client per tab: avoids duplicate auth listeners and token refresh races. */
 export function getSupabaseBrowserClient(): SupabaseClient {
-  client ??= createBrowserClient(publicEnv.NEXT_PUBLIC_SUPABASE_URL, publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  client ??= createBrowserClient(publicEnv.NEXT_PUBLIC_SUPABASE_URL, publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
   return client
 }

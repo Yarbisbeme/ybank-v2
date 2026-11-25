@@ -3,7 +3,7 @@ import { parseEnv, publicEnvSchema, serverEnvSchema } from './env'
 
 const validPublic = {
   NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key',
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
   NEXT_PUBLIC_SITE_URL: 'https://ybankapp.com',
 }
 
@@ -19,8 +19,8 @@ describe('parseEnv', () => {
 
   it('reports every invalid key in one error', () => {
     expect(() =>
-      parseEnv(publicEnvSchema, { NEXT_PUBLIC_SUPABASE_URL: 'not-a-url', NEXT_PUBLIC_SUPABASE_ANON_KEY: '' }),
-    ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_ANON_KEY/)
+      parseEnv(publicEnvSchema, { NEXT_PUBLIC_SUPABASE_URL: 'not-a-url', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '' }),
+    ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/)
   })
 
   it('rejects secrets shorter than 32 chars', () => {

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * E2E tests run against a LOCAL Supabase stack (`npx supabase start`), never production.
  * Start the app pointed at it, e.g.:
- *   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=<local anon key> \
+ *   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<local publishable key> \
  *   NEXT_PUBLIC_SITE_URL=http://localhost:3100 npx next dev --webpack -p 3100
  */
 export default defineConfig({
