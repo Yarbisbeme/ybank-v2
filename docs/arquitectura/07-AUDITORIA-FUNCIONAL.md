@@ -23,6 +23,7 @@
 | T8 | Etiqueta de un ingreso sin categoría | ⚠️ | Se muestra como "TRANSFERENCIA" |
 | S1 | Cerrar sesión | ✅ | |
 | S3 | Login con Google | ❌ → ✅ **corregido** | En el Preview de Vercel redirigía a `localhost:3000` (la URL de regreso salía de `NEXT_PUBLIC_SITE_URL`). Ahora sale del host de la petición. Verificado: test E2E local + **prueba manual en el Preview de Vercel contra la BD de producción (2026-11-25)**. |
+| S4 | Sesión vencida o login con Google sin terminar | ❌ → ✅ **corregido (hotfix #17)** | En producción causaba un **bucle infinito** entre `/dashboard` y `/sign-in` (`ERR_TOO_MANY_REDIRECTS`): el proxy contaba como sesión la cookie PKCE y las sesiones vencidas. Reproducido en local (19 redirecciones) y corregido (1). Tests: `src/shared/auth/route-gate.test.ts`, `e2e/audit/05-stale-auth-cookie.spec.ts`. **Login con Google verificado a mano en producción (incógnito) y en staging.** |
 | S2 | Rutas protegidas sin sesión | ✅ | `/dashboard`, `/accounts`, `/transactions`, `/settings`, `/onboarding` → `/sign-in` |
 | U1 | Cuenta creada como `savings` en el onboarding | ⚠️ | La tarjeta muestra "DEBIT" |
 | U2 | Contador de ítems del traspaso | ⚠️ | Errata visible: "2 ÍT_EMS" |
