@@ -10,9 +10,9 @@
 | Base legal | Art. 382 del Código Tributario; tasa modificada por la **Ley 30-26** (2026). |
 | Tasa | **0.15 %** (1.5 por mil) hasta el 2 de julio de 2026; **0.20 %** (2 por mil) desde el **3 de julio de 2026**. La fecha de cada operación decide qué tasa aplica. |
 | Quién lo cobra | El banco lo retiene y lo debita de la cuenta de origen como un cargo aparte. |
-| **Exento: transferencias entre cuentas del mismo titular** | En el mismo banco o en bancos distintos (Resolución 26-2009, Norma General 04-19). Cuentas mancomunadas: exentas si se presenta constancia al banco. |
+| **Exento: transferencias entre cuentas del mismo titular** | ✅ **Confirmado por varias fuentes** (ABA, ProUsuario, El Caribe, El Tiempo): en el mismo banco o entre bancos distintos (Resolución 26-2009, Norma General 04-19). **Condición:** el banco debe poder verificar que ambas cuentas son del mismo titular; si cobra igual, el usuario puede reclamar. Cuentas mancomunadas: exentas si se presenta constancia al banco. **Decisión:** exento por defecto; si el correo del banco muestra un cargo, manda el banco (§3.3). |
 | Exento: otros | Retiros de efectivo del titular, pagos de impuestos, Seguridad Social y pensiones; consumos con tarjeta de crédito. |
-| **Pago de tarjeta de crédito propia** | ✅ **Grava** (confirmado por el dueño del producto con sus estados de cuenta, 2026-11-25). |
+| **Pago de tarjeta de crédito o préstamo propio** | ✅ **Grava**: lo confirmó el dueño del producto y coincide con las fuentes (el beneficiario final es el banco, no el titular). |
 | PayPal | No es una transferencia bancaria local; el cargo depende de cómo se fondee. Hoy la app lo excluye. |
 | Cambios futuros | Ya cambió una vez y en 2024 se sometió a consulta un borrador para eliminar exenciones administrativas. **Hay que asumir que la tasa y las exenciones van a volver a cambiar.** |
 
@@ -85,7 +85,7 @@ En la RPC `save_transaction` / `ingest_bank_transaction` (Fase 2). **Una sola im
 ## 4. Corrección de datos históricos
 
 No se corrige nada automáticamente. Pasos:
-1. Confirmar con un estado de cuenta real que las transferencias entre cuentas propias no tienen cargo (pago de tarjeta propia: confirmado que grava).
+1. ~~Confirmar las reglas~~ Hecho: entre cuentas propias exento, pago de tarjeta propia grava. Antes de aplicar la corrección, comparar el saldo recalculado de 2–3 cuentas con el saldo real del banco para detectar excepciones (un banco que haya cobrado igual).
 2. Migración de datos que reclasifique cada transferencia, recalcule el impuesto con `tax_rules` y deje un registro de auditoría (valor anterior → nuevo).
 3. `recalculate_account_balance()` para recomponer saldos y comparar con el saldo real del banco antes de aplicarla.
 
@@ -101,3 +101,6 @@ No se corrige nada automáticamente. Pasos:
 - [DGII Ayuda — Cobro entre instrumentos de un mismo cliente](https://ayuda.dgii.gov.do/conversations/discusiones/cobro-015-en-movimientos-entre-instrumentos-de-un-mismo-cliente/64014bec7a695d65a1605eae)
 - [Hahn Ceara — Boletín NG 04-2019](https://hahnceara.do/wp-content/uploads/NG-04-2019-Remisi%C3%B3n-Informaci%C3%B3n-Impuesto-Cheques-y-Transferencias-Electr%C3%B3nicas.pdf)
 - [Hoy — Borrador de norma para que todos paguen](https://hoy.com.do/norma-para-que-todos-paguen-impuesto-a-cheques/)
+- [ProUsuario — El 0.15 %: lo que debes saber](https://prousuario.gob.do/educacion-financiera/blog/el-015-lo-que-debes-saber-sobre-este-impuesto/)
+- [El Tiempo — Transferencias entre tus propias cuentas no pagan el impuesto](https://eltiempo.com.do/economia/transferencias-entre-tus-propias-cuentas-no-pagan-el-impuesto-del-0-15/)
+- [El Caribe — Quiénes pagan el 0.15 % y quiénes quedan exentos](https://www.elcaribe.com.do/panorama/dinero/quienes-pagan-el-0-15-en-las-transferencias-y-quienes-quedan-exentos/)
