@@ -74,3 +74,14 @@ Git Flow agrega ramas `release/*` y `hotfix/*` permanentes, versionado y back-me
 - `origin/dev` está 26 commits atrás de `main` y **no tiene commits propios** (verificado) → se actualiza a `main` sin perder nada (fast-forward).
 - `fix/auth-redirect-loop` corrige un fallo **activo en producción** (login con Google roto) → califica como **hotfix**: PR directo a `main` y luego `main` → `dev`.
 - Desde ese punto, todo lo nuevo sale de `dev` y vuelve a `dev`.
+
+## 7. Proyectos (verificado 2026-11-25)
+
+| Entorno | Proyecto Supabase | Ref | Región |
+|---|---|---|---|
+| Producción | `YbankTest` (renombrar a `ybank-prod`) | `cizbokgdcvvapncempdu` | us-west-2 |
+| Staging | `ybank-staging` | `xmnpqgcrinwuydamrshu` | us-west-2 |
+
+- Staging recibió las 4 migraciones + `seed.sql`. Comparado con producción mediante una consulta de solo lectura: 8 tablas, 27 políticas, 5 triggers, 15 bancos, 58 categorías y el bucket `avatars`, todo igual.
+- **Diferencia conocida:** staging tiene `rls_auto_enable` + el event trigger `ensure_rls` (Supabase lo crea en proyectos nuevos: activa RLS en cada tabla nueva de `public`). Producción no lo tiene. Pendiente: migración que lo agregue a producción, pasando primero por staging.
+- Comandos contra staging sin cambiar el proyecto vinculado: `npx supabase db push --remote=xmnpqgcrinwuydamrshu`.
