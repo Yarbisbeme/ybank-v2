@@ -85,3 +85,12 @@ Git Flow agrega ramas `release/*` y `hotfix/*` permanentes, versionado y back-me
 - Staging recibió las 4 migraciones + `seed.sql`. Comparado con producción mediante una consulta de solo lectura: 8 tablas, 27 políticas, 5 triggers, 15 bancos, 58 categorías y el bucket `avatars`, todo igual.
 - **Diferencia conocida:** staging tiene `rls_auto_enable` + el event trigger `ensure_rls` (Supabase lo crea en proyectos nuevos: activa RLS en cada tabla nueva de `public`). Producción no lo tiene. Pendiente: migración que lo agregue a producción, pasando primero por staging.
 - Comandos contra staging sin cambiar el proyecto vinculado: `npx supabase db push --remote=xmnpqgcrinwuydamrshu`.
+
+## 8. Primera verificación de staging (2026-11-25, manual)
+
+- [x] Login con Google en `staging.ybankapp.com` (tras agregar el callback de staging al cliente OAuth)
+- [x] Registro + onboarding en staging
+- [x] Login con email en staging
+- [x] Login con Google en producción (`ybankapp.com`, incógnito), tras el hotfix #17
+
+Notas: staging está protegido por *Vercel Authentication* (hay que tener sesión en Vercel). El cliente OAuth de Google tiene dos URIs de redirección: la del callback de Supabase de producción y la de staging.
