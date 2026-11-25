@@ -12,7 +12,6 @@ import { useYBankStore } from '@/store/useYBankStore';
 import { cn } from '@/lib/utils';
 
 export default function ClientTransactionTable() {
-  const [currentPage, setCurrentPage] = useState(1);
   const searchParams = useSearchParams();
   
   // 🛑 1. TRAEMOS EL ESTADO DE ZUSTAND
@@ -26,14 +25,24 @@ export default function ClientTransactionTable() {
     return urlAccountId || preferredAccountId || accounts[0]?.id || null;
   }, [urlAccountId, preferredAccountId, accounts]);
 
-  const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
-  const baseTransactions = data?.transactions || [];
-  const totalItems = data?.total || 0;
   const filters = useFilterStore();
-  
-  const transactions = baseTransactions
-  
-  const isQueryLoading = isLoadingTx || isLoadingAccounts || !activeAccountId;
+
+  // The page belongs to a specific filter set: changing any filter (or the account
+  // in the URL) goes back to page 1. Derived during render, no effect needed.
+  const filterSignature = JSON.stringify([
+    urlAccountId, filters.type, filters.categoryId, filters.startDate,
+    filters.endDate, filters.tagId, filters.search,
+  ]);
+  const [pageState, setPageState] = useState({ signature: filterSignature, page: 1 });
+  const currentPage = pageState.signature === filterSignature ? pageState.page : 1;
+  const setCurrentPage = (page: number) => setPageState({ signature: filterSignature, page });
+
+  const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
+  const transactions = data?.transactions || [];
+  const totalItems = data?.total || 0;
+
+  // A user without accounts has no activeAccountId: that is an empty state, not loading.
+  const isQueryLoading = isLoadingTx || (isLoadingAccounts && accounts.length === 0);
 
   // Sincronizamos el totalItems hacia Zustand para que la barra de filtros lo lea
   useEffect(() => {

@@ -1,6 +1,8 @@
 // src/proxy.ts
 import { NextResponse, type NextRequest } from 'next/server';
 
+const PROTECTED_PREFIXES = ["/dashboard", "/accounts", "/transactions", "/settings", "/onboarding"];
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -9,7 +11,9 @@ export async function proxy(request: NextRequest) {
   const hasAuthCookie = allCookies.some(c => c.name.includes("-auth-token"));
 
   // 2. Definimos las áreas de la app
-  const isProtectedRoute = path.startsWith("/dashboard") || path.startsWith("/accounts") || path.startsWith("/settings");
+  // UX gate only (cookie presence, works offline). Real authorization is RLS plus
+  // the getUser() check in the dashboard layout.
+  const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
   const isAuthRoute = path.startsWith("/sign-in") || path.startsWith("/sign-up");
 
   // 🚀 ESTRATEGIA OFFLINE-FIRST SILENCIOSA

@@ -10,6 +10,7 @@ import DashboardProviders from '@/components/providers/DashboardProviders';
 import PWAFooter from '@/components/layout/PWAFooter';
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { redirect } from "next/navigation";
+import { TRANSACTIONS_PAGE_SIZE } from '@/lib/transaction-keys';
 
 interface DashboardInitialData {
   accounts: any[];
@@ -17,34 +18,23 @@ interface DashboardInitialData {
   categories: any[];
   institutions: any[];
   transactions: any[];
+  transactionsTotal: number;
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createSupabaseClient();
   
-  // 1. Auth Blindado
-  let user = null;
-  try {
-    // 💡 Capturamos explícitamente el 'error' que devuelve Supabase
-    const { data, error: authError } = await supabase.auth.getUser();
-    
-    if (authError) {
-      if (authError.status === 401 || authError.name === 'AuthSessionMissingError') {
-        redirect('/sign-in?error=session_expired');
-      }
-      throw authError;
-    }
-
-    user = data.user;
-  } catch (e) {
-    // Auth failed - continue with null user, production guard below
+  // `redirect()` throws NEXT_REDIRECT, so it must never run inside a try/catch.
+  // Invalid session -> sign-in. Network failure (Supabase unreachable) -> render
+  // with empty data and let the persisted client cache serve the UI.
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const isNetworkFailure = authError?.name === 'AuthRetryableFetchError';
+  if (!authData.user && !isNetworkFailure) {
+    redirect('/sign-in?error=session_expired');
   }
+  const user = authData.user;
 
-  if (!user && process.env.NODE_ENV === 'production') {
-    // Opcional: podrías chequear la cookie aquí también si quieres ser extra estricto
-  }
-
-  let profile: any = { 
+  let profile: any = {
     onboarding_completed: true, 
     primary_account_id: null,
     full_name: '',
@@ -56,36 +46,40 @@ export default async function DashboardLayout({ children }: { children: React.Re
     tags: [], 
     categories: [], 
     institutions: [], 
-    transactions: [] 
+    transactions: [],
+    transactionsTotal: 0,
   };
 
-  try {
-    // 💡 2. Le pedimos a Supabase que traiga también el nombre y la foto de la BD
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('onboarding_completed, primary_account_id, full_name, avatar_url')
-      .single();
-    
-    if (profileData) profile = profileData;
+  if (user) {
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('onboarding_completed, primary_account_id, full_name, avatar_url')
+        .eq('id', user.id)
+        .single();
 
-    // ... (el resto del Promise.all queda igual)
-    const [accounts, txData, tags, categoriesTree, institutions] = await Promise.all([
-      getAccounts(),
-      getTransactions({}),
-      getTags(),
-      getCategories(),
-      getInstitutions()
-    ]);
+      if (profileData) profile = profileData;
 
-    initialData = {
-      accounts,
-      tags,
-      categories: categoriesTree,
-      institutions,
-      transactions: txData.transactions
-    };
-  } catch (error) {
-    // Offline mode - send empty initialData
+      const [accounts, txData, tags, categoriesTree, institutions] = await Promise.all([
+        getAccounts(),
+        getTransactions({ page: 1, pageSize: TRANSACTIONS_PAGE_SIZE }),
+        getTags(),
+        getCategories(),
+        getInstitutions()
+      ]);
+
+      initialData = {
+        accounts,
+        tags,
+        categories: categoriesTree,
+        institutions,
+        transactions: txData.transactions,
+        transactionsTotal: txData.total,
+      };
+    } catch (error) {
+      // Keep the empty initialData so the persisted client cache is not overwritten.
+      console.error('[dashboard] initial data fetch failed', error);
+    }
   }
 
   // 💡 3. AHORA usamos los datos "frescos" de la tabla profile, y usamos el auth como plan B

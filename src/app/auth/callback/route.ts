@@ -1,50 +1,29 @@
 import { createSupabaseClient } from '@/lib/supabase/createServerClient';
 import { NextResponse } from 'next/server';
 
+/** Only same-origin relative paths: blocks `//evil.com` and absolute URLs. */
+function safeNextPath(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return '/dashboard';
+  return raw;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const next = safeNextPath(searchParams.get('next'));
 
   if (code) {
     const supabase = await createSupabaseClient();
-    
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.session) {
-      const session = data.session;
-      const user = session.user;
-
-      // 2. 🧠 INTERCEPTOR OAUTH: Extraemos los tokens de Google si existen
-      if (session.provider_token) {
-        const expiresIn = (session as any).provider_token_expires_in || 3600;
-        const expirationDate = new Date(Date.now() + expiresIn * 1000).toISOString();
-
-        // 💡 CAMBIO 1: Usamos UPDATE en lugar de UPSERT
-        const { error: dbError } = await supabase
-          .from('profiles')
-          .update({
-            google_access_token: session.provider_token,
-            ...(session.provider_refresh_token && { google_refresh_token: session.provider_refresh_token }),
-            google_token_expires_at: expirationDate,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id); // 💡 Apuntamos directamente a la fila que ya existe
-
-        // 💡 CAMBIO 2: Imprimimos el error para saber si PostgreSQL nos está bloqueando
-        if (dbError) {
-          console.error("🚨 Error al guardar tokens de Google:", dbError.message);
-        } else {
-          console.log("✅ Tokens de Google guardados exitosamente.");
-        }
-      } else {
-         console.warn("⚠️ Google no envió el provider_token en la sesión.");
-      }
-
+      // Google provider tokens are intentionally not stored: bank emails arrive by
+      // forwarding (docs/arquitectura/01-OFFLINE-E-INGESTA.md). The one-time Gmail
+      // history import will use its own consent flow and encrypted storage.
       const { data: profile } = await supabase
         .from('profiles')
         .select('onboarding_completed')
-        .eq('id', user.id)
+        .eq('id', data.session.user.id)
         .single();
 
       if (!profile?.onboarding_completed) {

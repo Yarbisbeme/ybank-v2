@@ -9,6 +9,7 @@ import StoreInitializer from './StoreInitializer';
 // 💡 1. Importaciones nuevas para el vigilante de sesión
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/shared/supabase/browser';
+import { transactionKeys } from '@/lib/transaction-keys';
 
 interface DashboardProvidersProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ interface DashboardProvidersProps {
     categories: any[];
     institutions: any[];
     transactions: any[];
+    transactionsTotal: number;
   };
 }
 
@@ -75,10 +77,11 @@ function DataHydrator({ initialData }: { initialData: DashboardProvidersProps['i
     }
     
     if (initialData.transactions && initialData.transactions.length > 0) {
-      // ⚠️ IMPORTANTE: Esta llave debe coincidir EXACTAMENTE con la que usas en useTransactionsList
-      queryClient.setQueryData(['transactions', '', '', '', '', '', 1], {
+      // Server data is the unfiltered, global first page. The hook applies a
+      // client-side date sanitation in its queryFn; rows are passed as-is here.
+      queryClient.setQueryData(transactionKeys.list({ page: 1 }), {
         transactions: initialData.transactions,
-        total: initialData.transactions.length
+        total: initialData.transactionsTotal,
       });
     }
   }, [initialData, queryClient]);

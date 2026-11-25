@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createSupabaseClient } from '../supabase/createServerClient';
 import { signUpSchema, loginSchema, completeOnboardingSchema, getFirstError } from '@/lib/validation';
 import { publicEnv } from '@/shared/config/env';
+import { PROFILE_COLUMNS } from '@/lib/profile-columns';
 
 export async function signUpWithEmail(input: { email: string; password: string; fullName: string }) {
   const parsed = signUpSchema.safeParse(input)
@@ -49,26 +50,15 @@ export async function loginWithEmail(input: { email: string; password: string })
   return { success: true };
 }
 
-//🌐 SIGN IN CON GOOGLE (OAuth con Scopes de Gmail)
+// Login only (openid/email/profile). No Gmail scopes: they are "restricted" and would
+// show every user Google's unverified-app warning at sign-in.
 export async function signInWithGoogle() {
   const supabase = await createSupabaseClient();
-
-  const getURL = () => {
-    if (process.env.NODE_ENV === 'production') {
-      return 'https://ybank-v2.vercel.app';
-    }
-    return 'http://localhost:3000';
-  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${getURL()}/auth/callback`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-      scopes: 'https://www.googleapis.com/auth/gmail.modify',
+      redirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   });
 
@@ -119,7 +109,7 @@ export async function completeOnboarding(input: {
     updated_at: new Date().toISOString(),
     primary_account_id: formData.primaryAccountId,
   })
-  .select('*') // 💡 Pedimos el perfil completo
+  .select(PROFILE_COLUMNS)
   .single();
 
   if (profileError) return { success: false, error: profileError.message };

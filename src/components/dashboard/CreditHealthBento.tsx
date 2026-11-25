@@ -7,7 +7,7 @@ import { useYBankStore } from '@/store/useYBankStore';
 import { useAccounts } from '@/hooks/useCatalogs';
 
 export default function CreditHealthBento() {
-  const { currency, preferredRate } = useYBankStore();
+  const { currency, preferredRate, isCalculatingRate } = useYBankStore();
   
   // Consumimos los datos de la caché global
   const { data: accounts = [], isLoading } = useAccounts();
@@ -20,14 +20,19 @@ export default function CreditHealthBento() {
   const hasMixedCurrencies = cards.some(c => c.currency !== currency);
   
   // Si hay monedas mezcladas, pero Zustand aún no nos ha entregado la tasa, estamos ciegos.
-  const isWaitingForRate = hasMixedCurrencies && (!preferredRate || !preferredRate.rate);
+  // Only "waiting" while a rate request is in flight; otherwise the rate is
+  // unavailable (offline, account without institution) and we say so instead of
+  // spinning forever.
+  const hasRate = Boolean(preferredRate?.rate);
+  const isWaitingForRate = hasMixedCurrencies && !hasRate && isCalculatingRate;
+  const isRateUnavailable = hasMixedCurrencies && !hasRate && !isCalculatingRate;
 
   // 💡 3. Actualizamos la condición de carga para incluir la espera de la tasa de cambio
   const isActuallyLoading = (isLoading && accounts.length === 0) || isWaitingForRate;
 
   const creditStats = useMemo(() => {
     // Si estamos cargando o esperando la tasa, no calculamos nada aún para evitar números locos
-    if (cards.length === 0 || isWaitingForRate) return null;
+    if (cards.length === 0 || isWaitingForRate || isRateUnavailable) return null;
 
     let totalLimit = 0;
     let totalUsed = 0;
@@ -64,12 +69,22 @@ export default function CreditHealthBento() {
     }, 31);
 
     return { utilization, nearestCutoff, totalAvailable, cardCount: cards.length };
-  }, [cards, currency, preferredRate, isWaitingForRate]);
+  }, [cards, currency, preferredRate, isWaitingForRate, isRateUnavailable]);
 
   if (isActuallyLoading) {
     return (
       <div className="bg-card p-6 rounded-[10px] border border-border h-full animate-pulse flex flex-col justify-center items-center">
         <Loader2 className="animate-spin text-primary/20" size={24} />
+      </div>
+    );
+  }
+
+  if (isRateUnavailable) {
+    return (
+      <div className="bg-card p-6 rounded-[10px] border border-dashed border-border h-full flex flex-col justify-center items-center text-center opacity-70">
+        <AlertTriangle size={32} className="text-muted-foreground mb-3 opacity-50" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Score Shield</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Tasa de cambio no disponible. Reintenta con conexión.</p>
       </div>
     );
   }
