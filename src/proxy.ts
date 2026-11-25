@@ -1,37 +1,19 @@
-// src/proxy.ts
 import { NextResponse, type NextRequest } from 'next/server';
-
-const PROTECTED_PREFIXES = ["/dashboard", "/accounts", "/transactions", "/settings", "/onboarding"];
+import { decideRoute } from '@/shared/auth/route-gate';
 
 export async function proxy(request: NextRequest) {
-  const path = request.nextUrl.pathname;
+  const decision = decideRoute({
+    path: request.nextUrl.pathname,
+    search: request.nextUrl.searchParams,
+    cookieNames: request.cookies.getAll().map((c) => c.name),
+  });
 
-  // 1. Buscamos cualquier rastro de la sesión (normal o fragmentada .0, .1)
-  const allCookies = request.cookies.getAll();
-  const hasAuthCookie = allCookies.some(c => c.name.includes("-auth-token"));
+  const response = decision.action === 'redirect'
+    ? NextResponse.redirect(new URL(decision.to, request.url))
+    : NextResponse.next();
 
-  // 2. Definimos las áreas de la app
-  // UX gate only (cookie presence, works offline). Real authorization is RLS plus
-  // the getUser() check in the dashboard layout.
-  const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
-  const isAuthRoute = path.startsWith("/sign-in") || path.startsWith("/sign-up");
-
-  // 🚀 ESTRATEGIA OFFLINE-FIRST SILENCIOSA
-  // Si hay cookie y vas a zona protegida, pasas directo. 
-  // Evitamos llamar a Supabase aquí para no generar errores de fetch sin internet.
-  if (hasAuthCookie) {
-    if (isAuthRoute) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // 3. Si NO hay cookie y la ruta es protegida, al login.
-  if (!hasAuthCookie && isProtectedRoute) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
-  }
-
-  return NextResponse.next();
+  for (const name of decision.clearCookies) response.cookies.delete(name);
+  return response;
 }
 
 export const config = {
