@@ -23,6 +23,18 @@ describe('parseEnv', () => {
     ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL[\s\S]*NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/)
   })
 
+  it('says "missing" for unset variables instead of a generic validation message', () => {
+    expect(() => parseEnv(publicEnvSchema, {})).toThrowError(
+      /NEXT_PUBLIC_SUPABASE_URL: missing \(not set in this environment\)/,
+    )
+  })
+
+  it('keeps the validation message for set-but-invalid variables', () => {
+    expect(() =>
+      parseEnv(publicEnvSchema, { ...validPublic, NEXT_PUBLIC_SUPABASE_URL: 'not-a-url' }),
+    ).toThrowError(/NEXT_PUBLIC_SUPABASE_URL: (?!missing)/)
+  })
+
   it('rejects secrets shorter than 32 chars', () => {
     expect(() => parseEnv(serverEnvSchema, { CRON_SECRET: 'short' })).toThrowError(/CRON_SECRET/)
   })

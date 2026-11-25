@@ -37,7 +37,12 @@ export function parseEnv<S extends z.ZodType>(schema: S, input: Record<string, s
   const result = schema.safeParse(cleaned)
   if (!result.success) {
     const details = result.error.issues
-      .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
+      .map((issue) => {
+        const key = issue.path.join('.')
+        // The most common cause on Vercel: the variable exists in Production but not in Preview.
+        const reason = cleaned[key] === undefined ? 'missing (not set in this environment)' : issue.message
+        return `  - ${key}: ${reason}`
+      })
       .join('\n')
     throw new Error(`Invalid environment variables:\n${details}`)
   }
