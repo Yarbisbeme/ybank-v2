@@ -5,6 +5,13 @@ import { createSupabaseClient } from '../supabase/createServerClient';
 import { signUpSchema, loginSchema, completeOnboardingSchema, getFirstError } from '@/lib/validation';
 import { publicEnv } from '@/shared/config/env';
 import { PROFILE_COLUMNS } from '@/lib/profile-columns';
+import { headers } from 'next/headers';
+import { resolveOrigin } from '@/shared/config/origin';
+
+/** Auth redirects must return to the site the user is on (prod, preview or local). */
+async function authCallbackUrl(): Promise<string> {
+  return `${resolveOrigin(await headers(), publicEnv.NEXT_PUBLIC_SITE_URL)}/auth/callback`;
+}
 
 export async function signUpWithEmail(input: { email: string; password: string; fullName: string }) {
   const parsed = signUpSchema.safeParse(input)
@@ -20,7 +27,7 @@ export async function signUpWithEmail(input: { email: string; password: string; 
       data: {
         full_name: fullName,
       },
-      emailRedirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      emailRedirectTo: await authCallbackUrl(),
     },
   });
 
@@ -58,7 +65,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${publicEnv.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: await authCallbackUrl(),
     },
   });
 
