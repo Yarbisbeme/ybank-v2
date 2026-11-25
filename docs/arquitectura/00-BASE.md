@@ -83,6 +83,8 @@ Navegador ──► Next.js (RSC + Server Actions) ──► Supabase (PostgREST
 
 ### 2.4 Arquitectura propuesta: **monolito modular por features**
 
+> **Revisión 2026-11-25:** con apps móviles en el horizonte, el backend (RPC + Edge Functions) sale de Next.js y todos los frontends son clientes iguales. Ver `04-MULTI-FRONTEND.md`; donde haya conflicto, manda ese documento.
+
 No es un rewrite de stack; es **reorganizar responsabilidades**. Tres ideas, nada más:
 
 **(a) El código se organiza por feature (vertical slices).**
