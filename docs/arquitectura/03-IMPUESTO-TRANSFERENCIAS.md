@@ -12,7 +12,7 @@
 | Quién lo cobra | El banco lo retiene y lo debita de la cuenta de origen como un cargo aparte. |
 | **Exento: transferencias entre cuentas del mismo titular** | En el mismo banco o en bancos distintos (Resolución 26-2009, Norma General 04-19). Cuentas mancomunadas: exentas si se presenta constancia al banco. |
 | Exento: otros | Retiros de efectivo del titular, pagos de impuestos, Seguridad Social y pensiones; consumos con tarjeta de crédito. |
-| **Pago de tarjeta de crédito propia** | ⚠️ **Por confirmar.** Las fuentes dicen que se gravan los pagos a tarjetas "de terceros", lo que sugiere que pagar la tarjeta propia está exento, pero ninguna lo dice explícitamente. Hay que verificarlo en un estado de cuenta. |
+| **Pago de tarjeta de crédito propia** | ✅ **Grava** (confirmado por el dueño del producto con sus estados de cuenta, 2026-11-25). |
 | PayPal | No es una transferencia bancaria local; el cargo depende de cómo se fondee. Hoy la app lo excluye. |
 | Cambios futuros | Ya cambió una vez y en 2024 se sometió a consulta un borrador para eliminar exenciones administrativas. **Hay que asumir que la tasa y las exenciones van a volver a cambiar.** |
 
@@ -27,7 +27,7 @@ Datos actuales (conteo, sin montos):
 |---|---|---|---|
 | Entre cuentas propias | 124 | **115 (probablemente cobrado de más)** | 0 |
 | A terceros | 204 | 203 (correcto) | 1 (cobrado al 0.15 %, debería ser 0.20 %) |
-| Pagos (tarjetas) | 8 | 5 (por confirmar) | 0 |
+| Pagos (tarjetas) | 8 | 5 (correcto; 3 sin impuesto, a revisar) | 0 |
 
 **Impacto:** cada transferencia entre cuentas propias le restó a la cuenta de origen un 0.15 % que el banco no cobró, así que esos saldos están por debajo del real.
 
@@ -58,7 +58,7 @@ Cada transferencia se clasifica:
 |---|---|---|
 | `own_accounts` | No | Origen y destino son cuentas del usuario en YBank |
 | `third_party` | Sí | Destino fuera de YBank o de otra persona |
-| `own_credit_card_payment` | Configurable (por confirmar) | Pago a una tarjeta del usuario |
+| `own_credit_card_payment` | **Sí** (confirmado) | Pago a una tarjeta del usuario |
 | `external_wallet` (PayPal, etc.) | No | Plataforma no bancaria |
 
 Las exenciones viven en una tabla pequeña (`tax_rule_exemptions(code, transfer_kind)`) para poder cambiarlas igual que la tasa.
@@ -85,7 +85,7 @@ En la RPC `save_transaction` / `ingest_bank_transaction` (Fase 2). **Una sola im
 ## 4. Corrección de datos históricos
 
 No se corrige nada automáticamente. Pasos:
-1. Confirmar con estados de cuenta reales: (a) transferencias entre cuentas propias, (b) pago de tarjeta propia.
+1. Confirmar con un estado de cuenta real que las transferencias entre cuentas propias no tienen cargo (pago de tarjeta propia: confirmado que grava).
 2. Migración de datos que reclasifique cada transferencia, recalcule el impuesto con `tax_rules` y deje un registro de auditoría (valor anterior → nuevo).
 3. `recalculate_account_balance()` para recomponer saldos y comparar con el saldo real del banco antes de aplicarla.
 
