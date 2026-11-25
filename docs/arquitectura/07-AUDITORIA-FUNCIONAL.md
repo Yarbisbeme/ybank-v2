@@ -10,7 +10,7 @@
 |---|---|---|---|
 | A1 | Landing carga sin errores de JS | ✅ | `01-landing` |
 | A2 | Registro con email | ✅ | Usuario creado; redirige a `/onboarding` |
-| A3 | **Onboarding de usuario registrado con email** | ❌ → ✅ **corregido** | El formulario enviaba `password: ''`; el esquema Zod (commit `fbc3085`, 27-jun) lo rechazaba y el botón quedaba en "Sincronizando..." para siempre. **Nadie que se registrara con email podía terminar el onboarding.** Corregido + test de regresión (`src/lib/validation.test.ts`). |
+| A3 | **Onboarding de usuario registrado con email** | ❌ → ✅ **corregido** | El formulario enviaba `password: ''`; el esquema Zod (commit `fbc3085`, 27-jun) lo rechazaba y el botón quedaba en "Sincronizando..." para siempre. **Nadie que se registrara con email podía terminar el onboarding.** Corregido + test de regresión (`src/lib/validation.test.ts`). **Verificado también a mano en el Preview de Vercel contra la BD de producción.** |
 | A4 | Onboarding: reintento tras un error | ⚠️ | Cada intento crea **otra cuenta** (crear la cuenta y completar el perfil no es atómico). Se resuelve con una RPC atómica en la Fase 2. |
 | A5 | Dashboard tras onboarding | ✅ | Capital, tarjetas, actividad semanal y lista coinciden con la BD |
 | T1 | Crear gasto | ✅ | 25,000 → 23,500 en la BD; aparece en la lista con su categoría |
@@ -22,6 +22,7 @@
 | T7 | Filtros por tipo (Ingresos / Gastos / Traspasos / Global) | ✅ | Cada pestaña muestra solo lo que corresponde |
 | T8 | Etiqueta de un ingreso sin categoría | ⚠️ | Se muestra como "TRANSFERENCIA" |
 | S1 | Cerrar sesión | ✅ | |
+| S3 | Login con Google | ❌ → ✅ **corregido** | En el Preview de Vercel redirigía a `localhost:3000` (la URL de regreso salía de `NEXT_PUBLIC_SITE_URL`). Ahora sale del host de la petición. Verificado: test E2E local + **prueba manual en el Preview de Vercel contra la BD de producción (2026-11-25)**. |
 | S2 | Rutas protegidas sin sesión | ✅ | `/dashboard`, `/accounts`, `/transactions`, `/settings`, `/onboarding` → `/sign-in` |
 | U1 | Cuenta creada como `savings` en el onboarding | ⚠️ | La tarjeta muestra "DEBIT" |
 | U2 | Contador de ítems del traspaso | ⚠️ | Errata visible: "2 ÍT_EMS" |
@@ -38,7 +39,7 @@
 - **Búsqueda global** (⌘K).
 - **Moneda USD**: cambio de moneda global, tasas y transferencias entre monedas desde la UI.
 - Tarjetas de crédito y **Score Shield**.
-- Login con **Google** (requiere configurar OAuth en local).
+- ~~Login con Google~~ verificado en el Preview (S3).
 - **PWA**: instalación y **uso sin conexión**.
 - Vista **móvil** (viewport pequeño).
 
