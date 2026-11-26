@@ -170,7 +170,7 @@ try {
   };
 
   // v4.8: Para pago a tarjeta, extraer源y destino de forma específica
-  // "termina en 0802" = target (la tarjeta), "Desde tu cuenta: 30100409287" = source
+  // "termina en 0802" = target (la tarjeta), "Desde tu cuenta: 00000001234" = source (número ficticio)
   if (esPagoTarjeta) {
     const mTC = texto.match(/termina(?:da)?\s+en\s+(\d{4})\b/i);
     const mCta = texto.match(/Desde\s+tu\s+cuenta\s*:?\s*(?:[\d\*]{0,8})?(\d{4})\b/i);
