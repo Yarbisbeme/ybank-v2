@@ -369,6 +369,43 @@
   animation: skeleton-shimmer 1.5s var(--ease-standard) infinite;
 }
 
+/* YCard Surfaces & Finishes */
+.card-base-materia {
+  background-image: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0) 48%,
+    rgba(0, 0, 0, 0.14) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), var(--shadow-card);
+}
+
+.card-finish-metal {
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.06) 0px,
+    rgba(255, 255, 255, 0.06) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.card-finish-holo {
+  background-image: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0) 15%,
+    rgba(198, 244, 50, 0.12) 38%,
+    rgba(124, 155, 255, 0.16) 52%,
+    rgba(255, 255, 255, 0.08) 65%,
+    rgba(255, 255, 255, 0) 85%
+  );
+}
+
+.rounded-t-sheet {
+  border-top-left-radius: var(--radius-sheet);
+  border-top-right-radius: var(--radius-sheet);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
