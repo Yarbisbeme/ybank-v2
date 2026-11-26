@@ -29,10 +29,6 @@ test('sign up with email → onboarding → dashboard', async ({ page }) => {
 
   await page.goto('/sign-up')
   await snap(page, '02-sign-up', errors)
-  // The email form is hidden behind a "Comenzar ahora" step.
-  const start = page.getByRole('button', { name: /comenzar ahora/i })
-  if (await start.isVisible()) await start.click()
-  await snap(page, '02b-sign-up-form', errors)
   await page.getByPlaceholder('Nombre completo').fill('Usuario Auditoría')
   await page.getByPlaceholder('Correo electrónico').fill(email)
   await page.getByPlaceholder('Contraseña (mín. 6 caracteres)').fill('audit-pass-123')
@@ -48,12 +44,10 @@ test('sign up with email → onboarding → dashboard', async ({ page }) => {
   await page.locator('select').first().selectOption({ label: 'Banco Popular' })
   await page.getByPlaceholder('Ej. Nómina').fill('Nómina')
   await page.getByPlaceholder('0.00').fill('25000')
-  await page.getByRole('button', { name: /configurar nodo/i }).click()
+  await page.getByRole('button', { name: /guardar cuenta/i }).click()
   await snap(page, '04-onboarding-step4', errors)
 
-  // Step 4: whatever the final confirmation button is, click the last enabled one
-  const buttons = page.locator('main button:not([disabled])')
-  await buttons.last().click()
+  await page.getByRole('button', { name: /entrar a ybank/i }).click()
   await page.waitForURL(/dashboard/, { timeout: 30_000 }).catch(() => {})
   await snap(page, '05-dashboard-first-load', errors)
   expect(page.url()).toMatch(/dashboard/)
