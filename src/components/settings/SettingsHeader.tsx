@@ -1,10 +1,10 @@
 export default function SettingsHeader() {
   return (
-    <div className="space-y-2">
-      <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
-      <p className="text-muted-foreground">
-        Administra tu perfil, preferencias, seguridad y notificaciones
+    <div className="flex flex-col gap-1 border-b border-line pb-4">
+      <h1 className="title-l text-ink">Ajustes</h1>
+      <p className="small text-ink-2">
+        Administra tu perfil, apariencia y moneda principal.
       </p>
     </div>
-  )
+  );
 }

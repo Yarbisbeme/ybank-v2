@@ -1,298 +1,430 @@
-'use client'
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { 
-  ArrowDownRight, ArrowUpRight, ArrowRightLeft, Calendar, 
-  Grid as GridIcon, CreditCard, AlignLeft, Send, Trash2,
-  CheckCircle2, RefreshCw, SplitSquareHorizontal, ChevronDown
-} from 'lucide-react';
-import { Account, Tag, Category, TransactionFormData, SplitItem, BaseItem } from '@/types'; 
-import TagInput from './TagInput';
-import SearchableDropdown from '../ui/SearchableDropdown';
-import ExpenseSplitSection from './ExpenseSplitSection'; 
-import { useSaveTransaction, useDeleteTransaction, useSaveTag } from '@/hooks/useCatalogs'; 
+import { useState } from 'react';
+import { SplitSquareHorizontal, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import YBankCalendarPicker from '../filters/YBankCalendarPicker';
+import type { Account, BaseItem, Category, Tag, TransactionFormData } from '@/types';
+import {
+  useDeleteTransaction,
+  useSaveTag,
+  useSaveTransaction,
+} from '@/hooks/useCatalogs';
+import { Button, IconButton } from '@/components/atoms';
+import {
+  AmountInput,
+  DatePicker,
+  Field,
+  SearchSelect,
+  Segmented,
+  TagInput,
+  TextInput,
+} from '@/components/molecules';
+import { ConfirmDialog } from '@/components/organisms';
+import ExpenseSplitSection from './ExpenseSplitSection';
 
-type TransactionType = 'expense' | 'income' | 'transfer';
+type TxFormType = 'expense' | 'income' | 'transfer';
 
-interface TransactionFormProps {
+export interface TransactionFormProps {
   accounts: Account[];
-  tags: Tag[]; 
+  tags: Tag[];
   categories: Category[];
-  initialData?: TransactionFormData; 
-  defaultAccountId?: string | null; 
-  onSuccess: () => void; 
+  initialData?: TransactionFormData | null;
+  defaultAccountId?: string | null;
+  onSuccess: () => void;
 }
 
-const getSafeType = (rawType?: string): TransactionType => {
+const TX_TYPE_OPTIONS: { value: TxFormType; label: string }[] = [
+  { value: 'expense', label: 'Salida' },
+  { value: 'income', label: 'Entrada' },
+  { value: 'transfer', label: 'Traspaso' },
+];
+
+function getSafeType(rawType?: string): TxFormType {
   const t = String(rawType || '').toLowerCase().trim();
-  if (t === 'ingreso' || t === 'income') return 'income';
-  if (t === 'transferencia' || t === 'transfer') return 'transfer';
-  return 'expense'; 
-};
+  if (t === 'ingreso' || t === 'income') {
+    return 'income';
+  }
+  if (t === 'transferencia' || t === 'transfer') {
+    return 'transfer';
+  }
+  return 'expense';
+}
 
-export default function TransactionForm({ accounts, tags, categories, initialData, defaultAccountId, onSuccess }: TransactionFormProps) {
+function extractInitialTagIds(
+  rawTags: TransactionFormData['tags'],
+): string[] {
+  if (!Array.isArray(rawTags)) {
+    return [];
+  }
+  const ids: string[] = [];
+  for (const entry of rawTags) {
+    if (typeof entry === 'string') {
+      ids.push(entry);
+    } else if (entry?.tag?.id) {
+      ids.push(entry.tag.id);
+    }
+  }
+  return ids;
+}
 
-  const [showCalendar, setShowCalendar] = useState(false);
-  const calendarTriggerRef = useRef<HTMLDivElement>(null);
-  
-  const isEditing = !!initialData;
-  
+/** Create/edit transaction form composed from YBank 2.0 molecules and ConfirmDialog. */
+export default function TransactionForm({
+  accounts,
+  tags,
+  categories,
+  initialData,
+  defaultAccountId,
+  onSuccess,
+}: TransactionFormProps) {
+  const isEditing = Boolean(initialData?.id);
+
   const { mutate: createTagOptimistic } = useSaveTag();
   const { mutate: saveTx, isPending: isSubmitting } = useSaveTransaction();
   const { mutate: deleteTx, isPending: isDeleting } = useDeleteTransaction();
-  
-  const [type, setType] = useState<TransactionType>(getSafeType(initialData?.type));
-  
-  const initialAmount = initialData?.type === 'transfer' ? (initialData.target_amount || initialData.amount) : initialData?.amount;
-  const [amount, setAmount] = useState(initialAmount?.toString() || '');
-  const [accountId, setAccountId] = useState(initialData?.account_id || defaultAccountId || '');
-  const [note, setNote] = useState(initialData?.description || initialData?.note || '');
-  const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
-  const [destinationAccountId, setDestinationAccountId] = useState(initialData?.transfer_to_account_id || '');
 
-  // 💡 El estado 'isSplit' ahora es el único jefe de la interfaz
-  const [isSplit, setIsSplit] = useState(initialData?.type === 'expense' && !!initialData?.items && initialData.items.length > 0);
-  
-  const [items, setItems] = useState<BaseItem[]>(
-    initialData?.type === 'expense' && initialData?.items && initialData.items.length > 0 
-    ? initialData.items.map((i) => ({ ...i, _id: crypto.randomUUID() })) 
-    : [{ _id: crypto.randomUUID(), name: '', unit_price: '', quantity: 1, category_id: '' }]
+  const [type, setType] = useState<TxFormType>(getSafeType(initialData?.type));
+  const initialAmount =
+    initialData?.type === 'transfer'
+      ? initialData.target_amount || initialData.amount
+      : initialData?.amount;
+
+  const [amount, setAmount] = useState(
+    initialAmount !== undefined ? String(initialAmount) : '',
+  );
+  const [accountId, setAccountId] = useState(
+    initialData?.account_id || defaultAccountId || '',
+  );
+  const [note, setNote] = useState(
+    initialData?.description || initialData?.note || '',
+  );
+  const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
+  const [destinationAccountId, setDestinationAccountId] = useState(
+    initialData?.transfer_to_account_id || '',
   );
 
-  const [date, setDate] = useState(initialData?.date ? initialData.date.split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0]);
-  const [availableTags, setAvailableTags] = useState<Tag[]>(tags || []);
-  const [selectedTags, setSelectedTags] = useState<string[]>(initialData?.tags?.map((t: { tag?: { id: string } }) => t.tag?.id).filter(Boolean) as string[] || []);
+  const [isSplit, setIsSplit] = useState(
+    initialData?.type === 'expense' &&
+      Boolean(initialData?.items && initialData.items.length > 0),
+  );
+  const [items, setItems] = useState<BaseItem[]>(() =>
+    initialData?.type === 'expense' &&
+    initialData?.items &&
+    initialData.items.length > 0
+      ? initialData.items.map((item) => ({
+          ...item,
+          _id: item._id ?? item.id ?? crypto.randomUUID(),
+        }))
+      : [
+          {
+            _id: crypto.randomUUID(),
+            name: '',
+            unit_price: '',
+            quantity: 1,
+            category_id: '',
+          },
+        ],
+  );
 
-  // 💡 Si el usuario cambia a Traspaso o Ingreso, apagamos el desglose automáticamente
-  useEffect(() => { 
-    if (type !== 'expense') setIsSplit(false); 
-  }, [type]);
+  const [date, setDate] = useState(() => {
+    if (initialData?.date) {
+      return initialData.date.split('T')[0].split(' ')[0];
+    }
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  });
 
-  const accountOptions = (accounts || []).map(acc => ({ id: acc.id, label: acc.name, subLabel: acc.institution?.name || 'Banco' }));
-  const activeCategories = (categories || []).filter(c => c.type === type);
-  const categoryOptions = activeCategories.map(c => {
-    const parentName = c.parent_id ? activeCategories.find(p => p.id === c.parent_id)?.name : 'Categoría Principal';
-    return { id: c.id, label: c.name, subLabel: c.parent_id ? `Dentro de ${parentName}` : 'Categoría Principal' };
+  const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
+  const [selectedTags, setSelectedTags] = useState<string[]>(() =>
+    extractInitialTagIds(initialData?.tags),
+  );
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  const handleTypeChange = (nextType: TxFormType) => {
+    setType(nextType);
+    if (nextType !== 'expense') {
+      setIsSplit(false);
+    }
+  };
+
+  const selectedAccount = accounts.find((acc) => acc.id === accountId);
+  const activeCurrency = selectedAccount?.currency ?? 'DOP';
+
+  const accountOptions = accounts.map((acc) => ({
+    id: acc.id,
+    label: acc.name,
+    subLabel: acc.institution?.name || 'Efectivo',
+  }));
+
+  const activeCategories = categories.filter((c) => c.type === type);
+  const categoryOptions = activeCategories.map((c) => {
+    const parentName = c.parent_id
+      ? activeCategories.find((p) => p.id === c.parent_id)?.name
+      : undefined;
+    return {
+      id: c.id,
+      label: c.name,
+      subLabel: parentName ?? 'Principal',
+    };
   });
 
   const handleCustomTagCreate = (newTagName: string) => {
     createTagOptimistic(newTagName, {
       onSuccess: (response) => {
-        setSelectedTags(prev => [...prev, response.data.id]);
-        setAvailableTags(prev => [...prev, response.data]); 
-      }
+        const created = response.data as Tag | undefined;
+        if (!created) {
+          return;
+        }
+        setSelectedTags((prev) => [...prev, created.id]);
+        setAvailableTags((prev) => [...prev, created]);
+      },
     });
   };
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) setAmount(val);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
 
     if (type === 'expense' && isSplit) {
-      const splitTotal = items.reduce((sum, item) => sum + Number(item.unit_price || 0), 0);
-      if (Math.abs(splitTotal - Number(amount)) > 0.01) { 
+      const splitTotal = items.reduce(
+        (sum, item) => sum + Number(item.unit_price || 0),
+        0,
+      );
+      if (Math.abs(splitTotal - Number(amount)) > 0.01) {
         toast.error('La suma del desglose no coincide con el monto total.');
         return;
       }
-      if (items.some(item => !item.category_id)) {
-        toast.error('Todas las sub-transacciones deben tener una categoría.');
+      if (items.some((item) => !item.category_id)) {
+        toast.error('Todos los ítems del desglose deben tener una categoría.');
         return;
       }
     }
 
-    // 💡 1. Payload base protegido
-    const payload: Record<string, unknown> = { 
-      id: initialData?.id, 
-      type, 
-      accountId: accountId || null, 
-      date, 
-      note,                 
+    const payload: Record<string, unknown> = {
+      id: initialData?.id,
+      type,
+      accountId: accountId || null,
+      date,
+      note,
       tagIds: selectedTags,
-      amount: parseFloat(amount) || 0
+      amount: parseFloat(amount) || 0,
     };
 
-    // 💡 2. Asignación estricta de destino e ítems según el tipo de transacción final
     if (type === 'transfer') {
       payload.destinationAccountId = destinationAccountId || null;
-      payload.categoryId = null; 
-      payload.items = []; // Avisamos al backend que limpie cualquier desglose viejo
+      payload.categoryId = null;
+      payload.items = [];
     } else {
       payload.destinationAccountId = null;
-      payload.categoryId = (type === 'expense' && isSplit) ? null : (categoryId || null);
-      
-      payload.items = (type === 'expense' && isSplit) ? items.map(item => ({
-        ...item,
-        unit_price: parseFloat(String(item.unit_price)) || 0,
-        quantity: Number(item.quantity) || 1,
-        total_price: (parseFloat(String(item.unit_price)) || 0) * (Number(item.quantity) || 1)
-      })) : []; // Si el usuario cerró el desglose, enviamos array vacío para borrarlo
+      payload.categoryId =
+        type === 'expense' && isSplit ? null : categoryId || null;
+      payload.items =
+        type === 'expense' && isSplit
+          ? items.map((item) => {
+              const price = parseFloat(String(item.unit_price)) || 0;
+              const qty = Number(item.quantity) || 1;
+              return {
+                ...item,
+                unit_price: price,
+                quantity: qty,
+                total_price: price * qty,
+              };
+            })
+          : [];
     }
 
     saveTx(payload, { onSuccess: () => onSuccess() });
   };
 
-  const handleDelete = () => {
-    if (!initialData?.id) return;
-    if (!window.confirm('ALERTA: ¿Confirmas la eliminación permanente de este registro contable?')) return;
-    deleteTx(initialData.id, { onSuccess: () => onSuccess() });
+  const handleConfirmDelete = () => {
+    if (!initialData?.id) {
+      return;
+    }
+    deleteTx(initialData.id, {
+      onSuccess: () => {
+        setIsDeleteConfirmOpen(false);
+        onSuccess();
+      },
+    });
   };
 
-  const activeColor = type === 'expense' ? 'text-rose-600' : type === 'income' ? 'text-emerald-600' : 'text-primary';
-  const activeBg = type === 'expense' ? 'bg-rose-600' : type === 'income' ? 'bg-emerald-600' : 'bg-primary';
-
   return (
-    <div className="w-full h-full bg-card rounded-[12px] border border-border shadow-sm flex flex-col font-sans relative overflow-visible">
-      
-      {/* TABS (LIBERADOS) */}
-      <div className="border-b border-border bg-surface-2/30">
-        <div className="flex bg-surface-2 p-1.5 rounded-[6px] relative">
-          {(['expense', 'income', 'transfer'] as const).map((t) => {
-            const isActive = type === t;
-            return (
-              <button 
-                key={t} type="button" onClick={() => setType(t)} 
-                // 💡 Eliminamos el disabled para que puedas cambiar libremente
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors relative z-10",
-                  isActive ? activeColor : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {isActive && (
-                  <motion.div layoutId="activeTabIndicator" className="absolute inset-0 bg-background shadow-sm rounded-[4px] border border-border/50 -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
-                )}
-                {t === 'expense' ? <ArrowDownRight size={14} /> : t === 'income' ? <ArrowUpRight size={14} /> : <ArrowRightLeft size={14} />}
-                <span>{t === 'expense' ? 'Salida' : t === 'income' ? 'Entrada' : 'Traspaso'}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+    <>
+      <form id="tx-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <Segmented<TxFormType>
+          aria-label="Tipo de movimiento"
+          options={TX_TYPE_OPTIONS}
+          value={type}
+          onChange={handleTypeChange}
+          fullWidth
+        />
 
-      <form id="tx-form" onSubmit={handleSubmit} className="flex flex-col gap-0 overflow-visible">
-        <div className="flex flex-col p-4 gap-4">
-          
-          {/* HERO AMOUNT INPUT */}
-          <div className="flex flex-col items-center justify-center py-4 px-4 rounded-[8px] bg-surface-2/30 border border-border/50 focus-within:border-primary/30 focus-within:bg-background transition-all">
-            <p className="text-label text-muted-foreground mb-1">
-              {(type === 'expense' && isSplit) ? 'Monto Desglosado' : 'Importe Operativo'}
-            </p>
-            <div className="flex items-center text-4xl sm:text-5xl font-mono font-black text-foreground relative">
-              <span className={cn("text-2xl sm:text-3xl mr-1.5 -mt-1 transition-colors", activeColor)}>$</span>
-              <input 
-                type="text" inputMode="decimal" placeholder="0.00" value={amount} onChange={handleAmountChange} 
-                disabled={type === 'expense' && isSplit} required // 💡 Solo se bloquea si el desglose está activo
-                className={cn("w-full max-w-[280px] bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30 focus:ring-0 p-0 tracking-tighter disabled:opacity-60 transition-colors", amount ? "text-foreground" : "text-muted-foreground/30")}
-                autoFocus={!isEditing} 
+        <Field
+          label={type === 'expense' && isSplit ? 'Monto desglosado' : 'Importe'}
+          htmlFor="tx-amount"
+          required
+        >
+          <AmountInput
+            id="tx-amount"
+            size="lg"
+            currency={activeCurrency}
+            value={amount}
+            disabled={type === 'expense' && isSplit}
+            placeholder="0.00"
+            onChange={setAmount}
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field
+            label={type === 'transfer' ? 'Cuenta origen' : 'Cuenta'}
+            htmlFor="tx-account"
+            required
+          >
+            <SearchSelect
+              id="tx-account"
+              options={accountOptions}
+              value={accountId}
+              onChange={setAccountId}
+              placeholder="Seleccionar cuenta..."
+            />
+          </Field>
+
+          {type === 'transfer' ? (
+            <Field label="Cuenta destino" htmlFor="tx-destination" required>
+              <SearchSelect
+                id="tx-destination"
+                options={accountOptions.filter((acc) => acc.id !== accountId)}
+                value={destinationAccountId}
+                onChange={setDestinationAccountId}
+                placeholder="Seleccionar destino..."
               />
-            </div>
-          </div>
+            </Field>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="tx-category" className="label text-ink-2">
+                  Categoría
+                </label>
+                {type === 'expense' ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={<SplitSquareHorizontal size={14} strokeWidth={2} />}
+                    onClick={() => setIsSplit((prev) => !prev)}
+                    className="h-6 px-2 text-action"
+                  >
+                    {isSplit ? 'Cerrar desglose' : 'Desglosar recibo'}
+                  </Button>
+                ) : null}
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            
-            {/* NODO ORIGEN */}
-            <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <label className="text-label text-muted-foreground flex items-center gap-1.5"><CreditCard size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" />{type === 'transfer' ? 'Nodo Origen' : 'Nodo Operativo'}</label>
-              <SearchableDropdown options={accountOptions} value={accountId} onChange={setAccountId} placeholder="Seleccionar Nodo..." />
-            </div>
-
-            {/* NODO DESTINO / CLASIFICACIÓN (RECONSTRUIDO) */}
-            <div className="group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              {type === 'transfer' ? (
-                <>
-                  <label className="text-label text-primary flex items-center gap-1.5"><Send size={10} /> Nodo Destino</label>
-                  <SearchableDropdown options={accountOptions.filter(acc => acc.id !== accountId)} value={destinationAccountId} onChange={setDestinationAccountId} placeholder="Seleccionar Destino..." />
-                </>
+              {!isSplit ? (
+                <SearchSelect
+                  id="tx-category"
+                  options={categoryOptions}
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  placeholder="Buscar categoría..."
+                />
               ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <label className={cn("text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors", isSplit ? "text-primary" : "text-muted-foreground")}><GridIcon size={10} className={isSplit ? "text-primary" : "text-emerald-500"} /> Clasificación</label>
-                    {type === 'expense' && (
-                      <button type="button" onClick={() => setIsSplit(!isSplit)} className="text-[9px] font-bold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors bg-primary/10 px-1.5 py-0.5 rounded-[4px]"><SplitSquareHorizontal size={10} /> {isSplit ? 'Cerrar Desglose' : 'Desglosar Recibo'}</button>
-                    )}
-                  </div>
-                  {!isSplit ? (
-                    <SearchableDropdown options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Buscar categoría..." />
-                  ) : (
-                    <div className="flex-1 flex items-center px-2 py-1 mt-0.5 bg-primary/5 border border-primary/20 rounded-[4px]"><p className="text-[10px] font-medium text-primary/80">Modo desglose activo.</p></div>
-                  )}
-                </>
+                <div className="flex h-10 items-center rounded-control border border-action bg-action-wash px-3 small text-action">
+                  Las categorías se asignan por ítem abajo.
+                </div>
               )}
             </div>
+          )}
 
-            {/* FECHA VALOR */}
-            <div 
-              ref={calendarTriggerRef}
-              className="relative group flex flex-col h-full justify-between p-2.5 h-[54px] rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:border-primary/40 transition-all cursor-pointer"
-              onClick={() => setShowCalendar(true)}
-            >
-              <label className="text-label text-muted-foreground flex items-center gap-1.5 cursor-pointer transition-colors group-hover:text-primary pointer-events-none">
-                <Calendar size={10} /> Fecha Valor
-              </label>
-              
-              <div className="flex items-center justify-between mb-0.5 pointer-events-none">
-                <span className="text-[12px] font-mono font-bold text-foreground leading-none">
-                  {format(new Date(date + 'T00:00:00'), "dd 'de' MMMM, yyyy", { locale: es })}
-                </span>
-                <ChevronDown size={14} className={cn("text-muted-foreground transition-transform duration-200", showCalendar && "rotate-180")} />
-              </div>
-            </div>
+          <Field label="Fecha" htmlFor="tx-date">
+            <DatePicker
+              id="tx-date"
+              mode="single"
+              value={date}
+              onChange={(next) => {
+                if (next) {
+                  setDate(next);
+                }
+              }}
+            />
+          </Field>
 
-            {/* ETIQUETAS Y NOTAS */}
-            <div className="focus-within:z-[110] group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-               <label className="text-label text-muted-foreground flex items-center gap-1.5">Etiquetas Analíticas</label>
-               <TagInput availableTags={availableTags} selectedTagIds={selectedTags} onChange={setSelectedTags} onCustomTagCreate={handleCustomTagCreate} />
-            </div>
+          <Field label="Etiquetas" htmlFor="tx-tags">
+            <TagInput
+              id="tx-tags"
+              availableTags={availableTags}
+              selectedTagIds={selectedTags}
+              onChange={setSelectedTags}
+              onCreateTag={handleCustomTagCreate}
+            />
+          </Field>
 
-            <div className="md:col-span-2 group flex flex-col gap-1 p-2.5 rounded-[8px] border border-border/60 bg-surface-2/30 hover:bg-surface-2/50 focus-within:bg-background focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/20 transition-all">
-              <label className="text-label text-muted-foreground flex items-center gap-1.5"><AlignLeft size={10} className="text-muted-foreground group-focus-within:text-primary transition-colors" /> Referencia / Glosa</label>
-              <textarea rows={1} placeholder="Nota u observación contable..." className="pl-2 w-full bg-transparent border-none outline-none text-xs text-foreground font-medium p-0 focus:ring-0 resize-none placeholder:text-muted-foreground/40" value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
-          </div>
+          <Field
+            label="Descripción"
+            htmlFor="tx-note"
+            className="md:col-span-2"
+          >
+            <TextInput
+              id="tx-note"
+              value={note}
+              placeholder="Nota u observación..."
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
         </div>
 
-        {/* EXPANSION DE DESGLOSE */}
-        <AnimatePresence>
-          {type === 'expense' && isSplit && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="border-t border-border bg-surface-2/10 overflow-visible">
-              <ExpenseSplitSection items={items} setItems={setItems} categoryOptions={categoryOptions} amount={amount} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {type === 'expense' && isSplit ? (
+          <ExpenseSplitSection
+            items={items}
+            setItems={setItems}
+            categoryOptions={categoryOptions}
+            amount={amount}
+            currency={activeCurrency}
+          />
+        ) : null}
 
-        {/* ACTION BAR */}
-        <div className="sticky bottom-0 left-0 w-full flex items-center gap-3 p-4 pt-3 border-t border-border bg-background mt-auto z-[60] rounded-b-[12px]">
-          {isEditing && (
-            <button type="button" onClick={handleDelete} disabled={isSubmitting || isDeleting} className="px-3 py-2.5 rounded-[6px] bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-colors border border-transparent hover:border-destructive/20" title="Suprimir">
-              {isDeleting ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />}
-            </button>
-          )}
+        <div className="flex items-center gap-3 border-t border-line pt-4">
+          {isEditing ? (
+            <IconButton
+              variant="danger"
+              size="lg"
+              aria-label="Eliminar movimiento"
+              title="Eliminar"
+              disabled={isSubmitting || isDeleting}
+              onClick={() => setIsDeleteConfirmOpen(true)}
+            >
+              <Trash2 size={18} strokeWidth={2} />
+            </IconButton>
+          ) : null}
 
-          <button type="submit" form="tx-form" disabled={isSubmitting || isDeleting} className={cn("flex-1 py-2.5 rounded-[6px] text-label text-white transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-2", activeBg)}>
-            {isSubmitting ? <><RefreshCw className="animate-spin" size={14} /> Procesando...</> : <><CheckCircle2 size={14} /> {isEditing ? 'Actualizar Ledger' : 'Asentar Operación'}</>}
-          </button>
+          <Button
+            type="submit"
+            form="tx-form"
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={isSubmitting}
+            loadingLabel="Guardando..."
+            disabled={isDeleting}
+          >
+            {isEditing ? 'Guardar cambios' : 'Registrar movimiento'}
+          </Button>
         </div>
       </form>
 
-      <YBankCalendarPicker 
-        isOpen={showCalendar} 
-        mode="single"
-        triggerRef={calendarTriggerRef}
-        value={date} 
-        onChange={(newDate) => { setDate(newDate); setShowCalendar(false); }} 
-        onClose={() => setShowCalendar(false)} 
+      <ConfirmDialog
+        open={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar movimiento"
+        description="Esta acción eliminará el movimiento de forma permanente y ajustará el saldo de la cuenta."
+        confirmLabel="Eliminar"
+        tone="danger"
+        loading={isDeleting}
       />
-
-    </div>
+    </>
   );
 }
