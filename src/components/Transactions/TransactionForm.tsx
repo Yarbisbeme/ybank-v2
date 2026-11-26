@@ -104,25 +104,25 @@ export default function TransactionForm({
 
   const [isSplit, setIsSplit] = useState(
     initialData?.type === 'expense' &&
-      Boolean(initialData?.items && initialData.items.length > 0),
+    Boolean(initialData?.items && initialData.items.length > 0),
   );
   const [items, setItems] = useState<BaseItem[]>(() =>
     initialData?.type === 'expense' &&
-    initialData?.items &&
-    initialData.items.length > 0
+      initialData?.items &&
+      initialData.items.length > 0
       ? initialData.items.map((item) => ({
-          ...item,
-          _id: item._id ?? item.id ?? crypto.randomUUID(),
-        }))
+        ...item,
+        _id: item._id ?? item.id ?? crypto.randomUUID(),
+      }))
       : [
-          {
-            _id: crypto.randomUUID(),
-            name: '',
-            unit_price: '',
-            quantity: 1,
-            category_id: '',
-          },
-        ],
+        {
+          _id: crypto.randomUUID(),
+          name: '',
+          unit_price: '',
+          quantity: 1,
+          category_id: '',
+        },
+      ],
   );
 
   const [date, setDate] = useState(() => {
@@ -225,15 +225,15 @@ export default function TransactionForm({
       payload.items =
         type === 'expense' && isSplit
           ? items.map((item) => {
-              const price = parseFloat(String(item.unit_price)) || 0;
-              const qty = Number(item.quantity) || 1;
-              return {
-                ...item,
-                unit_price: price,
-                quantity: qty,
-                total_price: price * qty,
-              };
-            })
+            const price = parseFloat(String(item.unit_price)) || 0;
+            const qty = Number(item.quantity) || 1;
+            return {
+              ...item,
+              unit_price: price,
+              quantity: qty,
+              total_price: price * qty,
+            };
+          })
           : [];
     }
 
@@ -270,7 +270,7 @@ export default function TransactionForm({
         >
           <AmountInput
             id="tx-amount"
-            size="lg"
+            variant="hero"
             currency={activeCurrency}
             value={amount}
             disabled={type === 'expense' && isSplit}

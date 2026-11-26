@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@teispace/next-themes';
-import { Download, Menu, Moon, Plus, Search, Sun } from 'lucide-react';
+import { Download, Menu, Moon, Search, Sun } from 'lucide-react';
 import type { Account, Category, Tag, Transaction } from '@/types';
 import { signOut } from '@/lib/actions/auth';
 import { useAccounts, useCategories, useGlobalSearch, useTags } from '@/hooks/useCatalogs';
@@ -35,7 +37,7 @@ export interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => { };
 
 function normalizeText(value: string): string {
   return value
@@ -165,10 +167,19 @@ export function DashboardShell({
     }
   };
 
+  const firstName = user.name.trim().split(/\s+/)[0] || user.name;
+  const userInitials =
+    user.name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('') || 'YB';
+
   const todayLabel = new Date().toLocaleDateString('es-DO', {
     weekday: 'long',
     day: 'numeric',
-    month: 'short',
+    month: 'long',
   });
 
   return (
@@ -184,88 +195,112 @@ export function DashboardShell({
       </div>
 
       <div className="flex flex-1 min-w-0 flex-col h-full">
-        <header className="sticky top-0 z-sticky flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 md:px-6 lg:px-8">
-          <div className="flex items-center gap-3 min-w-0">
-            <IconButton
-              variant="ghost"
-              size="md"
-              aria-label="Abrir menú"
-              onClick={() => setIsDrawerOpen(true)}
-              className="lg:hidden -ml-1"
-            >
-              <Menu size={20} strokeWidth={2} />
-            </IconButton>
+            <main className="flex-1 overflow-y-auto overflow-x-hidden px-5 md:px-6 lg:px-10 pt-5 lg:pt-6 pb-24 lg:pb-12 flex flex-col">
+              <header className="mx-auto mb-7 flex w-full max-w-6xl flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <IconButton
+                    variant="surface"
+                    size="md"
+                    aria-label="Abrir menú"
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="lg:hidden"
+                  >
+                    <Menu size={20} strokeWidth={2} />
+                  </IconButton>
 
-            <div className="lg:hidden">
-              <YMark lockup size={24} />
-            </div>
+                  <Link
+                    href="/settings"
+                    aria-label="Mi perfil y ajustes"
+                    className="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-ink text-canvas label focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"
+                  >
+                    {userInitials}
+                  </Link>
 
-            <div className="hidden lg:flex flex-col min-w-0">
-              <p className="body-strong text-ink truncate">
-                Hola, {user.name}
-              </p>
-              <p className="small text-ink-2 capitalize truncate">
-                {todayLabel}
-              </p>
-            </div>
-          </div>
+                    <div className="flex flex-col min-w-0">
+                      <h1 className="title lg:title-l text-ink truncate">
+                        Hola, {firstName}
+                      </h1>
+                      <p className="small text-ink-2 capitalize truncate">
+                        {todayLabel}
+                      </p>
+                    </div>
+                  </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsSearchOpen(true)}
-              className="hidden sm:flex h-9 w-56 items-center gap-2 rounded-control border border-line-strong bg-surface-sunk px-3 small text-ink-2 hover:text-ink transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"
-            >
-              <Search size={15} strokeWidth={2} className="shrink-0" />
-              <span className="truncate">Buscar...</span>
-              <kbd className="ml-auto rounded-chip border border-line bg-surface px-1.5 py-0.5 nav font-mono text-ink-2">
-                ⌘K
-              </kbd>
-            </button>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsSearchOpen(true)}
+                      className="hidden sm:flex h-10 w-64 lg:w-72 items-center gap-2 rounded-control border border-line bg-surface px-3 small text-ink-2 hover:border-line-strong hover:text-ink transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"
+                    >
+                      <Search size={16} strokeWidth={2} className="shrink-0" />
+                      <span className="truncate">Buscar movimientos, tarjetas…</span>
+                      <kbd className="ml-auto rounded-chip border border-line bg-canvas px-1.5 py-0.5 nav font-mono text-ink-2">
+                        ⌘K
+                      </kbd>
+                    </button>
 
-            <IconButton
-              variant="ghost"
-              size="md"
-              aria-label="Buscar"
-              onClick={() => setIsSearchOpen(true)}
-              className="sm:hidden"
-            >
-              <Search size={18} strokeWidth={2} />
-            </IconButton>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<Plus size={15} strokeWidth={2} />}
-              onClick={() => openModal('account')}
-              className="hidden sm:inline-flex"
-            >
-              Nueva cuenta
-            </Button>
-
-            {isHydrated ? (
-              <IconButton
-                variant="ghost"
-                size="md"
-                aria-label={
-                  theme === 'dark'
-                    ? 'Cambiar a tema claro'
-                    : 'Cambiar a tema oscuro'
-                }
-                onClick={handleToggleTheme}
-                className="hidden md:inline-flex lg:hidden"
-              >
-                {theme === 'dark' ? (
-                  <Sun size={18} strokeWidth={2} />
-                ) : (
-                  <Moon size={18} strokeWidth={2} />
-                )}
+                      <IconButton
+                        variant="surface"
+                        size="md"
+                        aria-label="Buscar"
+                        onClick={() => setIsSearchOpen(true)}
+                        className="sm:hidden"
+                      >
+                <Search size={18} strokeWidth={2} />
               </IconButton>
-            ) : null}
+
+              {isHydrated ? (
+                      <IconButton
+                        variant="surface"
+                        size="md"
+                        aria-label={
+                          theme === 'dark'
+                            ? 'Cambiar a tema claro'
+                            : 'Cambiar a tema oscuro'
+                        }
+                        onClick={handleToggleTheme}
+                      >
+                        {theme === 'dark' ? (
+                          <Sun size={18} strokeWidth={2} />
+                        ) : (
+                          <Moon size={18} strokeWidth={2} />
+                        )}
+                      </IconButton>
+                    ) : null}
+
+                    <Link
+                      href="/settings"
+                      className="hidden lg:flex h-10 items-center gap-2.5 rounded-control px-1.5 hover:bg-surface-sunk transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"
+                    >
+                      {user.avatarUrl ? (
+                        <Image
+                          src={user.avatarUrl}
+                          alt={user.name}
+                          width={40}
+                          height={40}
+                          unoptimized
+                          className="h-10 w-10 shrink-0 rounded-control object-cover border border-line"
+                        />
+                      ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-ink text-canvas title-s"
+                  >
+                    {userInitials}
+                  </span>
+                      )}
+              <div className="flex flex-col text-left min-w-0 max-w-36">
+                <span className="small font-semibold text-ink truncate">
+                  {user.name}
+                </span>
+                {user.email ? (
+                  <span className="nav text-ink-2 truncate">{user.email}</span>
+                ) : null}
+              </div>
+            </Link>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-6 lg:px-8 pt-5 pb-24 md:pb-8 flex flex-col">
           <div className="mx-auto w-full max-w-6xl flex-1">{children}</div>
 
           <footer className="mx-auto mt-10 flex w-full max-w-6xl flex-col sm:flex-row items-center justify-between gap-3 border-t border-line pt-5 small text-ink-2">

@@ -44,6 +44,12 @@ export const CARD_PALETTE: Record<CardColorKey, string> = {
   oro: '#d4a017',
 };
 
+export const CARD_METAL_HEX = '#b9b8b3';
+export const YMARK_BIG_PATH =
+  'M794.0 223.0 C945.6 309.2 812.3 573.2 653.0 495.0 C779.6 445.3 798.8 347.3 794.0 223.0Z';
+export const YMARK_SMALL_PATH =
+  'M651.0 223.0 C640.3 321.5 731.3 334.4 696.0 430.0 C803.7 374.2 754.0 245.0 651.0 223.0Z';
+
 function parseHexRgb(hex: string): [number, number, number] | null {
   const clean = hex.trim().replace(/^#/, '');
   if (/^[0-9a-fA-F]{3}$/.test(clean)) {
@@ -61,6 +67,15 @@ function parseHexRgb(hex: string): [number, number, number] | null {
     ];
   }
   return null;
+}
+
+/** Linearly mixes two hex colors into an rgb() CSS value for material card depth. */
+export function mixHex(hex: string, toHex: string, amount: number): string {
+  const fromRgb = parseHexRgb(resolveCardHex(hex)) ?? [31, 75, 255];
+  const toRgb = parseHexRgb(resolveCardHex(toHex)) ?? [14, 14, 16];
+  const mixChannel = (idx: number) =>
+    Math.round(fromRgb[idx] * (1 - amount) + toRgb[idx] * amount);
+  return `rgb(${mixChannel(0)}, ${mixChannel(1)}, ${mixChannel(2)})`;
 }
 
 /** Resolves a CardColorKey or raw hex string into a normalized hex color. */
@@ -92,6 +107,16 @@ export function getCardLuminance(hex: string): number {
 /** Switches card text to dark ink when luminance exceeds 150 (SKILL.md rule). */
 export function getCardTextTone(hex: string): 'light' | 'dark' {
   return getCardLuminance(hex) > 150 ? 'dark' : 'light';
+}
+
+/** Returns exact foreground hex matching card luminance (with metal finish override). */
+export function getCardInkHex(
+  color?: string | null,
+  finish: CardFinish = 'mate',
+): string {
+  const effectiveHex =
+    finish === 'metal' ? CARD_METAL_HEX : resolveCardHex(color);
+  return getCardTextTone(effectiveHex) === 'dark' ? '#0e0e10' : '#ffffff';
 }
 
 /** Computes a subtle section wash color (default 12% opacity) from the active card. */
@@ -153,17 +178,77 @@ export function getCardBackgroundStyle(options: {
   base: CardBase;
   color?: string | null;
   secondaryColor?: string | null;
+  finish?: CardFinish;
 }): CSSProperties {
-  const primary = resolveCardHex(options.color);
-  if (options.base !== 'degradado') {
-    return { backgroundColor: primary };
+    const effectiveBase = options.finish === 'metal' ? 'materia' : options.base;
+    const primary =
+      options.finish === 'metal'
+        ? CARD_METAL_HEX
+        : resolveCardHex(options.color);
+
+    if (effectiveBase === 'plana') {
+      return { backgroundColor: primary };
+    }
+
+    if (effectiveBase === 'degradado') {
+      const secondary = options.secondaryColor
+        ? resolveCardHex(options.secondaryColor)
+        : CARD_PALETTE.tinta;
+
+      return {
+        backgroundImage: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
+      };
+    }
+
+    const lightEdge = mixHex(primary, '#ffffff', 0.18);
+    const darkEdge = mixHex(primary, '#000000', 0.28);
+    return {
+      backgroundColor: primary,
+      backgroundImage: `linear-gradient(155deg, ${lightEdge} 0%, ${primary} 48%, ${darkEdge} 100%)`,
+    };
   }
 
-  const secondary = options.secondaryColor
-    ? resolveCardHex(options.secondaryColor)
-    : CARD_PALETTE.marino;
+  /** Micro-texture overlay per finish matching YBank 2.0 bundle.js. */
+  export function getCardTextureStyle(finish: CardFinish): CSSProperties | null {
+    if (finish === 'metal') {
+      return {
+        backgroundImage:
+          'repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 1px, rgba(0, 0, 0, 0.05) 1px 3px)',
+      };
+    }
+    if (finish === 'mate') {
+      return {
+        backgroundImage:
+          'repeating-radial-gradient(circle at 30% 40%, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px)',
+      };
+    }
+    return null;
+  }
 
-  return {
-    backgroundImage: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
-  };
-}
+  /** Pointer-reactive holographic conic spectrum layer. */
+  export function getCardHoloStyle(px: number, py: number): CSSProperties {
+    return {
+      backgroundImage: `conic-gradient(from ${(px * 3.6).toFixed(1)}deg at ${px}% ${py}%, #ff8a8a, #ffe27a, #9cffb0, #8ad8ff, #c79bff, #ff8a8a)`,
+    };
+  }
+
+  /** Dynamic pointer-driven specular sheen over material/gradient/metallic cards. */
+  export function getCardSheenStyle(
+    base: CardBase,
+    finish: CardFinish,
+    px: number,
+    py: number,
+  ): CSSProperties | null {
+    if (base === 'plana' && finish === 'mate') {
+      return null;
+    }
+    if (finish === 'metal') {
+      return {
+        backgroundImage: `linear-gradient(${100 + px * 0.6}deg, transparent ${px - 25}%, rgba(255, 255, 255, 0.6) ${px}%, transparent ${px + 25}%)`,
+      };
+    }
+    const alpha = finish === 'holo' ? 0.45 : 0.26;
+    return {
+      backgroundImage: `radial-gradient(circle at ${px}% ${py}%, rgba(255, 255, 255, ${alpha}), transparent 55%)`,
+    };
+  }

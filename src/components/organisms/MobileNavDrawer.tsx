@@ -141,8 +141,8 @@ export function MobileNavDrawer({
                 className={cn(
                   'flex items-center gap-3 rounded-control px-3 py-2.5 body-strong transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
                   active
-                    ? 'bg-action-wash text-action'
-                    : 'text-ink-2 hover:bg-surface-sunk hover:text-ink',
+                      ? 'bg-ink text-canvas'
+                      : 'text-ink-2 hover:bg-surface-sunk hover:text-ink',
                 )}
               >
                 <Icon size={18} strokeWidth={2} className="shrink-0" />
@@ -162,7 +162,7 @@ export function MobileNavDrawer({
               onNewTransaction();
             }}
           >
-            Nuevo movimiento
+            Registrar movimiento
           </Button>
           <Button
             variant="secondary"

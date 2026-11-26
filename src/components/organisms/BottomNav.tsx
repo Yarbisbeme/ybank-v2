@@ -12,7 +12,7 @@ export interface BottomNavProps {
   className?: string;
 }
 
-/** Mobile bottom navigation bar with central primary "+" quick-entry action. */
+/** Mobile bottom navigation bar matching YBank 2.0 spacing and active ink state. */
 export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
   const pathname = usePathname();
   const leftItems = NAV_ITEMS.slice(0, 2);
@@ -22,7 +22,7 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
     <nav
       aria-label="Navegación móvil"
       className={cn(
-        'md:hidden fixed inset-x-0 bottom-0 z-sticky border-t border-line bg-surface px-2 py-1.5',
+        'md:hidden fixed inset-x-0 bottom-0 z-sticky border-t border-line bg-surface px-2 pb-2 pt-1.5',
         className,
       )}
     >
@@ -36,11 +36,11 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 rounded-control py-1.5 nav transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
-                active ? 'text-action' : 'text-ink-2 hover:text-ink',
+                'flex min-h-12 flex-col items-center justify-center gap-1 rounded-control py-1.5 nav transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                active ? 'text-ink font-semibold' : 'text-ink-2 hover:text-ink',
               )}
             >
-              <Icon size={18} strokeWidth={2} />
+              <Icon size={20} strokeWidth={2} />
               <span className="truncate">{item.label}</span>
             </Link>
           );
@@ -50,10 +50,11 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
           <IconButton
             variant="primary"
             size="lg"
-            aria-label="Nuevo movimiento"
+            aria-label="Registrar movimiento"
             onClick={onNewTransaction}
+            className="h-13 w-13 rounded-tile"
           >
-            <Plus size={20} strokeWidth={2} />
+            <Plus size={22} strokeWidth={2.2} />
           </IconButton>
         </div>
 
@@ -66,11 +67,11 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 rounded-control py-1.5 nav transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
-                active ? 'text-action' : 'text-ink-2 hover:text-ink',
+                'flex min-h-12 flex-col items-center justify-center gap-1 rounded-control py-1.5 nav transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                active ? 'text-ink font-semibold' : 'text-ink-2 hover:text-ink',
               )}
             >
-              <Icon size={18} strokeWidth={2} />
+              <Icon size={20} strokeWidth={2} />
               <span className="truncate">{item.label}</span>
             </Link>
           );

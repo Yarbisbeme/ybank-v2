@@ -10,6 +10,7 @@ export interface AmountInputProps {
   onChange: (value: string) => void;
   currency?: CurrencyCode;
   onCurrencyChange?: (currency: CurrencyCode) => void;
+  variant?: 'field' | 'hero';
   size?: 'md' | 'lg';
   id?: string;
   placeholder?: string;
@@ -20,7 +21,7 @@ export interface AmountInputProps {
   className?: string;
 }
 
-/** Tabular monetary input with fixed or toggleable DOP/USD currency prefix. */
+/** Tabular monetary input with field box or centered open hero typography. */
 export const AmountInput = forwardRef<HTMLInputElement, AmountInputProps>(
   (
     {
@@ -28,6 +29,7 @@ export const AmountInput = forwardRef<HTMLInputElement, AmountInputProps>(
       onChange,
       currency = 'DOP',
       onCurrencyChange,
+      variant = 'field',
       size = 'md',
       id,
       placeholder = '0.00',
@@ -41,11 +43,61 @@ export const AmountInput = forwardRef<HTMLInputElement, AmountInputProps>(
   ) => {
     const nextCurrency: CurrencyCode = currency === 'DOP' ? 'USD' : 'DOP';
 
+    if (variant === 'hero') {
+      return (
+        <div
+          className={cn(
+            'flex flex-col items-center py-3',
+            disabled && 'opacity-50',
+            className,
+          )}
+        >
+          <div
+            className={cn(
+              'inline-flex items-baseline justify-center gap-2 border-b pb-2 transition-colors duration-150',
+              invalid ? 'border-debit' : 'border-line focus-within:border-action',
+            )}
+          >
+            {onCurrencyChange ? (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onCurrencyChange(nextCurrency)}
+                aria-label={`Cambiar moneda a ${nextCurrency}`}
+                className="title-s text-action hover:text-action-press shrink-0 cursor-pointer disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2 rounded-chip"
+              >
+                {currency}
+              </button>
+            ) : (
+              <span className="title-s text-ink-2 shrink-0 select-none">
+                {currency}
+              </span>
+            )}
+
+            <input
+              ref={ref}
+              id={id}
+              type="text"
+              inputMode="decimal"
+              value={value}
+              disabled={disabled}
+              placeholder={placeholder}
+              aria-label={ariaLabel}
+              aria-invalid={invalid || undefined}
+              onKeyDown={onKeyDown}
+              onChange={(e) => onChange(sanitizeAmountInput(e.target.value))}
+              className="amount-hero-input w-48 sm:w-64 bg-transparent border-none outline-none text-center text-ink placeholder:text-ink-3 focus:outline-none disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className={cn(
           'flex items-center rounded-control bg-surface border transition-colors duration-150 focus-within:border-action',
-          size === 'lg' ? 'h-12 px-3.5' : 'h-10 px-3',
+          size === 'lg' ? 'h-12 px-3.5' : 'h-11 px-3',
           invalid ? 'border-debit' : 'border-line-strong',
           disabled && 'opacity-50',
           className,

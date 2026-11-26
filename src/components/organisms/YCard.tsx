@@ -1,15 +1,22 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import Image from 'next/image';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AccountType } from '@/types';
 import { IconButton, Money, type CurrencyCode } from '@/components/atoms';
 import {
+  CARD_METAL_HEX,
+  YMARK_BIG_PATH,
+  YMARK_SMALL_PATH,
   getAccountTypeLabel,
   getCardBackgroundStyle,
+  getCardHoloStyle,
+  getCardInkHex,
+  getCardSheenStyle,
   getCardTextTone,
+  getCardTextureStyle,
   resolveCardHex,
   type CardBase,
   type CardFinish,
@@ -32,6 +39,8 @@ export interface YCardProps {
   shape?: CardShape;
   shapeIntensity?: 0 | 1 | 2;
   finish?: CardFinish;
+  tilt?: boolean;
+  active?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   onClick?: () => void;
@@ -39,14 +48,14 @@ export interface YCardProps {
 }
 
 const SHAPE_OPACITY: Record<0 | 1 | 2, number> = {
-  0: 0.08,
-  1: 0.14,
-  2: 0.22,
+  0: 0.12,
+  1: 0.22,
+  2: 0.4,
 };
 
 /**
- * YBank 2.0 5-layer ISO card component (base, color, shape, finish, details).
- * Auto-adjusts text contrast from card luminance and labels account types cleanly (U1).
+ * YBank 2.0 5-layer ISO card component with pointer-driven 3D tilt, specular sheen,
+ * auto-contrast ink, and clean borderless typography matching bundle.js.
  */
 export function YCard({
   name,
@@ -63,141 +72,188 @@ export function YCard({
   shape = 'hojas',
   shapeIntensity = 1,
   finish = 'mate',
+  tilt = true,
+  active = false,
   isFavorite = false,
   onToggleFavorite,
   onClick,
   className,
 }: YCardProps) {
   const patternId = useId();
-  const primaryHex = resolveCardHex(color);
-  const textTone = getCardTextTone(primaryHex);
+  const [pointer, setPointer] = useState({ on: false, x: 0.3, y: 0.2 });
+
+  const effectiveBase: CardBase = finish === 'metal' ? 'materia' : base;
+  const effectiveHex =
+    finish === 'metal' ? CARD_METAL_HEX : resolveCardHex(color);
+  const textTone = getCardTextTone(effectiveHex);
+  const inkColor = getCardInkHex(color, finish);
   const typeLabel = getAccountTypeLabel(accountType);
-  const bankInitial = bankName?.trim().charAt(0).toUpperCase() || 'Y';
 
   const inkClass = textTone === 'dark' ? 'text-lime-ink' : 'text-white';
   const mutedInkClass =
-    textTone === 'dark' ? 'text-lime-ink opacity-70' : 'text-white opacity-75';
+  textTone === 'dark' ? 'text-lime-ink opacity-80' : 'text-white opacity-85';
+
+  const px = Math.round(pointer.x * 100);
+  const py = Math.round(pointer.y * 100);
+  const shouldTilt = tilt && effectiveBase !== 'plana' && pointer.on;
+
+  const transformStyle = shouldTilt
+    ? `rotateX(${((0.5 - pointer.y) * 14).toFixed(1)}deg) rotateY(${((pointer.x - 0.5) * 18).toFixed(1)}deg)`
+    : 'none';
+
+  const textureStyle = getCardTextureStyle(finish);
+  const sheenStyle = getCardSheenStyle(effectiveBase, finish, px, py);
 
   return (
-    <article
-      style={getCardBackgroundStyle({ base, color, secondaryColor })}
-      className={cn(
-        'relative w-full aspect-iso-card rounded-card overflow-hidden select-none flex flex-col justify-between p-5 border border-line',
-        base === 'materia' ? 'card-base-materia' : 'shadow-card',
-        inkClass,
-        className,
-      )}
+    <div
+      className={cn('y2-card-perspective w-full', className)}
+      onMouseMove={(e) => {
+        if (!tilt) {
+          return;
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) {
+          return;
+        }
+        setPointer({
+          on: true,
+          x: (e.clientX - rect.left) / rect.width,
+          y: (e.clientY - rect.top) / rect.height,
+        });
+      }}
+      onMouseLeave={() => setPointer({ on: false, x: 0.3, y: 0.2 })}
     >
-      {shape !== 'none' ? (
-        <CardShapeLayer
-          patternId={patternId}
-          shape={shape}
-          opacity={SHAPE_OPACITY[shapeIntensity]}
-        />
-      ) : null}
+      <article
+        style={{
+          ...getCardBackgroundStyle({ base, color, secondaryColor, finish }),
+          transform: transformStyle,
+        }}
+        className={cn(
+          'relative w-full aspect-iso-card rounded-card overflow-hidden select-none flex flex-col justify-between p-5 transition-transform duration-200',
+          effectiveBase === 'materia'
+            ? 'y2-card-materia-shadow'
+            : 'shadow-card-flat',
+          active && 'y2-card-active-ring',
+          inkClass,
+        )}
+      >
+        {shape !== 'none' ? (
+          <CardShapeLayer
+            patternId={patternId}
+            shape={shape}
+            opacity={SHAPE_OPACITY[shapeIntensity]}
+            inkColor={inkColor}
+          />
+        ) : null}
 
-      {finish === 'metal' ? (
-        <div
-          aria-hidden="true"
-          className="card-finish-metal pointer-events-none absolute inset-0 z-0"
-        />
-      ) : null}
+        {textureStyle ? (
+          <div
+            aria-hidden="true"
+            style={textureStyle}
+            className="pointer-events-none absolute inset-0 z-0"
+          />
+        ) : null}
 
-      {finish === 'holo' ? (
-        <div
-          aria-hidden="true"
-          className="card-finish-holo pointer-events-none absolute inset-0 z-0"
-        />
-      ) : null}
+        {finish === 'holo' ? (
+          <div
+            aria-hidden="true"
+            style={getCardHoloStyle(px, py)}
+            className="y2-card-holo-blend pointer-events-none absolute inset-0 z-0"
+          />
+        ) : null}
 
-      {onClick ? (
-        <button
-          type="button"
-          onClick={onClick}
-          aria-label={`Abrir cuenta ${name}`}
-          className="absolute inset-0 z-10 rounded-card cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"
-        />
-      ) : null}
+        {sheenStyle ? (
+          <div
+            aria-hidden="true"
+            style={sheenStyle}
+            className="pointer-events-none absolute inset-0 z-0"
+          />
+        ) : null}
 
-      <div className="relative z-10 flex items-start justify-between gap-3 pointer-events-none">
-        <div className="flex items-center gap-2 min-w-0">
-          {bankLogoUrl ? (
-            <Image
-              src={bankLogoUrl}
-              alt={bankName ?? 'Institución'}
-              width={96}
-              height={28}
-              unoptimized
-              className="h-7 w-auto max-w-28 object-contain object-left"
-            />
-          ) : (
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                aria-hidden="true"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-chip border border-current/25 label"
+        {onClick ? (
+          <button
+            type="button"
+            onClick={onClick}
+            aria-label={`Abrir cuenta ${name}`}
+            className="absolute inset-0 z-10 rounded-card cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"
+          />
+        ) : null}
+
+        <div className="relative z-10 flex items-start justify-between gap-3 pointer-events-none">
+          <div className="flex items-center gap-2 min-w-0">
+            {bankLogoUrl ? (
+              <Image
+                src={bankLogoUrl}
+                alt={bankName ?? 'Institución'}
+                width={84}
+                height={22}
+                unoptimized
+                className="h-5 w-auto max-w-24 object-contain object-left"
+              />
+            ) : null}
+            <span className="label uppercase tracking-wider truncate opacity-90">
+              {bankName || typeLabel}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className={cn('nav', mutedInkClass)}>{typeLabel}</span>
+
+            {onToggleFavorite ? (
+              <IconButton
+                size="sm"
+                variant="ghost"
+                aria-label={
+                  isFavorite
+                    ? `Quitar ${name} de favoritas`
+                    : `Marcar ${name} como favorita`
+                }
+                aria-pressed={isFavorite}
+                onClick={onToggleFavorite}
+                className={cn(
+                  'relative z-20 pointer-events-auto h-7 w-7 hover:bg-black/15',
+                  inkClass,
+                )}
               >
-                {bankInitial}
-              </span>
-              <span className="small truncate">
-                {bankName || typeLabel}
-              </span>
-            </div>
-          )}
+                <Star
+                  size={15}
+                  strokeWidth={2}
+                  className={isFavorite ? 'fill-current' : 'opacity-80'}
+                />
+              </IconButton>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className={cn('label px-2 py-0.5 rounded-chip border border-current/25', mutedInkClass)}>
-            {typeLabel}
+        <div className="relative z-10 my-auto flex flex-col gap-0.5 pointer-events-none">
+          <p className={cn('title-s truncate', mutedInkClass)}>{name}</p>
+          <Money
+            value={balance}
+            currency={currency}
+            size="card"
+            className="text-inherit block truncate"
+          />
+        </div>
+
+        <div className="relative z-10 flex items-end justify-between gap-3 pointer-events-none">
+          <span className={cn('card-number', mutedInkClass)}>
+            •••• {last4 || '0000'}
           </span>
 
-          {onToggleFavorite ? (
-            <IconButton
-              size="sm"
-              variant="ghost"
-              aria-label={
-                isFavorite ? `Quitar ${name} de favoritas` : `Marcar ${name} como favorita`
-              }
-              aria-pressed={isFavorite}
-              onClick={onToggleFavorite}
+          {network ? (
+            <span
               className={cn(
-                'relative z-20 pointer-events-auto hover:bg-black/15',
+                'title-s font-extrabold tracking-tight',
+                network === 'VISA' && 'italic',
                 inkClass,
               )}
             >
-              <Star
-                size={16}
-                strokeWidth={2}
-                className={isFavorite ? 'fill-current' : 'opacity-80'}
-              />
-            </IconButton>
+              {network}
+            </span>
           ) : null}
         </div>
-      </div>
-
-      <div className="relative z-10 my-auto pointer-events-none">
-        <p className={cn('small mb-1 truncate', mutedInkClass)}>{name}</p>
-        <Money
-          value={balance}
-          currency={currency}
-          size="card"
-          className="text-inherit block truncate"
-        />
-      </div>
-
-      <div className="relative z-10 flex items-end justify-between gap-3 pointer-events-none">
-        {last4 ? (
-          <span className={cn('card-number', mutedInkClass)}>
-            •••• {last4}
-          </span>
-        ) : (
-          <span />
-        )}
-
-        {network ? (
-          <span className={cn('label', mutedInkClass)}>{network}</span>
-        ) : null}
-      </div>
-    </article>
+      </article>
+    </div >
   );
 }
 
@@ -205,15 +261,31 @@ function CardShapeLayer({
   patternId,
   shape,
   opacity,
+  inkColor,
 }: {
   patternId: string;
   shape: Exclude<CardShape, 'none'>;
   opacity: number;
+  inkColor: string;
 }) {
+  if (shape === 'geo') {
+    return (
+      <div
+        aria-hidden="true"
+        style={{ opacity, color: inkColor }}
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      >
+        <div className="absolute -top-6 left-7 h-28 w-28 rotate-12 rounded-card bg-current opacity-45" />
+        <div className="absolute -bottom-12 right-5 h-36 w-36 rotate-45 rounded-sheet border-2 border-current" />
+        <div className="absolute top-16 right-10 h-14 w-14 -rotate-12 rounded-tile border border-current" />
+      </div>
+    );
+  }
+
   return (
     <svg
       aria-hidden="true"
-      style={{ opacity }}
+      style={{ opacity, color: inkColor }}
       className="pointer-events-none absolute inset-0 z-0 h-full w-full"
     >
       {shape === 'hojas' ? (
@@ -221,20 +293,20 @@ function CardShapeLayer({
           <defs>
             <pattern
               id={patternId}
-              width="64"
-              height="64"
+              width="44"
+              height="44"
+              patternTransform="rotate(-8)"
               patternUnits="userSpaceOnUse"
             >
-              <g transform="translate(8 6) scale(0.14)">
-                <path
+                <g
+                  transform="translate(2 2) scale(0.13) translate(-640 -215)"
                   fill="currentColor"
-                  d="M154 8 C305 94 172 358 13 280 C139 230 158 132 154 8Z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M11 8 C0 106 91 119 56 215 C163 159 114 30 11 8Z"
-                />
-              </g>
+                >
+                  <path d={YMARK_BIG_PATH} />
+                  <g transform="rotate(-15, 700, 350)">
+                    <path d={YMARK_SMALL_PATH} />
+                  </g>
+                </g>
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill={`url(#${patternId})`} />
@@ -246,11 +318,11 @@ function CardShapeLayer({
           <defs>
             <pattern
               id={patternId}
-              width="20"
-              height="20"
+              width="16"
+              height="16"
               patternUnits="userSpaceOnUse"
             >
-              <circle cx="4" cy="4" r="1.5" fill="currentColor" />
+              <circle cx="2" cy="2" r="1.6" fill="currentColor" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill={`url(#${patternId})`} />
@@ -262,18 +334,18 @@ function CardShapeLayer({
           <defs>
             <pattern
               id={patternId}
-              width="24"
-              height="24"
-              patternTransform="rotate(28)"
+              width="14"
+              height="14"
+              patternTransform="rotate(25)"
               patternUnits="userSpaceOnUse"
             >
               <line
                 x1="0"
                 y1="0"
                 x2="0"
-                y2="24"
+                y2="14"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="1.5"
               />
             </pattern>
           </defs>
@@ -286,12 +358,12 @@ function CardShapeLayer({
           <defs>
             <pattern
               id={patternId}
-              width="28"
-              height="28"
+              width="22"
+              height="22"
               patternUnits="userSpaceOnUse"
             >
               <path
-                d="M 28 0 L 0 0 0 28"
+                d="M 22 0 L 0 0 0 22"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1"
@@ -302,29 +374,20 @@ function CardShapeLayer({
         </>
       ) : null}
 
-      {shape === 'geo' ? (
-        <g fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="72%" y="12%" width="56" height="56" rx="8" transform="rotate(14 260 40)" />
-          <rect x="58%" y="56%" width="84" height="84" rx="10" transform="rotate(-12 220 150)" />
-          <rect x="8%" y="62%" width="40" height="40" rx="6" />
-        </g>
-      ) : null}
-
       {shape === 'curve' ? (
-        <g fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="95%" cy="105%" r="48%" />
-          <circle cx="95%" cy="105%" r="72%" />
-          <circle cx="95%" cy="105%" r="96%" />
-        </g>
+          <g fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="105%" cy="125%" r="36%" />
+            <circle cx="105%" cy="125%" r="58%" />
+            <circle cx="105%" cy="125%" r="80%" />
+          </g>
       ) : null}
 
-      {shape === 'waves' ? (
-        <g fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M-20,60 Q80,15 180,60 T380,60" />
-          <path d="M-20,96 Q80,51 180,96 T380,96" />
-          <path d="M-20,132 Q80,87 180,132 T380,132" />
-        </g>
+          {shape === 'waves' ? (
+              <g fill="currentColor">
+                <path d="M0 150 Q85 110 171 150 T342 150 V216 H0Z" opacity="0.5" />
+                <path d="M0 172 Q85 136 171 172 T342 172 V216 H0Z" opacity="0.7" />
+              </g>
       ) : null}
-    </svg>
-  );
+            </svg>
+          );
 }

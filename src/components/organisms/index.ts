@@ -36,13 +36,21 @@ export { Sidebar, type SidebarProps, type SidebarUser } from './Sidebar';
 export { TransactionTable, type TransactionTableProps } from './TransactionTable';
 export { YCard, type YCardProps } from './YCard';
 export {
+  CARD_METAL_HEX,
   CARD_PALETTE,
+  YMARK_BIG_PATH,
+  YMARK_SMALL_PATH,
   getAccountTypeLabel,
   getCardBackgroundStyle,
+  getCardHoloStyle,
+  getCardInkHex,
   getCardLuminance,
+  getCardSheenStyle,
   getCardTextTone,
+  getCardTextureStyle,
   hexToWash,
   mapDbPatternToCardShape,
+  mixHex,
   resolveCardHex,
   type CardBase,
   type CardColorKey,

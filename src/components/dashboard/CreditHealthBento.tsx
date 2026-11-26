@@ -2,13 +2,15 @@
 
 import { useMemo } from 'react';
 import { useAccounts } from '@/hooks/useCatalogs';
+import { useModalStore } from '@/store/useModalStore';
 import { useYBankStore } from '@/store/useYBankStore';
 import { HealthMeter } from '@/components/organisms';
 
-/** Connects active credit card utilization and currency conversion state to HealthMeter. */
+/** Connects active credit card utilization and currency conversion state to HealthMeter ink block. */
 export default function CreditHealthBento() {
   const { currency, preferredRate, isCalculatingRate } = useYBankStore();
   const { data: accounts = [], isLoading } = useAccounts();
+  const openModal = useModalStore((state) => state.openModal);
 
   const cards = useMemo(
     () => accounts.filter((a) => a.type === 'credit_card' && a.is_active),
@@ -64,6 +66,7 @@ export default function CreditHealthBento() {
 
   return (
     <HealthMeter
+      variant="ink"
       totalLimit={creditStats?.totalLimit ?? 0}
       totalUsed={creditStats?.totalUsed ?? 0}
       currency={currency}
@@ -71,6 +74,9 @@ export default function CreditHealthBento() {
       isLoading={isActuallyLoading}
       isRateUnavailable={isRateUnavailable}
       hasCards={cards.length > 0}
+      actionHref={cards.length > 0 ? '/accounts' : undefined}
+      actionLabel={cards.length > 0 ? 'Ver cómo mejorar' : 'Agregar tarjeta'}
+      onAction={cards.length === 0 ? () => openModal('account') : undefined}
       className="h-full"
     />
   );

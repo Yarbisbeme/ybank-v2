@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { formatMoney, type CurrencyCode, type MoneySignMode } from './money-format';
 
-export type MoneySize = 'xl' | 'l' | 'card' | 'amount' | 'small';
+export type MoneySize = 'hero' | 'xl' | 'l' | 'card' | 'amount' | 'small';
 export type MoneyTone = 'default' | 'income' | 'expense' | 'debit' | 'pending' | 'muted';
 
 export interface MoneyProps {
@@ -15,6 +15,7 @@ export interface MoneyProps {
 }
 
 const SIZE_CLASSES: Record<MoneySize, string> = {
+  hero: 'money-hero',
   xl: 'money-xl',
   l: 'money-l',
   card: 'money-card',

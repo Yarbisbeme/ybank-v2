@@ -4,7 +4,7 @@ import { balanceOf, signIn, snap, sql, watch, auditUser } from './helpers'
 // Requires 01-auth-onboarding to have run (creates the audit user with "Nómina" = 25,000 DOP).
 
 async function openNewOperation(page: Page) {
-  await page.getByRole('button', { name: /nuevo movimiento/i }).first().click()
+  await page.getByRole('button', { name: /registrar movimiento|nuevo movimiento/i }).first().click()
   await expect(page.getByPlaceholder('0.00').last()).toBeVisible()
 }
 
@@ -31,7 +31,7 @@ test('create expense, income and transfer; balances follow in the DB', async ({ 
   await page.getByRole('radio', { name: 'Salida', exact: true }).click()
   await page.getByPlaceholder('0.00').last().fill('1500')
   await pick(page, 'Seleccionar cuenta...', 'Nómina')
-  await pick(page, 'Buscar categoría...', 'Supermercado').catch(() => {})
+  await pick(page, 'Buscar categoría...', 'Supermercado').catch(() => { })
   await page.getByPlaceholder('Nota u observación...').fill('Audit gasto')
   await submit(page)
   await page.waitForTimeout(3000)

@@ -406,7 +406,145 @@
   border-top-right-radius: var(--radius-sheet);
 }
 
+/* YBank 2.0 1:1 visual parity utilities */
+.money-hero {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.2vw, 60px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-hero-input {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 56px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--action);
+}
+
+@keyframes y2-wave {
+  0% {
+    transform: translateY(100%);
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes y2-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.y2-seg-wave {
+  position: absolute;
+  inset: 0;
+  background: var(--action);
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  animation: y2-wave 600ms var(--ease-standard);
+}
+
+.y2-seg-crest {
+  position: absolute;
+  left: 0;
+  top: -9px;
+  width: 200%;
+  height: 12px;
+  fill: var(--action);
+  animation: y2-slide 1.2s linear infinite;
+}
+
+.toast-ybank {
+  background-color: var(--ink);
+  color: var(--canvas);
+  border-color: transparent;
+}
+
+.toast-ybank-success {
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-ybank-success::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background-color: var(--lime);
+}
+
+.toast-ybank-error {
+  background-color: var(--surface-raised);
+  color: var(--ink);
+  border-color: var(--debit);
+}
+
+.health-card-ink {
+  background-color: #0e0e10;
+  color: #f4f3ef;
+  border-color: transparent;
+}
+
+[data-theme="dark"] .health-card-ink,
+.dark .health-card-ink {
+  background-color: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.health-card-ink-muted {
+  color: #a3a29c;
+}
+
+[data-theme="dark"] .health-card-ink-muted,
+.dark .health-card-ink-muted {
+  color: var(--ink-2);
+}
+
+.health-card-ink-track {
+  background-color: rgba(244, 243, 239, 0.14);
+}
+
+.health-card-ink-link {
+  color: #7c9bff;
+}
+
+.y2-card-perspective {
+  perspective: 900px;
+}
+
+.y2-card-active-ring {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.y2-card-materia-shadow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.25), var(--shadow-card);
+}
+
+.y2-card-holo-blend {
+  mix-blend-mode: overlay;
+  opacity: 0.8;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .y2-seg-wave,
+  .y2-seg-crest,
   *,
   *::before,
   *::after {
