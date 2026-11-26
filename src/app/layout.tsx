@@ -1,21 +1,19 @@
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import { Metadata, Viewport } from "next";
 import Script from "next/script"; 
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: "#1f4bff",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export const metadata: Metadata = {
-  title: "YBank Intelligence",
-  description: "Sistema de Telemetría Financiera Personal",
+  title: "YBank",
+  description: "Tus cuentas, tarjetas y movimientos en DOP y USD, claros y bajo control.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -30,14 +28,22 @@ export const metadata: Metadata = {
   },
 };
 
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["400", "600", "800"],
+  variable: "--font-bricolage",
+});
+
 const inter = Inter({ 
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-inter", 
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  weight: ["500"],
+  variable: "--font-jetbrains-mono",
 });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -45,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html 
       lang="es" 
       suppressHydrationWarning 
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${bricolage.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="bg-background antialiased font-sans" suppressHydrationWarning>
         <ThemeProvider 

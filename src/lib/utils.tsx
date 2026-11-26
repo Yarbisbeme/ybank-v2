@@ -1,21 +1,13 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-// src/utils/card-mapper.tsx
-import { Account, AccountType } from '@/types';
-import BancoBHDCard from '@/components/Tarjetas/BhdCard';
-import BanreservasWorldElite from '@/components/Tarjetas/BanreservasWordElite';
-import PopularCard from '@/components/Tarjetas/PopularCard';
-import ApapCard from '@/components/Tarjetas/ApapCard';
-import AccountCard from '@/components/Tarjetas/AccountCard';
-import ScotiaCard from "@/components/Tarjetas/ScotiaCard";
-import LafiseCard from "@/components/Tarjetas/LafiseCard";
+import { AccountType } from '@/types';
 
 import { 
   Activity,
   Banknote, Home, Utensils, Car, Film, HeartPulse, GraduationCap, 
   UserSquare2, Smartphone, Dog, LineChart, ShoppingBag, Plane,
   Briefcase, Gift, Receipt, Building, Zap, Wifi, Wrench, 
-  ShoppingCart, ForkKnife, Bike, Fuel, CarTaxiFront, PenTool, Train, 
+  ShoppingCart, ForkKnife, Bike, Fuel, CarTaxiFront, Train, 
   MonitorPlay, Popcorn, Martini, Pill, Stethoscope, ShieldCheck, 
   Dumbbell, Scissors, Brush, Sparkles, MonitorSmartphone, Laptop, 
   Bone, Stethoscope as Vet, CircleDashed, Landmark, Percent, FileText,
@@ -23,25 +15,12 @@ import {
   Wallet,
   CreditCard,
   Coins,
-  TrendingUp // 💡 Aseguramos de usar TrendingUp para inversiones
+  TrendingUp
 } from 'lucide-react';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-export const getAccountComponent = (account: Account) => {
-  const name = account.name.toLowerCase();
-
-  if (name.includes('popular')) return <PopularCard account={account} />;
-  if (name.includes('bhd')) return <BancoBHDCard account={account} />;
-  if (name.includes('reservas') || name.includes('banreservas')) return <BanreservasWorldElite account={account} />;
-  if (name.includes('apap')) return <ApapCard account={account} />;
-  if (name.includes('scotiabank')) return <ScotiaCard account={account} />;
-  if (name.includes('lafise')) return <LafiseCard account={account} />;
-
-  return <AccountCard account={account} />;
-};
 
 export const getTransactionStyles = (type: string) => {
     switch (type.toLowerCase()) {
