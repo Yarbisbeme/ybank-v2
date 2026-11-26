@@ -1,152 +1,217 @@
-'use client'
+'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { RefreshCw, Calculator, X } from 'lucide-react';
-import { useTransactionsList, useAccounts } from '@/hooks/useCatalogs';
-import TransactionTable from './TransactionTable'; 
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Calculator, X } from 'lucide-react';
+import { TRANSACTIONS_PAGE_SIZE } from '@/lib/transaction-keys';
+import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs';
 import { useFilterStore } from '@/store/useFilterStore';
+import { useModalStore } from '@/store/useModalStore';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useYBankStore } from '@/store/useYBankStore';
-import { cn } from '@/lib/utils';
+import { Button, IconButton, Money } from '@/components/atoms';
+import { formatItemCount } from '@/components/molecules';
+import { TransactionTable, type MoveRowData } from '@/components/organisms';
 
+interface SelectedRowShape {
+  id?: string;
+  amount?: number | string;
+  type?: string;
+  is_split_child?: boolean;
+}
+
+/** Connects TransactionTable organism to React Query pagination, filters, and multi-selection summary. */
 export default function ClientTransactionTable() {
   const searchParams = useSearchParams();
-  
-  // 🛑 1. TRAEMOS EL ESTADO DE ZUSTAND
-  const { isSelectionMode, selectedTx, setSelectedTx, clearSelection, toggleSingleTx, setTotalItemsInView } = useSelectionStore();
+  const openModal = useModalStore((state) => state.openModal);
 
-  const { preferredAccountId } = useYBankStore();
+  const {
+    isSelectionMode,
+    selectedTx,
+    setSelectedTx,
+    toggleSingleTx,
+    setTotalItemsInView,
+  } = useSelectionStore();
+
+  const { preferredAccountId, currency } = useYBankStore();
   const urlAccountId = searchParams.get('accountId');
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
-  
-  const activeAccountId = useMemo(() => {
-    return urlAccountId || preferredAccountId || accounts[0]?.id || null;
-  }, [urlAccountId, preferredAccountId, accounts]);
+
+  const activeAccountId = useMemo(
+    () => urlAccountId || preferredAccountId || accounts[0]?.id || null,
+    [urlAccountId, preferredAccountId, accounts],
+  );
 
   const filters = useFilterStore();
 
-  // The page belongs to a specific filter set: changing any filter (or the account
-  // in the URL) goes back to page 1. Derived during render, no effect needed.
   const filterSignature = JSON.stringify([
-    urlAccountId, filters.type, filters.categoryId, filters.startDate,
-    filters.endDate, filters.tagId, filters.search,
+    urlAccountId,
+    filters.type,
+    filters.categoryId,
+    filters.startDate,
+    filters.endDate,
+    filters.tagId,
+    filters.search,
   ]);
-  const [pageState, setPageState] = useState({ signature: filterSignature, page: 1 });
-  const currentPage = pageState.signature === filterSignature ? pageState.page : 1;
-  const setCurrentPage = (page: number) => setPageState({ signature: filterSignature, page });
+  const [pageState, setPageState] = useState({
+    signature: filterSignature,
+    page: 1,
+  });
+  const currentPage =
+    pageState.signature === filterSignature ? pageState.page : 1;
+  const setCurrentPage = (page: number) =>
+    setPageState({ signature: filterSignature, page });
 
-  const { data, isLoading: isLoadingTx, isFetching } = useTransactionsList(currentPage);
-  const transactions = data?.transactions || [];
-  const totalItems = data?.total || 0;
+  const {
+    data,
+    isLoading: isLoadingTx,
+    isError,
+    refetch,
+  } = useTransactionsList(currentPage);
 
-  // A user without accounts has no activeAccountId: that is an empty state, not loading.
-  const isQueryLoading = isLoadingTx || (isLoadingAccounts && accounts.length === 0);
+  const transactions = (data?.transactions ?? []) as MoveRowData[];
+  const totalItems = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / TRANSACTIONS_PAGE_SIZE));
+  const isQueryLoading =
+    isLoadingTx || (isLoadingAccounts && accounts.length === 0);
 
-  // Sincronizamos el totalItems hacia Zustand para que la barra de filtros lo lea
   useEffect(() => {
     setTotalItemsInView(totalItems);
   }, [totalItems, setTotalItemsInView]);
 
-  // Si los filtros cambian, vaciamos la selección
   useEffect(() => {
-    if (Object.keys(selectedTx).length > 0 || isSelectionMode) {
-      clearSelection();
+    const state = useSelectionStore.getState();
+    if (Object.keys(state.selectedTx).length > 0 || state.isSelectionMode) {
+      state.clearSelection();
     }
-  }, [filters.type, filters.categoryId, filters.startDate, filters.endDate, clearSelection]);
+  }, [filters.type, filters.categoryId, filters.startDate, filters.endDate]);
+
+  const selectedIds = useMemo(
+    () => new Set(Object.keys(selectedTx)),
+    [selectedTx],
+  );
 
   const selectionSummary = useMemo(() => {
-    const values = Object.values(selectedTx);
-    if (values.length === 0) return { count: 0, total: 0 };
+    const values = Object.values(selectedTx) as SelectedRowShape[];
+    if (values.length === 0) {
+      return { count: 0, total: 0 };
+    }
 
-    const total = values.reduce((sum: number, tx: any) => {
+    const total = values.reduce((sum, tx) => {
       const amount = Number(tx.amount) || 0;
-      
-      if (tx.is_split_child) return sum - amount;
-      
-      if (tx.type === 'income') return sum + amount;
-      if (tx.type === 'expense') return sum - amount;
-      
-      return sum; 
+      if (tx.is_split_child) {
+        return sum - amount;
+      }
+      if (tx.type === 'income') {
+        return sum + amount;
+      }
+      if (tx.type === 'expense') {
+        return sum - amount;
+      }
+      return sum;
     }, 0);
 
     return { count: values.length, total };
   }, [selectedTx]);
-  
+
+  const hasActiveFilters = Boolean(
+    filters.type ||
+      filters.categoryId ||
+      filters.startDate ||
+      filters.endDate ||
+      filters.tagId ||
+      filters.search,
+  );
+
   return (
-    <div className={`relative transition-opacity duration-300 ${isFetching && !isQueryLoading ? 'opacity-80' : 'opacity-100'}`}>
-      
-      {isQueryLoading ? (
-        <p className="flex justify-center items-center gap-2 text-center text-[9px] font-bold uppercase tracking-widest text-primary animate-pulse mt-4 py-8">
-          <RefreshCw size={12} className="animate-spin" />
-          Sincronizando Telemetría...
-        </p>
-      ) : (
-        <TransactionTable 
-          transactions={transactions} 
-          activeAccountId={activeAccountId} 
-          currentPage={currentPage}
-          totalItems={totalItems}
-          onPageChange={setCurrentPage}
-          isSelectionMode={isSelectionMode}
-          selectedTx={selectedTx}
-          onToggleSingle={toggleSingleTx}
-        />
-      )}
-
-      {/* Indicador de actualización en segundo plano */}
-      {isFetching && !isQueryLoading && (
-         <div className="absolute top-0 right-2 flex items-center justify-center p-1 bg-surface-2 rounded-full shadow-sm z-10">
-            <RefreshCw size={14} className="animate-spin text-blue-500" />
-         </div>
-      )}
-
-      {/* 🧮 BARRA FLOTANTE DE RESULTADOS (Estilo YBANK) */}
-      <AnimatePresence>
-        {isSelectionMode && selectionSummary.count > 0 && (
-          <motion.div 
-            initial={{ y: 50, opacity: 0, scale: 0.9 }} 
-            animate={{ y: 0, opacity: 1, scale: 1 }} 
-            exit={{ y: 50, opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            // Fondo negro absoluto, bordes sutiles y sombra profunda para que "flote" sobre la tabla
-            className="fixed bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#09090b] text-white p-2 pr-3 rounded-[16px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] border border-white/10 backdrop-blur-md"
-          >
-            
-            {/* 💡 BADGE DE CONTEO */}
-            <div className="flex items-center gap-1.5 bg-white/10 px-3 py-2 rounded-[10px]">
-              <Calculator size={14} className="text-zinc-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-100 mt-0.5">
-                {selectionSummary.count} {selectionSummary.count === 1 ? 'Ítem' : 'Ítems'}
-              </span>
-            </div>
-            
-            {/* 💡 TOTAL CALCULADO (Tipografía Monoespaciada) */}
-            <div className="flex flex-col border-l border-white/10 pl-3 py-0.5">
-              <span className="text-[8px] text-zinc-500 font-black uppercase tracking-[0.2em] leading-none mb-1.5">
-                Flujo Calculado
-              </span>
-              <span className={cn(
-                "text-lg sm:text-xl font-mono font-black leading-none tracking-tight",
-                selectionSummary.total < 0 ? 'text-rose-400' : 'text-emerald-400'
-              )}>
-                {selectionSummary.total < 0 ? '-' : '+'}${Math.abs(selectionSummary.total).toLocaleString('en-US', {minimumFractionDigits: 2})}
-              </span>
-            </div>
-
-            {/* 💡 BOTÓN DE CIERRE (Consistente con el resto de la app) */}
-            <button 
-              onClick={() => setSelectedTx({})} 
-              className="ml-1 p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-[8px] transition-colors active:scale-90"
-              title="Limpiar selección"
+    <div className="relative flex flex-col gap-4">
+      <TransactionTable
+        transactions={transactions}
+        activeAccountId={activeAccountId}
+        isLoading={isQueryLoading}
+        error={isError ? 'Revisa tu conexión e intenta de nuevo.' : null}
+        onRetry={() => {
+          void refetch();
+        }}
+        selectable={isSelectionMode}
+        selectedIds={selectedIds}
+        onToggleSelect={(tx) => {
+          if (tx.id) {
+            toggleSingleTx(tx);
+          }
+        }}
+        onSelectTransaction={(tx) => {
+          if (tx.is_split_child || !tx.id) {
+            return;
+          }
+          openModal('transaction', {
+            transactionId: tx.id,
+            accountId: tx.account_id,
+            initialData: tx,
+          });
+        }}
+        page={currentPage}
+        totalPages={totalPages}
+        totalCount={totalItems}
+        onPageChange={setCurrentPage}
+        emptyTitle={
+          hasActiveFilters
+            ? 'Sin movimientos con esos filtros'
+            : 'No hay movimientos registrados'
+        }
+        emptyDescription={
+          hasActiveFilters
+            ? 'Prueba limpiando los filtros o ampliando el rango de fechas.'
+            : 'Registra tu primer ingreso, gasto o traspaso para verlo aquí.'
+        }
+        emptyAction={
+          hasActiveFilters ? (
+            <Button variant="secondary" onClick={filters.clearFilters}>
+              Limpiar filtros
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={() => openModal('transaction')}
             >
-              <X size={16} strokeWidth={2.5} />
-            </button>
+              Registrar movimiento
+            </Button>
+          )
+        }
+      />
 
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isSelectionMode && selectionSummary.count > 0 ? (
+        <div
+          role="region"
+          aria-label="Resumen de movimientos seleccionados"
+          className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-sticky flex items-center gap-3 rounded-panel border border-line-strong bg-surface-raised px-4 py-2.5 shadow-overlay"
+        >
+          <span className="inline-flex items-center gap-1.5 rounded-chip bg-surface-sunk px-2.5 py-1 label text-ink">
+            <Calculator size={14} strokeWidth={2} className="text-ink-2" />
+            {formatItemCount(selectionSummary.count)}
+          </span>
+
+          <div className="flex flex-col border-l border-line pl-3">
+            <span className="nav text-ink-2">Total seleccionado</span>
+            <Money
+              value={selectionSummary.total}
+              currency={currency}
+              size="amount"
+              sign="auto"
+              tone={selectionSummary.total >= 0 ? 'income' : 'expense'}
+            />
+          </div>
+
+          <IconButton
+            size="sm"
+            variant="ghost"
+            aria-label="Limpiar selección"
+            onClick={() => setSelectedTx({})}
+          >
+            <X size={16} strokeWidth={2} />
+          </IconButton>
+        </div>
+      ) : null}
     </div>
   );
 }

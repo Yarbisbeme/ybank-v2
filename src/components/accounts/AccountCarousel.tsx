@@ -1,142 +1,178 @@
-'use client'
+'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Zap, Loader2 } from 'lucide-react';
-import DesktopAccounts from './DesktopAccounts';
-import MobileWalletStack from './MobileWalletCard'; 
-import { useAccounts, useProfile, useUpdateProfile } from '@/hooks/useCatalogs'; 
+import { useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, CreditCard, Plus } from 'lucide-react';
+import { useAccounts, useProfile, useUpdateProfile } from '@/hooks/useCatalogs';
+import { useModalStore } from '@/store/useModalStore';
+import { Button, IconButton, Skeleton } from '@/components/atoms';
+import { EmptyState } from '@/components/molecules';
+import {
+  CardStack,
+  YCard,
+  mapDbPatternToCardShape,
+} from '@/components/organisms';
 
+/** Responsive accounts showcase on /dashboard using YCard on desktop and CardStack on mobile. */
 export default function AccountCarousel() {
-  const desktopScrollRef = useRef<HTMLDivElement>(null);
-  
+  const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const openModal = useModalStore((state) => state.openModal);
+
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const updateProfileMutation = useUpdateProfile();
+  const [selectedMobileId, setSelectedMobileId] = useState<string | null>(null);
+
+  const primaryAccountId = profile?.primary_account_id;
 
   const sortedAccounts = useMemo(() => {
-    if (accounts.length === 0) return [];
-    if (!profile?.primary_account_id) return accounts;
-
-    const favoriteAcc = accounts.find(a => a.id === profile.primary_account_id);
-    if (!favoriteAcc) return accounts;
-
-    const otherAccs = accounts.filter(a => a.id !== profile.primary_account_id);
-    
-    return [favoriteAcc, ...otherAccs];
-  }, [accounts, profile?.primary_account_id]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (desktopScrollRef.current) {
-      const container = desktopScrollRef.current;
-      const card = container.firstElementChild as HTMLElement;
-      
-      if (card) {
-        const scrollAmount = card.offsetWidth + 20; 
-        container.scrollBy({ 
-          left: direction === 'left' ? -scrollAmount : scrollAmount, 
-          behavior: 'smooth' 
-        });
-      }
+    if (accounts.length === 0) {
+      return [];
     }
+    if (!primaryAccountId) {
+      return accounts;
+    }
+
+    const favoriteAcc = accounts.find((a) => a.id === primaryAccountId);
+    if (!favoriteAcc) {
+      return accounts;
+    }
+
+    return [
+      favoriteAcc,
+      ...accounts.filter((a) => a.id !== primaryAccountId),
+    ];
+  }, [accounts, primaryAccountId]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const container = scrollRef.current;
+    if (!container) {
+      return;
+    }
+    const offset = 340;
+    container.scrollBy({
+      left: direction === 'left' ? -offset : offset,
+      behavior: 'smooth',
+    });
   };
 
-  useEffect(() => {
-    const container = desktopScrollRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault(); 
-        container.scrollLeft += e.deltaY;
-      }
-    };
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
-
-  const handleToggleFavorite = (accountId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const newPrimaryId = profile?.primary_account_id === accountId ? null : accountId;
-
-    updateProfileMutation.mutate({ 
-      primary_account_id: newPrimaryId 
-    });
+  const handleToggleFavorite = (accountId: string) => {
+    const nextPrimaryId =
+      profile?.primary_account_id === accountId ? null : accountId;
+    updateProfileMutation.mutate({ primary_account_id: nextPrimaryId });
   };
 
   if (isLoadingAccounts || isLoadingProfile) {
     return (
-      <div className="w-full h-[200px] bg-card/50 animate-pulse rounded-[10px] border border-border border-dashed flex flex-col items-center justify-center gap-2">
-        <Loader2 size={24} className="animate-spin text-primary/30" />
-        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Sincronizando Nodos...</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Skeleton variant="card" label="Cargando cuentas" />
+        <Skeleton variant="card" className="hidden md:block" />
       </div>
     );
   }
 
-  if (accounts.length === 0) return null;
+  if (sortedAccounts.length === 0) {
+    return (
+      <div className="rounded-panel border border-line bg-surface p-4">
+        <EmptyState
+          icon={<CreditCard size={24} strokeWidth={2} />}
+          title="Aún no tienes cuentas registradas"
+          description="Agrega tu cuenta bancaria, tarjeta o efectivo para empezar."
+          action={
+            <Button
+              variant="primary"
+              leftIcon={<Plus size={16} strokeWidth={2} />}
+              onClick={() => openModal('account')}
+            >
+              Agregar cuenta
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  const activeMobileAccountId =
+    selectedMobileId && sortedAccounts.some((a) => a.id === selectedMobileId)
+      ? selectedMobileId
+      : sortedAccounts[0].id;
 
   return (
-    <section className="relative w-full">
-      
-      {/* VERSIÓN ESCRITORIO */}
-      <div className="hidden md:block">
-        
-        <div className="flex justify-between items-end mb-6 px-2">
-            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-muted-foreground" />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                Ecosistema de Nodos
-              </h2>
-              <span className="ml-2 px-2 py-0.5 rounded-[4px] bg-surface-2 border border-border text-[9px] font-mono font-bold text-foreground">
-                {accounts.length}
-              </span>
-            </div>
-
-            <div className="flex justify-end gap-2 pr-2">
-              <button 
-                onClick={() => scroll('left')}
-                className="p-1.5 rounded-[6px] bg-surface-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-card active:scale-95 transition-all"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft size={16} strokeWidth={2.5} />
-              </button>
-
-              <button 
-                onClick={() => scroll('right')}
-                className="p-1.5 rounded-[6px] bg-surface-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-card active:scale-95 transition-all"
-                aria-label="Scroll right"
-              >
-                <ChevronRight size={16} strokeWidth={2.5} />
-              </button>
-            </div>
+    <section aria-label="Tus cuentas" className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <h2 className="title text-ink">Tus cuentas</h2>
+          <span className="rounded-chip bg-surface-sunk px-2 py-0.5 label text-ink-2 tabular-nums">
+            {sortedAccounts.length}
+          </span>
         </div>
 
-        <DesktopAccounts 
-          accounts={sortedAccounts} 
-          scrollRef={desktopScrollRef}
-          primaryAccountId={profile?.primary_account_id}
-          onToggleFavorite={handleToggleFavorite}
-        />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/accounts"
+            className="small text-action hover:underline mr-1"
+          >
+            Ver todas
+          </Link>
 
+          <div className="hidden md:flex items-center gap-1">
+            <IconButton
+              size="sm"
+              variant="surface"
+              aria-label="Desplazar cuentas a la izquierda"
+              onClick={() => handleScroll('left')}
+            >
+              <ChevronLeft size={16} strokeWidth={2} />
+            </IconButton>
+            <IconButton
+              size="sm"
+              variant="surface"
+              aria-label="Desplazar cuentas a la derecha"
+              onClick={() => handleScroll('right')}
+            >
+              <ChevronRight size={16} strokeWidth={2} />
+            </IconButton>
+          </div>
+        </div>
       </div>
 
-      {/* VERSIÓN MÓVIL */}
-      <div className="block md:hidden">
-        <div className="flex items-center justify-center gap-2 mb-4">
-              <Zap size={16} className="text-muted-foreground" />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                Ecosistema de Nodos
-              </h2>
-              <span className="ml-2 px-2 py-0.5 rounded-[4px] bg-surface-2 border border-border text-[9px] font-mono font-bold text-foreground">
-                {accounts.length}
-              </span>
-        </div>
-        <MobileWalletStack 
-          accounts={sortedAccounts} 
-          primaryAccountId={profile?.primary_account_id}
+      <div
+        ref={scrollRef}
+        className="hidden md:flex gap-4 overflow-x-auto pb-2"
+      >
+        {sortedAccounts.map((acc) => (
+          <div key={acc.id} className="w-80 shrink-0">
+            <YCard
+              name={acc.name}
+              balance={acc.current_balance}
+              currency={acc.currency}
+              accountType={acc.type}
+              bankName={acc.institution?.name}
+              bankLogoUrl={acc.institution?.logo_url}
+              last4={acc.last_4_digits}
+              color={acc.color || acc.institution?.brand_color_primary}
+              secondaryColor={acc.institution?.brand_color_secondary}
+              shape={mapDbPatternToCardShape(
+                acc.custom_pattern || acc.institution?.card_pattern,
+              )}
+              isFavorite={profile?.primary_account_id === acc.id}
+              onToggleFavorite={() => handleToggleFavorite(acc.id)}
+              onClick={() => router.push(`/accounts?accountId=${acc.id}`)}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="md:hidden">
+        <CardStack
+          accounts={sortedAccounts}
+          activeAccountId={activeMobileAccountId}
+          onSelectAccount={(acc) => setSelectedMobileId(acc.id)}
+          favoriteAccountId={profile?.primary_account_id}
           onToggleFavorite={handleToggleFavorite}
+          onAddAccount={() => openModal('account')}
         />
       </div>
     </section>
