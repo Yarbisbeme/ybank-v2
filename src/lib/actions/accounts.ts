@@ -80,6 +80,7 @@ export async function createAccount(input: any) {
     cutoff_day: valid.cutoff_day || null, 
     expiry_date: valid.expiry_date || null,
     color: valid.color || '#0f172a',
+    color_secondary: valid.color_secondary ?? null,
     custom_pattern: valid.custom_pattern || 'geometric',
     custom_text_theme: valid.custom_text_theme || 'light',
     is_active: valid.is_active

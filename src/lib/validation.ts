@@ -24,6 +24,7 @@ export const createAccountSchema = z.object({
   last_4_digits: z.string().regex(/^\d{0,4}$/, 'Deben ser 0-4 dígitos').optional(),
   credit_limit: z.number().positive().finite().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color HEX inválido').optional(),
+  color_secondary: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color HEX inválido').nullable().optional(),
   custom_pattern: z.enum(['solid', 'waves', 'geometric', 'mesh', 'lines', 'dots', 'curve']).optional(),
   custom_text_theme: z.enum(['light', 'dark']).optional(),
   expiry_date: z.string().optional(),

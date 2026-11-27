@@ -114,6 +114,7 @@ export interface Account {
 
   // 💡 Corrección: punto y coma y tipos estrictos
   color: string;
+  color_secondary: string | null; // second card colour for gradients; null = derived by the UI
   custom_pattern: CustomPattern;
   custom_text_theme: CustomTextTheme;
   
@@ -228,6 +229,7 @@ export interface EditCreateAccount {
   type: AccountType;
   currency: CurrencyCode;
   color: string;
+  color_secondary?: string | null;
   custom_pattern: CustomPattern;
   custom_text_theme: CustomTextTheme;
   current_balance: number;
@@ -255,6 +257,7 @@ export interface CreateAccountInput {
   credit_limit?: number;
   
   color?: string;
+  color_secondary?: string | null;
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
 
@@ -271,6 +274,7 @@ export interface UpdateAccountInput {
   is_active?: boolean;
   
   color?: string;
+  color_secondary?: string | null;
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
 }
