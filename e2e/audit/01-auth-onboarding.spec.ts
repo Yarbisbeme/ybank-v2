@@ -1,28 +1,12 @@
-import { test, expect, type Page } from '@playwright/test'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { test, expect } from '@playwright/test'
+import { newAuditEmail, saveAuditUser, snap, watch } from './helpers'
 
-// Exploratory functional audit (Phase 0.5): records what actually happens at each
-// step (screenshot + visible text + console/page errors) as evidence.
-const OUT = 'e2e/.audit'
-mkdirSync(OUT, { recursive: true })
-
-function watch(page: Page) {
-  const errors: string[] = []
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`) })
-  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
-  return errors
-}
-
-async function snap(page: Page, name: string, errors: string[]) {
-  await page.waitForTimeout(1500)
-  await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true })
-  const text = (await page.locator('body').innerText()).replace(/\n{2,}/g, '\n').slice(0, 3000)
-  writeFileSync(`${OUT}/${name}.txt`, `URL: ${page.url()}\nERRORS:\n${errors.join('\n') || '(none)'}\n\nTEXT:\n${text}`)
-}
+// Creates the user the later specs share ("Nómina" = 25,000 DOP + default "Efectivo").
 
 test('sign up with email → onboarding → dashboard', async ({ page }) => {
   const errors = watch(page)
-  const email = `audit+${Date.now()}@ybank.test`
+  const email = newAuditEmail()
+  const password = 'audit-pass-123'
 
   await page.goto('/')
   await snap(page, '01-landing', errors)
@@ -35,14 +19,12 @@ test('sign up with email → onboarding → dashboard', async ({ page }) => {
   await snap(page, '02b-sign-up-form', errors)
   await page.getByPlaceholder('Nombre completo').fill('Usuario Auditoría')
   await page.getByPlaceholder('Correo electrónico').fill(email)
-  await page.getByPlaceholder('Contraseña (mín. 6 caracteres)').fill('audit-pass-123')
+  await page.getByPlaceholder('Contraseña (mín. 6 caracteres)').fill(password)
   await page.locator('form button[type="submit"]').first().click()
 
-  await page.waitForURL(/onboarding|dashboard|sign-in/, { timeout: 20_000 }).catch(() => {})
+  await page.waitForURL(/onboarding|dashboard/, { timeout: 20_000 })
   await snap(page, '03-after-sign-up', errors)
-  writeFileSync(`${OUT}/user.json`, JSON.stringify({ email, password: 'audit-pass-123' }))
-
-  expect(page.url()).toMatch(/onboarding|dashboard/)
+  saveAuditUser({ email, password })
 
   // Onboarding step 3: main account
   await page.locator('select').first().selectOption({ label: 'Banco Popular' })
@@ -51,10 +33,11 @@ test('sign up with email → onboarding → dashboard', async ({ page }) => {
   await page.getByRole('button', { name: /configurar nodo/i }).click()
   await snap(page, '04-onboarding-step4', errors)
 
-  // Step 4: whatever the final confirmation button is, click the last enabled one
-  const buttons = page.locator('main button:not([disabled])')
-  await buttons.last().click()
-  await page.waitForURL(/dashboard/, { timeout: 30_000 }).catch(() => {})
+  // Step 4 (currency). Wait for it to render: clicking "the last button" while step 3 is still
+  // on screen presses step 3's "next" again and lands on an empty step 5.
+  await expect(page.locator('#currency')).toBeVisible()
+  await page.locator('main button:not([disabled])').last().click()
+  await page.waitForURL(/dashboard/, { timeout: 30_000 })
   await snap(page, '05-dashboard-first-load', errors)
   expect(page.url()).toMatch(/dashboard/)
 })
