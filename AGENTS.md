@@ -89,6 +89,10 @@ npm run db:types     # regenera src/shared/supabase/database.types.ts desde el p
 - La seguridad real son las políticas **RLS**; cualquier tabla nueva necesita RLS y políticas por dueño.
 - GitHub tiene *push protection*: si bloquea un push por un secreto, **no lo saltes**; saca el secreto del historial antes de subir.
 
+### Licencia (AGPL-3.0-or-later)
+- El código es software libre bajo [`LICENSE`](LICENSE). No agregues código copiado de fuentes con licencias incompatibles (código propietario o sin licencia). Dependencias MIT, ISC, BSD y Apache-2.0 son compatibles.
+- **Sección 13:** la app debe ofrecer a sus usuarios un enlace visible al código fuente (por ejemplo "Código fuente" en el pie o en Preferencias → Acerca de). No lo quites en un rediseño.
+
 ## 9. Convenciones de código
 
 - **Código, nombres y commits en inglés. Textos de UI en español** (República Dominicana).
