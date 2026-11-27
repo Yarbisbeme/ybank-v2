@@ -174,3 +174,16 @@ Al inicializar fechas en JavaScript utilizando cadenas puras en formato `YYYY-MM
 * [ ] Integración del Worker de Ingesta Automatizada para Gmail API.
 * [ ] Desarrollo del Pipeline de Parsing con IA para extracción de metadata de correos bancarios.
 * [ ] Generación automatizada de reportes analíticos consolidados.
+---
+
+## Licencia
+
+Copyright (C) 2026 Yarbisbeme
+
+Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la
+**GNU Affero General Public License** publicada por la Free Software Foundation, ya sea la versión 3
+de la licencia o (a tu elección) cualquier versión posterior. Texto completo en [`LICENSE`](LICENSE).
+
+En resumen: puedes usar, estudiar, modificar y compartir YBank. Si ofreces una versión modificada
+como servicio web, debes publicar su código fuente bajo la misma licencia. El nombre y el logo de
+YBank no están incluidos en la licencia.
