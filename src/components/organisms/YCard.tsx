@@ -190,10 +190,11 @@ export function YCard({
                 unoptimized
                 className="h-5 w-auto max-w-24 object-contain object-left"
               />
-            ) : null}
-            <span className="label uppercase tracking-wider truncate opacity-90">
-              {bankName || typeLabel}
-            </span>
+            ) : (
+              <span className="label uppercase tracking-wider truncate opacity-90">
+                {bankName || typeLabel}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

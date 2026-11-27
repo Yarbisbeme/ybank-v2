@@ -5,15 +5,23 @@ import { useSearchParams } from 'next/navigation';
 import { CheckSquare, MousePointerSquareDashed, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTransactions } from '@/lib/actions/transactions';
-import { useCategories } from '@/hooks/useCatalogs';
+import { useCategories, useTransactionsList } from '@/hooks/useCatalogs';
 import { useFilterStore } from '@/store/useFilterStore';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { Button } from '@/components/atoms';
 import type { SearchSelectOption } from '@/components/molecules';
 import { FilterBar, type MoveRowData } from '@/components/organisms';
 
+export interface TransactionFilterBarProps {
+  bare?: boolean;
+  title?: string;
+}
+
 /** Connects FilterBar organism to Zustand filter/selection stores and full-account selection. */
-export default function TransactionFilterBar() {
+export default function TransactionFilterBar({
+  bare = false,
+  title,
+}: TransactionFilterBarProps = {}) {
   const searchParams = useSearchParams();
   const {
     type,
@@ -25,6 +33,7 @@ export default function TransactionFilterBar() {
     clearFilters,
   } = useFilterStore();
   const { data: categoriesTree = [] } = useCategories();
+  const { data: txData, isLoading: isLoadingTx } = useTransactionsList();
 
   const {
     isSelectionMode,
@@ -64,6 +73,9 @@ export default function TransactionFilterBar() {
   const hasActiveFilters = Boolean(
     type || categoryId || startDate || endDate || search,
   );
+  const totalCount = txData?.total ?? totalItemsInView;
+  const hideControls =
+    bare && !isLoadingTx && totalCount === 0 && !hasActiveFilters;
   const isAllSelected =
     totalItemsInView > 0 &&
     Object.keys(selectedTx).length === totalItemsInView;
@@ -112,12 +124,13 @@ export default function TransactionFilterBar() {
 
   const selectionControls = !isSelectionMode ? (
     <Button
-      variant="secondary"
+      variant={bare ? 'ghost' : 'secondary'}
       size="sm"
       leftIcon={<MousePointerSquareDashed size={14} strokeWidth={2} />}
+      aria-label="Seleccionar movimientos"
       onClick={() => setIsSelectionMode(true)}
     >
-      Seleccionar
+      {bare ? <span className="hidden sm:inline">Seleccionar</span> : 'Seleccionar'}
     </Button>
   ) : (
     <div className="flex items-center gap-2">
@@ -171,6 +184,9 @@ export default function TransactionFilterBar() {
       onClearFilters={clearFilters}
       hasActiveFilters={hasActiveFilters}
       extraActions={selectionControls}
+      title={title}
+      hideControls={hideControls}
+      bare={bare}
     />
   );
 }

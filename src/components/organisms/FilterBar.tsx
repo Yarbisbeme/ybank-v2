@@ -1,6 +1,7 @@
 'use client';
 
-import { RotateCcw, Search } from 'lucide-react';
+import { useState } from 'react';
+import { RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/atoms';
 import {
@@ -28,6 +29,9 @@ export interface FilterBarProps {
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   extraActions?: React.ReactNode;
+  title?: string;
+  hideControls?: boolean;
+  bare?: boolean;
   className?: string;
 }
 
@@ -55,13 +59,124 @@ export function FilterBar({
   onClearFilters,
   hasActiveFilters,
   extraActions,
+  title,
+  hideControls = false,
+  bare = false,
   className,
 }: FilterBarProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const segmentedValue: SegmentedFilterValue = type ?? 'all';
   const categorySelectOptions: SearchSelectOption[] = [
     { id: '', label: 'Todas las categorías' },
     ...categoryOptions,
   ];
+  const advancedFilterCount =
+    (categoryId && type !== 'transfer' ? 1 : 0) +
+    (startDate || endDate ? 1 : 0) +
+    (search && search.trim() ? 1 : 0);
+
+  const typeSegmented = (
+    <Segmented<SegmentedFilterValue>
+      aria-label="Filtrar por tipo de movimiento"
+      size="sm"
+      options={TYPE_OPTIONS}
+      value={segmentedValue}
+      onChange={(next) => onTypeChange(next === 'all' ? null : next)}
+    />
+  );
+
+  if (bare) {
+    if (hideControls) {
+      return title ? <h2 className="title text-ink">{title}</h2> : null;
+    }
+
+    return (
+      <div className={cn('flex flex-col gap-3', className)}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {title ? <h2 className="title text-ink">{title}</h2> : null}
+            <div className="hidden md:block">{typeSegmented}</div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {hasActiveFilters ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                leftIcon={<RotateCcw size={14} strokeWidth={2} />}
+                onClick={onClearFilters}
+              >
+                Limpiar
+              </Button>
+            ) : null}
+
+            <Button
+              variant={
+                showAdvanced || advancedFilterCount > 0 ? 'secondary' : 'ghost'
+              }
+              size="sm"
+              leftIcon={<SlidersHorizontal size={14} strokeWidth={2} />}
+              aria-expanded={showAdvanced}
+              onClick={() => setShowAdvanced((prev) => !prev)}
+            >
+              {advancedFilterCount > 0
+                ? `Filtros · ${advancedFilterCount}`
+                : 'Filtros'}
+            </Button>
+
+            {extraActions}
+          </div>
+        </div>
+
+        {showAdvanced ? (
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5 border-t border-line pt-3">
+            <div className="md:hidden">{typeSegmented}</div>
+
+            {onSearchChange ? (
+              <div className="relative flex-1 min-w-48 sm:max-w-xs">
+                <Search
+                  size={16}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-2"
+                />
+                <TextInput
+                  value={search ?? ''}
+                  placeholder="Buscar descripción..."
+                  aria-label="Buscar movimientos"
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            ) : null}
+
+            {type !== 'transfer' ? (
+              <div className="w-full sm:w-48">
+                <SearchSelect
+                  options={categorySelectOptions}
+                  value={categoryId ?? ''}
+                  placeholder="Categoría..."
+                  aria-label="Filtrar por categoría"
+                  onChange={(val) => onCategoryChange(val || null)}
+                />
+              </div>
+            ) : null}
+
+            <div className="w-full sm:w-48">
+              <DatePicker
+                mode="range"
+                startDate={startDate}
+                endDate={endDate}
+                placeholder="Rango de fechas"
+                aria-label="Filtrar por rango de fechas"
+                onRangeChange={onDateRangeChange}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div

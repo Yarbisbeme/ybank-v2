@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAccounts, useProfile, useUpdateProfile } from '@/hooks/useCatalogs';
+import { useAccounts, useProfile } from '@/hooks/useCatalogs';
 import { useModalStore } from '@/store/useModalStore';
-import { Skeleton } from '@/components/atoms';
-import { CardStack } from '@/components/organisms';
+import AccountCarousel from './AccountCarousel';
+import AccountInsightSection from './AccountInsightSection';
 
-/** Account switcher on /accounts backed by CardStack and URL query synchronization. */
+/** Unified tonal-wash stage on /accounts pairing CardStack with AccountInsightSection. */
 export default function AccountStageSelector({
   initialAccountId,
 }: {
@@ -15,9 +15,8 @@ export default function AccountStageSelector({
 }) {
   const router = useRouter();
   const openModal = useModalStore((state) => state.openModal);
-  const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
-  const { data: profile, isLoading: isLoadingProfile } = useProfile();
-  const updateProfileMutation = useUpdateProfile();
+  const { data: accounts = [] } = useAccounts();
+  const { data: profile } = useProfile();
 
   const targetId =
     initialAccountId || profile?.primary_account_id || accounts[0]?.id || null;
@@ -29,32 +28,16 @@ export default function AccountStageSelector({
     router.replace(`/accounts?accountId=${targetId}`, { scroll: false });
   }, [accounts.length, initialAccountId, targetId, router]);
 
-  const handleToggleFavorite = (accountId: string) => {
-    const nextPrimaryId =
-      profile?.primary_account_id === accountId ? null : accountId;
-    updateProfileMutation.mutate({ primary_account_id: nextPrimaryId });
-  };
-
-  if (isLoadingAccounts || isLoadingProfile) {
-    return (
-      <Skeleton
-        variant="card"
-        className="max-w-md mx-auto"
-        label="Cargando cuentas"
-      />
-    );
-  }
-
   return (
-    <CardStack
-      accounts={accounts}
+    <AccountCarousel
       activeAccountId={targetId}
-      onSelectAccount={(acc) =>
+      onActiveAccountChange={(acc) =>
         router.push(`/accounts?accountId=${acc.id}`, { scroll: false })
       }
-      favoriteAccountId={profile?.primary_account_id}
-      onToggleFavorite={handleToggleFavorite}
-      onAddAccount={() => openModal('account')}
+      onActiveCardClick={(acc) => openModal('account', { accountId: acc.id })}
+      showFooterSummary={false}
+      layoutMode="stack"
+      sideContent={<AccountInsightSection />}
     />
   );
 }

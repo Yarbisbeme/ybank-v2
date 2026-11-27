@@ -25,6 +25,7 @@ export interface TransactionTableProps {
   totalPages?: number;
   totalCount?: number;
   onPageChange?: (page: number) => void;
+  bare?: boolean;
   className?: string;
 }
 
@@ -47,13 +48,16 @@ export function TransactionTable({
   totalPages = 1,
   totalCount,
   onPageChange,
+  bare = false,
   className,
 }: TransactionTableProps) {
   if (isLoading) {
     return (
       <div
         className={cn(
-          'rounded-panel border border-line bg-surface p-4 flex flex-col gap-3',
+          bare
+            ? 'flex flex-col gap-3 py-2'
+            : 'rounded-panel border border-line bg-surface p-4 flex flex-col gap-3',
           className,
         )}
       >
@@ -70,7 +74,7 @@ export function TransactionTable({
     return (
       <div
         className={cn(
-          'rounded-panel border border-line bg-surface',
+          bare ? 'py-2' : 'rounded-panel border border-line bg-surface',
           className,
         )}
       >
@@ -95,7 +99,7 @@ export function TransactionTable({
     return (
       <div
         className={cn(
-          'rounded-panel border border-line bg-surface',
+          bare ? 'py-2' : 'rounded-panel border border-line bg-surface',
           className,
         )}
       >
@@ -112,7 +116,9 @@ export function TransactionTable({
   return (
     <div
       className={cn(
-        'rounded-panel border border-line bg-surface overflow-hidden',
+        bare
+          ? 'border-t border-line'
+          : 'rounded-panel border border-line bg-surface overflow-hidden',
         className,
       )}
     >

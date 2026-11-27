@@ -22,11 +22,13 @@ interface SelectedRowShape {
 
 export interface ClientTransactionTableProps {
   compactMobileLimit?: number;
+  bare?: boolean;
 }
 
 /** Connects TransactionTable organism to React Query pagination, filters, and multi-selection summary. */
 export default function ClientTransactionTable({
   compactMobileLimit,
+  bare = false,
 }: ClientTransactionTableProps = {}) {
   const searchParams = useSearchParams();
   const openModal = useModalStore((state) => state.openModal);
@@ -140,12 +142,17 @@ export default function ClientTransactionTable({
     });
   };
 
+  const hasDateFilter = Boolean(filters.startDate || filters.endDate);
   const emptyTitle = hasActiveFilters
-    ? 'Sin movimientos con esos filtros'
-    : 'No hay movimientos registrados';
+    ? hasDateFilter
+      ? 'No hay movimientos en este período'
+      : 'Sin movimientos con esos filtros'
+    : urlAccountId
+      ? 'Esta cuenta aún no tiene movimientos'
+      : 'Aún no hay movimientos registrados';
   const emptyDescription = hasActiveFilters
     ? 'Prueba limpiando los filtros o ampliando el rango de fechas.'
-    : 'Registra tu primer ingreso, gasto o traspaso para verlo aquí.';
+    : 'Cuando registres un ingreso, gasto o traspaso aparecerá aquí.';
   const emptyAction = hasActiveFilters ? (
     <Button variant="secondary" onClick={filters.clearFilters}>
       Limpiar filtros
@@ -154,6 +161,7 @@ export default function ClientTransactionTable({
     <Button
       variant="primary"
       onClick={() => openModal('transaction')}
+      className="hidden md:inline-flex"
     >
       Registrar movimiento
     </Button>
@@ -183,6 +191,7 @@ export default function ClientTransactionTable({
       emptyTitle={emptyTitle}
       emptyDescription={emptyDescription}
       emptyAction={emptyAction}
+      bare={bare}
     />
   );
 
@@ -209,6 +218,7 @@ export default function ClientTransactionTable({
               emptyTitle={emptyTitle}
               emptyDescription={emptyDescription}
               emptyAction={emptyAction}
+              bare={bare}
             />
           </div>
         </>
