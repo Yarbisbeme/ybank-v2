@@ -160,14 +160,14 @@ export default function AccountCarousel() {
                 <section
                   aria-label="Tus tarjetas"
                   style={{ backgroundColor: hexToWash(activeColor ?? '', 0.12) }}
-                  className="rounded-panel p-5 sm:p-6 flex flex-col gap-4 transition-colors duration-250"
+                  className="-mx-5 rounded-none px-5 py-4 md:mx-0 md:rounded-panel md:p-6 flex flex-col gap-3 md:gap-4 transition-colors duration-250"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <h2 className="title text-ink">Tus tarjetas</h2>
                       <Link
                         href="/accounts"
-                        className="small text-action hover:underline"
+                        className="hidden md:inline small text-action hover:underline"
                       >
                         Ver todas
                       </Link>
@@ -245,15 +245,19 @@ export default function AccountCarousel() {
                       </button>
                     </div>
 
-                    <div className="md:hidden">
+                    <div className="md:hidden -mx-5">
                       <CardStack
                         accounts={sortedAccounts}
                         activeAccountId={activeAccount.id}
+                        bare={true}
                         onSelectAccount={(acc) => {
                           const idx = sortedAccounts.findIndex((a) => a.id === acc.id);
                           if (idx >= 0) {
                             setActiveIndex(idx);
                           }
+                        }}
+                        onCardClick={(acc) => {
+                          router.push(`/accounts?accountId=${acc.id}`);
                         }}
                         favoriteAccountId={profile?.primary_account_id}
                         onToggleFavorite={handleToggleFavorite}

@@ -41,7 +41,7 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
               )}
             >
               <Icon size={20} strokeWidth={2} />
-              <span className="truncate">{item.label}</span>
+              <span className="truncate">{item.mobileLabel ?? item.label}</span>
             </Link>
           );
         })}
@@ -72,7 +72,7 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
               )}
             >
               <Icon size={20} strokeWidth={2} />
-              <span className="truncate">{item.label}</span>
+              <span className="truncate">{item.mobileLabel ?? item.label}</span>
             </Link>
           );
         })}

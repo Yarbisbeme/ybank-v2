@@ -159,7 +159,7 @@ export default function HeroBalance() {
 
   if (isLoadingAccs || isLoadingTx) {
     return (
-      <div className="rounded-panel border border-line bg-surface p-6 flex flex-col gap-5 h-full">
+      <div className="py-1 md:rounded-panel md:border md:border-line md:bg-surface md:p-6 flex flex-col gap-4 h-full">
         <Skeleton variant="line" className="w-40" label="Cargando balance" />
         <Skeleton variant="tile" className="h-14" />
         <Skeleton variant="line" className="w-56" />
@@ -170,11 +170,11 @@ export default function HeroBalance() {
   return (
     <section
       aria-label="Balance general"
-      className="h-full rounded-panel border border-line bg-surface p-5 sm:p-6 flex flex-col justify-between gap-5"
+      className="h-full flex flex-col justify-between gap-2 md:gap-5 py-1 md:rounded-panel md:border md:border-line md:bg-surface md:p-6"
     >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="body text-ink-2">
+              <span className="small md:body text-ink-2">
                 {includeCredit ? 'Balance neto' : 'Tienes en total'}
               </span>
               {isCalculatingRate ? (
@@ -191,29 +191,31 @@ export default function HeroBalance() {
                   onChange={(val) => setIncludeCredit(val === 'with')}
                 />
 
-                <Segmented<'DOP' | 'USD'>
-                  aria-label="Moneda de visualización"
-                  size="sm"
-                  options={CURRENCY_OPTIONS}
-                  value={currency}
-                  onChange={setCurrency}
-                />
+                <div className="hidden md:block">
+                  <Segmented<'DOP' | 'USD'>
+                    aria-label="Moneda de visualización"
+                    size="sm"
+                    options={CURRENCY_OPTIONS}
+                    value={currency}
+                    onChange={setCurrency}
+                  />
+                </div>
               </div>
             </div>
 
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <div className="flex flex-col md:flex-row md:flex-wrap md:items-baseline gap-x-4 gap-y-1">
                   <Money
                     value={displayBalance}
                     currency={currency}
                     size="hero"
                     tone={displayBalance < 0 ? 'debit' : 'default'}
                   />
-                  <span className="body text-ink-2 tabular-nums">
-                    + {formatMoney(oppositeBalance, { currency: oppositeCurrency })}
+                  <span className="small md:body text-ink-2 tabular-nums">
+                    + {formatMoney(oppositeBalance, { currency: oppositeCurrency })} · {accounts.length} {accounts.length === 1 ? 'cuenta' : 'cuentas'}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-t border-line pt-4">
+                <div className="hidden md:flex flex-wrap items-center gap-x-10 gap-y-3 border-t border-line pt-4">
                   <div className="flex flex-col gap-0.5">
                     <span className="label text-ink-2">Cuentas de ahorro</span>
                     <span className="title text-ink tabular-nums">{savingsCount}</span>

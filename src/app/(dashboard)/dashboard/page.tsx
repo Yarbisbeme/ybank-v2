@@ -10,37 +10,38 @@ import TransactionFilterBar from '@/components/Transactions/TransactionFilterBar
 
 export default function DashboardPage() {
   return (
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            <div className="lg:col-span-8">
-              <HeroBalance />
-            </div>
-            <div className="lg:col-span-4">
-              <CreditHealthBento />
-            </div>
-          </div>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch">
+      <div className="order-1 lg:order-1 lg:col-span-8">
+        <HeroBalance />
+      </div>
 
-          <AccountCarousel />
+      <div className="order-3 lg:order-2 lg:col-span-4">
+        <CreditHealthBento />
+      </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-            <section
-              aria-label="Actividad reciente"
-              className="xl:col-span-8 flex flex-col gap-4"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="title text-ink">Actividad reciente</h2>
-                <Link href="/transactions" className="small text-action hover:underline">
-                  Ver todo
-                </Link>
-              </div>
-              <TransactionFilterBar />
-              <ClientTransactionTable />
-            </section>
+      <div className="order-2 lg:order-3 lg:col-span-12">
+        <AccountCarousel />
+      </div>
 
-            <div className="xl:col-span-4">
-              <MonthlyCategoryBreakdown />
-            </div>
-          </div>
+      <section
+        aria-label="Actividad reciente"
+        className="order-4 lg:order-4 lg:col-span-12 xl:col-span-8 flex flex-col gap-3 md:gap-4"
+      >
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="title text-ink">Actividad reciente</h2>
+          <Link href="/transactions" className="small text-action hover:underline">
+            Ver todo
+          </Link>
         </div>
-        );
+        <div className="hidden md:block">
+          <TransactionFilterBar />
+        </div>
+        <ClientTransactionTable compactMobileLimit={5} />
+      </section>
+
+      <div className="hidden md:block order-5 lg:order-5 lg:col-span-12 xl:col-span-4">
+        <MonthlyCategoryBreakdown />
+      </div>
+    </div>
+  );
 }

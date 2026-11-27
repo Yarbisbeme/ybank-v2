@@ -97,7 +97,7 @@ export function HealthMeter({
         <section
           aria-label="Salud financiera"
           className={cn(
-            'rounded-panel border health-card-ink p-6 flex flex-col justify-between gap-4',
+            'rounded-panel border health-card-ink p-4 md:p-6 flex flex-col justify-between gap-2.5 md:gap-4',
             className,
           )}
         >
@@ -180,7 +180,7 @@ export function HealthMeter({
       <section
         aria-label="Salud financiera"
         className={cn(
-          'rounded-panel border health-card-ink p-6 flex flex-col justify-between gap-4',
+          'rounded-panel border health-card-ink p-4 md:p-6 flex flex-col justify-between gap-2.5 md:gap-4',
           className,
         )}
       >
@@ -196,7 +196,7 @@ export function HealthMeter({
             <span className="display tabular-nums">{score}</span>
             <span className="body health-card-ink-muted">/ 100</span>
           </div>
-          <p className="small health-card-ink-muted mt-1 tabular-nums">
+          <p className="hidden md:block small health-card-ink-muted mt-1 tabular-nums">
             {health.utilizationPercent}% usado · Disponible{' '}
             {formatMoney(health.available, { currency })}
           </p>

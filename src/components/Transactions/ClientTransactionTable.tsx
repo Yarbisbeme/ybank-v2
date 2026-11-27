@@ -20,8 +20,14 @@ interface SelectedRowShape {
   is_split_child?: boolean;
 }
 
+export interface ClientTransactionTableProps {
+  compactMobileLimit?: number;
+}
+
 /** Connects TransactionTable organism to React Query pagination, filters, and multi-selection summary. */
-export default function ClientTransactionTable() {
+export default function ClientTransactionTable({
+  compactMobileLimit,
+}: ClientTransactionTableProps = {}) {
   const searchParams = useSearchParams();
   const openModal = useModalStore((state) => state.openModal);
 
@@ -123,62 +129,92 @@ export default function ClientTransactionTable() {
       filters.search,
   );
 
+  const handleSelectTransaction = (tx: MoveRowData) => {
+    if (tx.is_split_child || !tx.id) {
+      return;
+    }
+    openModal('transaction', {
+      transactionId: tx.id,
+      accountId: tx.account_id,
+      initialData: tx,
+    });
+  };
+
+  const emptyTitle = hasActiveFilters
+    ? 'Sin movimientos con esos filtros'
+    : 'No hay movimientos registrados';
+  const emptyDescription = hasActiveFilters
+    ? 'Prueba limpiando los filtros o ampliando el rango de fechas.'
+    : 'Registra tu primer ingreso, gasto o traspaso para verlo aquí.';
+  const emptyAction = hasActiveFilters ? (
+    <Button variant="secondary" onClick={filters.clearFilters}>
+      Limpiar filtros
+    </Button>
+  ) : (
+    <Button
+      variant="primary"
+      onClick={() => openModal('transaction')}
+    >
+      Registrar movimiento
+    </Button>
+  );
+
+  const fullTable = (
+    <TransactionTable
+      transactions={transactions}
+      activeAccountId={activeAccountId}
+      isLoading={isQueryLoading}
+      error={isError ? 'Revisa tu conexión e intenta de nuevo.' : null}
+      onRetry={() => {
+        void refetch();
+      }}
+      selectable={isSelectionMode}
+      selectedIds={selectedIds}
+      onToggleSelect={(tx) => {
+        if (tx.id) {
+          toggleSingleTx(tx);
+        }
+      }}
+      onSelectTransaction={handleSelectTransaction}
+      page={currentPage}
+      totalPages={totalPages}
+      totalCount={totalItems}
+      onPageChange={setCurrentPage}
+      emptyTitle={emptyTitle}
+      emptyDescription={emptyDescription}
+      emptyAction={emptyAction}
+    />
+  );
+
   return (
     <div className="relative flex flex-col gap-4">
-      <TransactionTable
-        transactions={transactions}
-        activeAccountId={activeAccountId}
-        isLoading={isQueryLoading}
-        error={isError ? 'Revisa tu conexión e intenta de nuevo.' : null}
-        onRetry={() => {
-          void refetch();
-        }}
-        selectable={isSelectionMode}
-        selectedIds={selectedIds}
-        onToggleSelect={(tx) => {
-          if (tx.id) {
-            toggleSingleTx(tx);
-          }
-        }}
-        onSelectTransaction={(tx) => {
-          if (tx.is_split_child || !tx.id) {
-            return;
-          }
-          openModal('transaction', {
-            transactionId: tx.id,
-            accountId: tx.account_id,
-            initialData: tx,
-          });
-        }}
-        page={currentPage}
-        totalPages={totalPages}
-        totalCount={totalItems}
-        onPageChange={setCurrentPage}
-        emptyTitle={
-          hasActiveFilters
-            ? 'Sin movimientos con esos filtros'
-            : 'No hay movimientos registrados'
-        }
-        emptyDescription={
-          hasActiveFilters
-            ? 'Prueba limpiando los filtros o ampliando el rango de fechas.'
-            : 'Registra tu primer ingreso, gasto o traspaso para verlo aquí.'
-        }
-        emptyAction={
-          hasActiveFilters ? (
-            <Button variant="secondary" onClick={filters.clearFilters}>
-              Limpiar filtros
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={() => openModal('transaction')}
-            >
-              Registrar movimiento
-            </Button>
-          )
-        }
-      />
+      {typeof compactMobileLimit === 'number' ? (
+        <>
+          <div className="hidden md:block">{fullTable}</div>
+          <div className="md:hidden">
+            <TransactionTable
+              transactions={transactions.slice(0, compactMobileLimit)}
+              activeAccountId={activeAccountId}
+              isLoading={isQueryLoading}
+              error={isError ? 'Revisa tu conexión e intenta de nuevo.' : null}
+              onRetry={() => {
+                void refetch();
+              }}
+              selectable={false}
+              selectedIds={selectedIds}
+              onSelectTransaction={handleSelectTransaction}
+              page={1}
+              totalPages={1}
+              totalCount={Math.min(totalItems, compactMobileLimit)}
+              emptyTitle={emptyTitle}
+              emptyDescription={emptyDescription}
+              emptyAction={emptyAction}
+            />
+          </div>
+        </>
+      ) : (
+        fullTable
+      )}
 
       {isSelectionMode && selectionSummary.count > 0 ? (
         <div

@@ -542,6 +542,110 @@
   opacity: 0.8;
 }
 
+/* CardStack (Wallet Carousel) */
+.y2-stack {
+  outline: none;
+}
+
+.y2-stack:focus-visible .stage {
+  outline: 2px solid var(--action);
+  outline-offset: 4px;
+  border-radius: var(--radius-panel);
+}
+
+.y2-stack .stage {
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  width: 100%;
+  overflow: hidden;
+}
+
+.y2-stack .stage.dragging {
+  cursor: grabbing;
+}
+
+.y2-stack .slot {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform-origin: 50% 90%;
+  transition: transform 460ms cubic-bezier(.2,.9,.25,1.12), opacity 300ms cubic-bezier(.2,.8,.2,1);
+}
+
+.y2-stack .stage.dragging .slot {
+  transition: none;
+}
+
+.y2-stack .shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  aspect-ratio: 1.586 / 1;
+  border-radius: var(--radius-card);
+  background: #0E0E10;
+  pointer-events: none;
+  transition: opacity 300ms cubic-bezier(.2,.8,.2,1);
+}
+
+.y2-stack .foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.y2-stack .foot button {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  background: var(--surface);
+  transition: background-color 150ms, color 150ms;
+  cursor: pointer;
+}
+
+.y2-stack .foot button:hover:not(:disabled) {
+  background: var(--surface-hover, var(--canvas));
+}
+
+.y2-stack .foot button:disabled {
+  color: var(--ink-3);
+  cursor: default;
+  opacity: 0.4;
+}
+
+.y2-stack .foot svg {
+  width: 16px;
+  height: 16px;
+}
+
+.y2-stack .segs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.y2-stack .segs span {
+  width: 8px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  transition: width 250ms cubic-bezier(.2,.8,.2,1), background 250ms;
+}
+
+.y2-stack .segs span.on {
+  width: 24px;
+  background: var(--ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .y2-seg-wave,
   .y2-seg-crest,
