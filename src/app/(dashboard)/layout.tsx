@@ -1,29 +1,38 @@
-import Navbar from "@/components/layout/Navbar/Navbar";
-import Sidebar from "@/components/layout/Sidebar";
+import { redirect } from 'next/navigation';
+import type { Account, Category, Institution, Tag, Transaction } from '@/types';
 import { getAccounts } from '@/lib/actions/accounts';
-import { getTransactions } from '@/lib/actions/transactions';
-import { getTags } from '@/lib/actions/tags';
 import { getCategories } from '@/lib/actions/categories';
 import { getInstitutions } from '@/lib/actions/institutions';
-
-import DashboardProviders from '@/components/providers/DashboardProviders';
-import PWAFooter from '@/components/layout/PWAFooter';
-import { createSupabaseClient } from '@/lib/supabase/createServerClient'
-import { redirect } from "next/navigation";
+import { getTags } from '@/lib/actions/tags';
+import { getTransactions } from '@/lib/actions/transactions';
+import { createSupabaseClient } from '@/lib/supabase/createServerClient';
 import { TRANSACTIONS_PAGE_SIZE } from '@/lib/transaction-keys';
+import DashboardProviders from '@/components/providers/DashboardProviders';
+import { DashboardShell } from '@/components/templates';
 
 interface DashboardInitialData {
-  accounts: any[];
-  tags: any[];
-  categories: any[];
-  institutions: any[];
-  transactions: any[];
+  accounts: Account[];
+  tags: Tag[];
+  categories: Category[];
+  institutions: Institution[];
+  transactions: Transaction[];
   transactionsTotal: number;
 }
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+interface DashboardProfile {
+  onboarding_completed: boolean;
+  primary_account_id: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createSupabaseClient();
-  
+
   // `redirect()` throws NEXT_REDIRECT, so it must never run inside a try/catch.
   // Invalid session -> sign-in. Network failure (Supabase unreachable) -> render
   // with empty data and let the persisted client cache serve the UI.
@@ -34,18 +43,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
   const user = authData.user;
 
-  let profile: any = {
-    onboarding_completed: true, 
+  let profile: DashboardProfile = {
+    onboarding_completed: true,
     primary_account_id: null,
     full_name: '',
-    avatar_url: '' 
+    avatar_url: '',
   };
-  
-  let initialData: DashboardInitialData = { 
-    accounts: [], 
-    tags: [], 
-    categories: [], 
-    institutions: [], 
+
+  let initialData: DashboardInitialData = {
+    accounts: [],
+    tags: [],
+    categories: [],
+    institutions: [],
     transactions: [],
     transactionsTotal: 0,
   };
@@ -58,15 +67,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
         .eq('id', user.id)
         .single();
 
-      if (profileData) profile = profileData;
+      if (profileData) {
+        profile = profileData;
+      }
 
-      const [accounts, txData, tags, categoriesTree, institutions] = await Promise.all([
-        getAccounts(),
-        getTransactions({ page: 1, pageSize: TRANSACTIONS_PAGE_SIZE }),
-        getTags(),
-        getCategories(),
-        getInstitutions()
-      ]);
+      const [accounts, txData, tags, categoriesTree, institutions] =
+        await Promise.all([
+          getAccounts(),
+          getTransactions({ page: 1, pageSize: TRANSACTIONS_PAGE_SIZE }),
+          getTags(),
+          getCategories(),
+          getInstitutions(),
+        ]);
 
       initialData = {
         accounts,
@@ -82,46 +94,39 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
   }
 
-  // 💡 3. AHORA usamos los datos "frescos" de la tabla profile, y usamos el auth como plan B
   const navbarUser = {
-    name: profile.full_name || user?.user_metadata?.full_name || user?.email || 'Usuario',
+    name:
+      profile.full_name ||
+      (typeof user?.user_metadata?.full_name === 'string'
+        ? user.user_metadata.full_name
+        : '') ||
+      user?.email ||
+      'Usuario',
     email: user?.email || '',
-    avatarUrl: profile.avatar_url || user?.user_metadata?.avatar_url
+    avatarUrl:
+      profile.avatar_url ||
+      (typeof user?.user_metadata?.avatar_url === 'string'
+        ? user.user_metadata.avatar_url
+        : undefined),
   };
 
   return (
-    <DashboardProviders 
+    <DashboardProviders
       initialData={initialData}
       primaryAccountId={profile.primary_account_id}
       institutionId={null}
     >
-      <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
-        
-        {/* BARRA LATERAL (DESKTOP) */}
-        <aside className="hidden lg:flex w-64 flex-col flex-none border-r border-border bg-card">
-          <Sidebar />
-        </aside>
-
-        {/* CONTENEDOR PRINCIPAL */}
-        <div className="flex flex-col flex-1 min-w-0 h-full">
-          <Navbar 
-            user={navbarUser} 
-            accounts={initialData.accounts} 
-            transactions={initialData.transactions} 
-            tags={initialData.tags} 
-            categories={initialData.categories}
-          />
-          
-          <main className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden md:pt-6 md:pb-0 scrollbar-hide">
-            
-            <div className="grow max-w-[1400px] mx-auto w-full px-4">
-              {children}
-            </div>
-            <PWAFooter />
-          </main>
-        </div>
-      </div>
+      <DashboardShell
+        user={navbarUser}
+        initialData={{
+          accounts: initialData.accounts,
+          transactions: initialData.transactions,
+          categories: initialData.categories,
+          tags: initialData.tags,
+        }}
+      >
+        {children}
+      </DashboardShell>
     </DashboardProviders>
   );
-
 }
