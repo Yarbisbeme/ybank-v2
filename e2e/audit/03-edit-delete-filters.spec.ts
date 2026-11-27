@@ -41,9 +41,11 @@ test('edit transfer amount updates the destination', async ({ page }) => {
 })
 
 // Known bug B2, fixed in Phase 2.3 (atomic save_transaction): editing a transfer drops its
-// tax and its two automatic items. See the test.fail note in 02-transactions.
-test.fail('KNOWN BUG B2: transfer edit keeps tax and items', () => {
-  expect(transferRow()).toMatch(/\|2000\|2$/)
+// automatic items (and, for taxed kinds, the tax). This one is between own accounts, so the
+// correct result is amount = target = 2000 with a single "Monto Transferido" item.
+// test.fail: passes while the bug exists and turns red once it is fixed; then remove `.fail`.
+test.fail('KNOWN BUG B2: transfer edit keeps its automatic items', () => {
+  expect(transferRow()).toBe('2000|2000|1')
 })
 
 test('delete expense restores balance', async ({ page }) => {

@@ -272,6 +272,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_rule_exemptions: {
+        Row: {
+          code: string
+          legal_ref: string
+          transfer_kind: string
+        }
+        Insert: {
+          code: string
+          legal_ref: string
+          transfer_kind: string
+        }
+        Update: {
+          code?: string
+          legal_ref?: string
+          transfer_kind?: string
+        }
+        Relationships: []
+      }
+      tax_rules: {
+        Row: {
+          code: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          legal_ref: string
+          rate: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          legal_ref: string
+          rate: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          legal_ref?: string
+          rate?: number
+        }
+        Relationships: []
+      }
       transaction_items: {
         Row: {
           category_id: string | null
@@ -281,6 +329,7 @@ export type Database = {
           name: string
           quantity: number | null
           tax_amount: number | null
+          tax_rule_id: string | null
           tax_type: Database["public"]["Enums"]["tax_type"] | null
           total_price: number | null
           transaction_id: string
@@ -294,6 +343,7 @@ export type Database = {
           name: string
           quantity?: number | null
           tax_amount?: number | null
+          tax_rule_id?: string | null
           tax_type?: Database["public"]["Enums"]["tax_type"] | null
           total_price?: number | null
           transaction_id: string
@@ -307,6 +357,7 @@ export type Database = {
           name?: string
           quantity?: number | null
           tax_amount?: number | null
+          tax_rule_id?: string | null
           tax_type?: Database["public"]["Enums"]["tax_type"] | null
           total_price?: number | null
           transaction_id?: string
@@ -318,6 +369,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_items_tax_rule_id_fkey"
+            columns: ["tax_rule_id"]
+            isOneToOne: false
+            referencedRelation: "tax_rules"
             referencedColumns: ["id"]
           },
           {
@@ -375,6 +433,7 @@ export type Database = {
           source_email_id: string | null
           status: Database["public"]["Enums"]["transaction_status"] | null
           target_amount: number | null
+          transfer_kind: string | null
           transfer_to_account_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -395,6 +454,7 @@ export type Database = {
           source_email_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
           target_amount?: number | null
+          transfer_kind?: string | null
           transfer_to_account_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -415,6 +475,7 @@ export type Database = {
           source_email_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
           target_amount?: number | null
+          transfer_kind?: string | null
           transfer_to_account_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -449,6 +510,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      classify_transfer: {
+        Args: {
+          p_description: string
+          p_destination: string
+          p_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Returns: string
+      }
       is_usable_category: {
         Args: { p_category_id: string }
         Returns: boolean
@@ -456,6 +525,13 @@ export type Database = {
       owns_transaction: {
         Args: { p_transaction_id: string }
         Returns: boolean
+      }
+      transfer_tax_rule: {
+        Args: { p_date: string; p_kind: string }
+        Returns: {
+          rate: number
+          rule_id: string
+        }[]
       }
     }
     Enums: {

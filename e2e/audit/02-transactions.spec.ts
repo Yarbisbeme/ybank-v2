@@ -55,13 +55,8 @@ test('create expense, income and transfer; balances follow in the DB', async ({ 
   await page.getByPlaceholder('Nota u observación...').fill('Audit traspaso')
   await submit(page)
   await expectBalance('Efectivo', 1000, 'transfer credits the destination')
+  // Own accounts are exempt from the DGII tax (Phase 2.2): the source pays exactly 1,000.
+  await expectBalance('Nómina', 25500, 'own-account transfer is not taxed')
   await snap(page, '13-after-transfer', errors)
 })
 
-// Known bug, fixed in Phase 2.2/2.5 (tax_rules): transfers between the user's own accounts are
-// exempt from the 0.15/0.20 % DGII tax (docs/arquitectura/03), but the trigger charges it.
-// test.fail: reported as passing while the bug exists, and turns red the day it is fixed,
-// as a reminder to delete this marker.
-test.fail('KNOWN BUG 2.2: own-account transfer is not taxed', () => {
-  expect(balanceOf('Nómina')).toBe(25500)
-})

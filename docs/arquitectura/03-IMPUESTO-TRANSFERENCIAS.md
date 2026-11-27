@@ -1,7 +1,23 @@
 # 03 — Impuesto a cheques y transferencias electrónicas (DGII)
 
-> Estado: **investigación + propuesta de diseño** · Fecha: 2026-11-25
+> Estado: **§3.1 y §3.2 implementados (Fase 2.2, 2026-11-28)**; §3.3–§3.5 y §4 pendientes · Investigación: 2026-11-25
 > Esto no es asesoría fiscal. Las reglas marcadas "por confirmar" se validan contra estados de cuenta reales antes de implementarlas.
+
+## Estado de la implementación
+
+| Parte | Estado | Dónde |
+|---|---|---|
+| Tasa versionada por fecha (0.15 % → 0.20 % desde 2026-07-03) | ✅ Fase 2.2 | `tax_rules`, `transfer_tax_rule()` · migración `20261128100000_tax_rules.sql` |
+| Exenciones como datos (cuentas propias, billeteras externas) | ✅ Fase 2.2 | `tax_rule_exemptions` |
+| Clasificación de cada transferencia (`transfer_kind`) | ✅ Fase 2.2, solo filas nuevas | `classify_transfer()`; filas anteriores quedan en `NULL` hasta §4 |
+| Ítem DGII enlazado a su regla y con la tasa real en el nombre | ✅ Fase 2.2 | `transaction_items.tax_rule_id` |
+| Impuesto redondeado a centavos | ✅ Fase 2.2 | trigger `handle_transaction_before_changes` |
+| Verificación | ✅ `supabase/tests/tax_rules.test.sql` (32 checks) + E2E (transferencia propia sin impuesto) | |
+| El banco manda sobre el cálculo (`tax_source`) — §3.3 | ❓ Con la ingesta de correos | |
+| Impuesto fuera de `amount` y edición sin perderlo (B2) — §3.4 / §3.5 | ❓ Fase 2.3 (`save_transaction`) | |
+| Corrección de datos históricos — §4 | ❓ Fase 2.5, con el dueño | |
+
+Para cambiar la tasa en el futuro: una migración que cierre la regla vigente (`effective_to`) e inserte la nueva. Nunca editar una tasa ya aplicada.
 
 ## 1. Cómo funciona (fuentes al final)
 
