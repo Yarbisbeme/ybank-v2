@@ -178,7 +178,7 @@ Al inicializar fechas en JavaScript utilizando cadenas puras en formato `YYYY-MM
 
 ## Licencia
 
-Copyright (C) 2026 Yarbisbeme
+Copyright (C) 2026 Yarbis Beltre Mercedes
 
 Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la
 **GNU Affero General Public License** publicada por la Free Software Foundation, ya sea la versión 3
