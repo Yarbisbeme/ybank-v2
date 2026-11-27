@@ -209,7 +209,10 @@ export function YCard({
                     : `Marcar ${name} como favorita`
                 }
                 aria-pressed={isFavorite}
-                onClick={onToggleFavorite}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite();
+                }}
                 className={cn(
                   'relative z-20 pointer-events-auto h-7 w-7 hover:bg-black/15',
                   inkClass,

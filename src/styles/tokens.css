@@ -14,6 +14,7 @@
   --ink-3: #8c8b86;
   --line: rgba(14, 14, 16, 0.1);
   --line-strong: rgba(14, 14, 16, 0.18);
+  --track: rgba(14, 14, 16, 0.08);
 
   /* Primary Action (Ultramar) */
   --action: #1f4bff;
@@ -63,6 +64,7 @@
   --ink-3: #6e6d68;
   --line: rgba(244, 243, 239, 0.1);
   --line-strong: rgba(244, 243, 239, 0.2);
+  --track: rgba(244, 243, 239, 0.12);
 
   --action: #7c9bff;
   --action-press: #a3b8ff;
@@ -542,6 +544,18 @@
   opacity: 0.8;
 }
 
+.y2-track {
+  background-color: var(--track);
+}
+
+.y2-rail-hidden {
+  scrollbar-width: none;
+}
+
+.y2-rail-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 /* CardStack (Wallet Carousel) */
 .y2-stack {
   outline: none;
@@ -595,7 +609,9 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  margin-top: calc(var(--space-3) * -1);
+  position: relative;
+  z-index: 25;
 }
 
 .y2-stack .foot button {

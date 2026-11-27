@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { CreditCard, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Account } from '@/types';
 import { Button } from '@/components/atoms';
 import { EmptyState } from '@/components/molecules';
 import { YCard } from './YCard';
+import { computeCardFrame, computeLiveDragOffset } from './card-stack';
 import { hexToWash, mapDbPatternToCardShape } from './y-card';
 
 export interface CardStackProps {
@@ -20,27 +21,6 @@ export interface CardStackProps {
   cardWidth?: number;
   bare?: boolean;
   className?: string;
-}
-
-function calculateSlot(delta: number, width: number) {
-  const absDelta = Math.abs(delta);
-  const sign = delta < 0 ? -1 : 1;
-  const x =
-    absDelta === 0
-      ? 0
-      : sign * (absDelta === 1 ? 0.34 : absDelta === 2 ? 0.56 : 0.66) * width;
-  const scale =
-    absDelta === 0 ? 1 : absDelta === 1 ? 0.84 : absDelta === 2 ? 0.7 : 0.6;
-  const rot = absDelta === 0 ? 0 : sign * (absDelta === 1 ? 4 : 7);
-
-  return {
-    x,
-    scale,
-    rot,
-    zIndex: 20 - absDelta,
-    opacity: absDelta > 2 ? 0 : 1,
-    dim: absDelta === 0 ? 0 : absDelta === 1 ? 0.28 : 0.45,
-  };
 }
 
 /**
@@ -70,16 +50,8 @@ export function CardStack({
     null,
   );
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Sync index if external activeAccountId changes
-  useEffect(() => {
-    if (activeAccountId) {
-      const idx = accounts.findIndex((acc) => acc.id === activeAccountId);
-      if (idx >= 0 && idx !== internalIndex) {
-        setInternalIndex(idx);
-      }
-    }
-  }, [activeAccountId, accounts, internalIndex]);
+  const didDragRef = useRef(false);
+  const capturedPointerIdRef = useRef<number | null>(null);
 
   if (accounts.length === 0) {
     return (
@@ -109,7 +81,13 @@ export function CardStack({
     );
   }
 
-  const safeIndex = Math.max(0, Math.min(accounts.length - 1, internalIndex));
+  const controlledIndex = activeAccountId
+    ? accounts.findIndex((acc) => acc.id === activeAccountId)
+    : -1;
+  const safeIndex =
+    controlledIndex >= 0
+      ? controlledIndex
+      : Math.max(0, Math.min(accounts.length - 1, internalIndex));
   const activeAccount = accounts[safeIndex];
   const activeColor =
     activeAccount?.color || activeAccount?.institution?.brand_color_primary;
@@ -132,8 +110,13 @@ export function CardStack({
     }
   };
 
-  const stageHeight = Math.round(cardWidth / 1.586) + 28;
-  const liveOffset = (drag?.deltaX ?? 0) / (cardWidth * 0.9);
+  const stageHeight = Math.round(cardWidth / 1.586) + 48;
+  const liveOffset = computeLiveDragOffset(
+    drag?.deltaX ?? 0,
+    cardWidth,
+    safeIndex,
+    accounts.length,
+  );
 
   const content = (
     <div
@@ -150,15 +133,27 @@ export function CardStack({
         style={{ height: `${stageHeight}px` }}
         onPointerDown={(e) => {
           if (accounts.length <= 1) return;
-          e.currentTarget.setPointerCapture?.(e.pointerId);
+          didDragRef.current = false;
+          capturedPointerIdRef.current = null;
           setDrag({ startX: e.clientX, deltaX: 0 });
         }}
         onPointerMove={(e) => {
-          if (drag) {
-            setDrag({ startX: drag.startX, deltaX: e.clientX - drag.startX });
+          if (!drag) return;
+          const deltaX = e.clientX - drag.startX;
+          if (Math.abs(deltaX) > 6) {
+            didDragRef.current = true;
+            if (capturedPointerIdRef.current === null) {
+              e.currentTarget.setPointerCapture?.(e.pointerId);
+              capturedPointerIdRef.current = e.pointerId;
+            }
           }
+          setDrag({ startX: drag.startX, deltaX });
         }}
-        onPointerUp={() => {
+        onPointerUp={(e) => {
+          if (capturedPointerIdRef.current !== null) {
+            e.currentTarget.releasePointerCapture?.(capturedPointerIdRef.current);
+            capturedPointerIdRef.current = null;
+          }
           if (drag) {
             const delta = drag.deltaX;
             setDrag(null);
@@ -169,19 +164,16 @@ export function CardStack({
             }
           }
         }}
-        onPointerCancel={() => setDrag(null)}
+        onPointerCancel={(e) => {
+          if (capturedPointerIdRef.current !== null) {
+            e.currentTarget.releasePointerCapture?.(capturedPointerIdRef.current);
+            capturedPointerIdRef.current = null;
+          }
+          setDrag(null);
+        }}
       >
         {accounts.map((acc, k) => {
-          const delta = k - safeIndex - liveOffset;
-          const roundedDelta = Math.round(delta);
-          const slot1 = calculateSlot(roundedDelta, cardWidth);
-          const nextStep = roundedDelta + (delta > roundedDelta ? 1 : -1);
-          const slot2 = calculateSlot(nextStep, cardWidth);
-          const fraction = Math.abs(delta - roundedDelta);
-
-          const posX = slot1.x + (slot2.x - slot1.x) * fraction;
-          const posScale = slot1.scale + (slot2.scale - slot1.scale) * fraction;
-          const posRot = slot1.rot + (slot2.rot - slot1.rot) * fraction;
+          const frame = computeCardFrame(k, safeIndex, liveOffset, cardWidth);
           const isActive = k === safeIndex;
 
           return (
@@ -192,12 +184,12 @@ export function CardStack({
               style={{
                 width: `${cardWidth}px`,
                 marginLeft: `${-cardWidth / 2}px`,
-                transform: `translateX(${posX.toFixed(1)}px) scale(${posScale.toFixed(3)}) rotate(${posRot.toFixed(2)}deg)`,
-                zIndex: slot1.zIndex,
-                opacity: slot1.opacity,
+                transform: `translateX(${frame.x.toFixed(1)}px) scale(${frame.scale.toFixed(3)}) rotate(${frame.rot.toFixed(2)}deg)`,
+                zIndex: frame.zIndex,
+                opacity: frame.opacity,
               }}
               onClick={() => {
-                if (!isActive && !(drag && Math.abs(drag.deltaX) > 4)) {
+                if (!isActive && !didDragRef.current) {
                   goTo(k);
                 }
               }}
@@ -215,19 +207,25 @@ export function CardStack({
                 shape={mapDbPatternToCardShape(
                   acc.custom_pattern || acc.institution?.card_pattern,
                 )}
-                active={isActive}
+                active={false}
                 tilt={isActive}
                 isFavorite={favoriteAccountId === acc.id}
                 onToggleFavorite={
                   onToggleFavorite ? () => onToggleFavorite(acc.id) : undefined
                 }
                 onClick={
-                  isActive && onCardClick ? () => onCardClick(acc) : undefined
+                  isActive && onCardClick
+                    ? () => {
+                        if (!didDragRef.current) {
+                          onCardClick(acc);
+                        }
+                      }
+                    : undefined
                 }
               />
               <span
                 className="shade"
-                style={{ opacity: isActive ? 0 : slot1.dim }}
+                style={{ opacity: frame.dim }}
               />
             </div>
           );

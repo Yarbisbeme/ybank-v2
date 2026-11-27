@@ -180,56 +180,73 @@ export function getCardBackgroundStyle(options: {
   secondaryColor?: string | null;
   finish?: CardFinish;
 }): CSSProperties {
-    const effectiveBase = options.finish === 'metal' ? 'materia' : options.base;
-    const primary =
-      options.finish === 'metal'
-        ? CARD_METAL_HEX
-        : resolveCardHex(options.color);
+  const effectiveBase = options.finish === 'metal' ? 'materia' : options.base;
+  const primary =
+    options.finish === 'metal'
+      ? CARD_METAL_HEX
+      : resolveCardHex(options.color);
 
-    if (effectiveBase === 'plana') {
-      return { backgroundColor: primary };
-    }
+  if (effectiveBase === 'plana') {
+    return { backgroundColor: primary };
+  }
 
-    if (effectiveBase === 'degradado') {
-      const secondary = options.secondaryColor
-        ? resolveCardHex(options.secondaryColor)
-        : CARD_PALETTE.tinta;
+  if (effectiveBase === 'degradado') {
+    const secondary = options.secondaryColor
+      ? resolveCardHex(options.secondaryColor)
+      : CARD_PALETTE.tinta;
 
-      return {
-        backgroundImage: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
-      };
-    }
-
-    const lightEdge = mixHex(primary, '#ffffff', 0.18);
-    const darkEdge = mixHex(primary, '#000000', 0.28);
     return {
-      backgroundColor: primary,
-      backgroundImage: `linear-gradient(155deg, ${lightEdge} 0%, ${primary} 48%, ${darkEdge} 100%)`,
+      backgroundImage: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
     };
   }
 
-  /** Micro-texture overlay per finish matching YBank 2.0 bundle.js. */
-  export function getCardTextureStyle(finish: CardFinish): CSSProperties | null {
-    if (finish === 'metal') {
-      return {
-        backgroundImage:
-          'repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 1px, rgba(0, 0, 0, 0.05) 1px 3px)',
-      };
-    }
-    if (finish === 'mate') {
-      return {
-        backgroundImage:
-          'repeating-radial-gradient(circle at 30% 40%, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px)',
-      };
-    }
-    return null;
+  const lightEdge = mixHex(primary, '#ffffff', 0.18);
+  const darkEdge = mixHex(primary, '#000000', 0.28);
+  return {
+    backgroundColor: primary,
+    backgroundImage: `linear-gradient(155deg, ${lightEdge} 0%, ${primary} 48%, ${darkEdge} 100%)`,
+  };
+}
+
+/** Micro-texture overlay per finish matching YBank 2.0 bundle.js. */
+export function getCardTextureStyle(finish: CardFinish): CSSProperties | null {
+  if (finish === 'metal') {
+    return {
+      backgroundImage:
+        'repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 1px, rgba(0, 0, 0, 0.05) 1px 3px)',
+    };
+  }
+  if (finish === 'mate') {
+    return {
+      backgroundImage:
+        'repeating-radial-gradient(circle at 30% 40%, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px)',
+    };
+  }
+  return null;
+}
+
+/** Pointer-reactive holographic conic spectrum layer. */
+export function getCardHoloStyle(px: number, py: number): CSSProperties {
+  return {
+    backgroundImage: `conic-gradient(from ${(px * 3.6).toFixed(1)}deg at ${px}% ${py}%, #ff8a8a, #ffe27a, #9cffb0, #8ad8ff, #c79bff, #ff8a8a)`,
+  };
+}
+
+  /** Returns tonal section wash alpha matching YBank 2.0 dark/light tokens (#26 vs #1F). */
+  export function getCardWashAlpha(isDark: boolean): number {
+    return isDark ? 0.15 : 0.12;
   }
 
-  /** Pointer-reactive holographic conic spectrum layer. */
-  export function getCardHoloStyle(px: number, py: number): CSSProperties {
-    return {
-      backgroundImage: `conic-gradient(from ${(px * 3.6).toFixed(1)}deg at ${px}% ${py}%, #ff8a8a, #ffe27a, #9cffb0, #8ad8ff, #c79bff, #ff8a8a)`,
-    };
+  /** Resolves progress bar color with dark-mode contrast guard for low-luminance cards. */
+  export function getCardBarColor(
+    color: string | null | undefined,
+    isDark: boolean,
+  ): string {
+    const hex = resolveCardHex(color);
+    if (isDark && getCardLuminance(hex) < 40) {
+      return 'var(--ink)';
+    }
+    return hex;
   }
 
   /** Dynamic pointer-driven specular sheen over material/gradient/metallic cards. */
