@@ -1,4 +1,6 @@
 -- Regression tests for B1 (cross-currency transfers) and B4 (avatar policies).
+-- Transfers here are between the same user's accounts, so they are tax-exempt since Phase 2.2
+-- (taxed cases live in tax_rules.test.sql).
 -- Run against a LOCAL database only:
 --   npx supabase db start
 --   docker exec -i supabase_db_ybank-v2 psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests/balance_and_avatar.test.sql
@@ -30,29 +32,28 @@ INSERT INTO public.accounts (id, user_id, name, type, currency, current_balance)
 CREATE FUNCTION pg_temp.balance(acc uuid) RETURNS numeric LANGUAGE sql AS
   $$ SELECT current_balance FROM public.accounts WHERE id = acc $$;
 
--- 1. Same-currency transfer, as the app sends it (target_amount = amount): unchanged behaviour.
+-- 1. Same-currency transfer, as the app sends it (target_amount = amount).
 INSERT INTO public.transactions (id, user_id, account_id, transfer_to_account_id, type, amount, target_amount, description, date)
 VALUES ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a1',
         '10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003',
         'transfer', 1000, 1000, 'same currency', '2026-11-25');
-SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 8998.5, 'same-ccy: source pays amount + 0.15%');
+SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 9000, 'same-ccy own: source pays amount, no tax');
 SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000003'), 1000, 'same-ccy: destination gets amount');
-SELECT pg_temp.assert_eq((SELECT sum(unit_price) FROM public.transaction_items WHERE transaction_id = '20000000-0000-0000-0000-000000000001'), 1001.5, 'same-ccy: items add up to amount');
+SELECT pg_temp.assert_eq((SELECT sum(unit_price) FROM public.transaction_items WHERE transaction_id = '20000000-0000-0000-0000-000000000001'), 1000, 'same-ccy: items add up to amount');
 
 -- 2. Cross-currency transfer: 100 USD -> 6050 DOP at 60.50 (B1).
 INSERT INTO public.transactions (id, user_id, account_id, transfer_to_account_id, type, amount, target_amount, exchange_rate, description, date)
 VALUES ('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000a1',
         '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002',
         'transfer', 100, 6050, 60.50, 'cross currency', '2026-11-25');
-SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000001'), 899.85, 'cross-ccy: USD source pays 100 + 0.15%');
-SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 8998.5 + 6050, 'cross-ccy: DOP destination gets converted amount');
-SELECT pg_temp.assert_eq((SELECT min(unit_price) FROM public.transaction_items WHERE transaction_id = '20000000-0000-0000-0000-000000000002'), 0.15, 'cross-ccy: tax item positive, in source currency');
-SELECT pg_temp.assert_eq((SELECT sum(unit_price) FROM public.transaction_items WHERE transaction_id = '20000000-0000-0000-0000-000000000002'), 100.15, 'cross-ccy: items add up to amount');
+SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000001'), 900, 'cross-ccy own: USD source pays 100, no tax');
+SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 9000 + 6050, 'cross-ccy: DOP destination gets converted amount');
+SELECT pg_temp.assert_eq((SELECT sum(unit_price) FROM public.transaction_items WHERE transaction_id = '20000000-0000-0000-0000-000000000002'), 100, 'cross-ccy: items add up to amount');
 
 -- 3. Deleting the cross-currency transfer restores both balances.
 DELETE FROM public.transactions WHERE id = '20000000-0000-0000-0000-000000000002';
 SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000001'), 1000, 'delete: USD restored');
-SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 8998.5, 'delete: DOP restored');
+SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 9000, 'delete: DOP restored');
 
 -- 4. Cross-currency without target_amount is rejected instead of crediting the wrong amount.
 DO $$
@@ -69,7 +70,7 @@ END $$;
 INSERT INTO public.transactions (user_id, account_id, transfer_to_account_id, type, amount, description, date)
 VALUES ('00000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-000000000002',
         '10000000-0000-0000-0000-000000000003', 'transfer', 500, 'Pago PayPal', '2026-11-25');
-SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 8498.5, 'paypal: no tax');
+SELECT pg_temp.assert_eq(pg_temp.balance('10000000-0000-0000-0000-000000000002'), 8500, 'paypal: no tax');
 
 -- 6. Avatar policies (B4): user A can write only inside their own folder.
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT (id) DO NOTHING;

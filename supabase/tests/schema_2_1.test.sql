@@ -96,7 +96,7 @@ INSERT INTO public.transactions (id, user_id, account_id, transfer_to_account_id
 VALUES ('aa000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a1',
         'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'transfer', 100, 100, 'own transfer', '2026-11-27');
 SELECT pg_temp.ok((SELECT current_balance FROM public.accounts WHERE id = 'a0000000-0000-0000-0000-000000000002') = 100, 'own transfer credited (RLS + triggers)');
-SELECT pg_temp.ok((SELECT count(*) FROM public.transaction_items WHERE transaction_id = 'aa000000-0000-0000-0000-000000000001') = 2, 'automatic items (with system DGII category) still inserted under RLS');
+SELECT pg_temp.ok((SELECT count(*) FROM public.transaction_items WHERE transaction_id = 'aa000000-0000-0000-0000-000000000001') = 1, 'automatic item still inserted under RLS (own transfer: no DGII item since 2.2; taxed case in tax_rules.test.sql)');
 
 -- updated_at is server-maintained.
 UPDATE public.transactions SET updated_at = '2000-01-01' WHERE id = 'aa000000-0000-0000-0000-000000000001';
