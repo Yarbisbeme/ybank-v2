@@ -1,0 +1,676 @@
+/* YBank 2.0 ("Control con juego") — Design Tokens */
+
+:root,
+[data-theme="light"] {
+  /* Surfaces */
+  --canvas: #f4f3ef;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunk: #eae8e2;
+
+  /* Ink & Borders */
+  --ink: #0e0e10;
+  --ink-2: #5c5b57;
+  --ink-3: #8c8b86;
+  --line: rgba(14, 14, 16, 0.1);
+  --line-strong: rgba(14, 14, 16, 0.18);
+  --track: rgba(14, 14, 16, 0.08);
+
+  /* Primary Action (Ultramar) */
+  --action: #1f4bff;
+  --action-press: #1638cc;
+  --action-ink: #ffffff;
+  --action-wash: #e6ebff;
+  --focus: var(--action);
+
+  /* Achievement Accent (Lima — achievements only) */
+  --lime: #c6f432;
+  --lime-ink: #0e0e10;
+
+  /* Semantic Financial States */
+  --credit: #067647;
+  --debit: #b42318;
+  --pending: #b54708;
+
+  /* User Card Palette */
+  --card-ultramar: #1f4bff;
+  --card-tinta: #0e0e10;
+  --card-coral: #e4572e;
+  --card-lima: #c6f432;
+  --card-menta: #2bb673;
+  --card-marino: #0b3d91;
+  --card-vino: #7a1f2b;
+  --card-rosa: #f2b8c6;
+  --card-hueso: #f4f3ef;
+  --card-turquesa: #00a3a3;
+  --card-uva: #5b2a86;
+  --card-oro: #d4a017;
+
+  /* Elevation (only cards and overlays cast shadows) */
+  --shadow-card: 0 32px 40px -26px rgba(14, 14, 16, 0.6), 0 2px 4px rgba(14, 14, 16, 0.18);
+  --shadow-card-flat: 0 10px 20px -14px rgba(14, 14, 16, 0.5);
+  --shadow-overlay: 0 24px 48px -16px rgba(14, 14, 16, 0.35);
+}
+
+[data-theme="dark"],
+.dark {
+  --canvas: #0e0e10;
+  --surface: #17171a;
+  --surface-raised: #202024;
+  --surface-sunk: #0a0a0c;
+
+  --ink: #f4f3ef;
+  --ink-2: #a3a29c;
+  --ink-3: #6e6d68;
+  --line: rgba(244, 243, 239, 0.1);
+  --line-strong: rgba(244, 243, 239, 0.2);
+  --track: rgba(244, 243, 239, 0.12);
+
+  --action: #7c9bff;
+  --action-press: #a3b8ff;
+  --action-ink: #0e0e10;
+  --action-wash: #1a2140;
+  --focus: var(--action);
+
+  --credit: #47cd89;
+  --debit: #f97066;
+  --pending: #fdb022;
+}
+
+:root {
+  /* Spacing Scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radii (one character per level) */
+  --radius-chip: 4px;
+  --radius-control: 6px;
+  --radius-tile: 8px;
+  --radius-panel: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 16px;
+
+  /* Z-index Layers */
+  --z-base: 0;
+  --z-sticky: 20;
+  --z-dropdown: 40;
+  --z-drawer: 60;
+  --z-modal: 80;
+  --z-toast: 100;
+
+  /* Font Stacks (wired to next/font/google CSS variables) */
+  --font-display: var(--font-bricolage), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Typography Composite Tokens */
+  --text-money-xl: 800 64px/1 var(--font-display);
+  --text-display: 800 48px/0.95 var(--font-display);
+  --text-money-l: 800 40px/1 var(--font-display);
+  --text-money-card: 800 30px/1 var(--font-display);
+  --text-title-l: 800 28px/1.1 var(--font-display);
+  --text-title: 600 20px/1.2 var(--font-display);
+  --text-title-s: 600 16px/1.25 var(--font-display);
+  --text-body: 400 15px/22px var(--font-sans);
+  --text-body-strong: 500 15px/22px var(--font-sans);
+  --text-amount: 600 15px/22px var(--font-sans);
+  --text-small: 500 13px/18px var(--font-sans);
+  --text-label: 600 12px/16px var(--font-sans);
+  --text-nav: 500 11px/14px var(--font-sans);
+  --text-card-number: 500 12px/16px var(--font-mono);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+}
+
+/* Typography Utility Classes */
+.money-xl {
+  font-family: var(--font-display);
+  font-size: 64px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-size: 48px;
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.money-l {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-card {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.title-l {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.title-s {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.body-strong {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.amount {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.small {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.nav {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.card-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Elevation & Layer Utilities */
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-card-flat {
+  box-shadow: var(--shadow-card-flat);
+}
+
+.shadow-overlay {
+  box-shadow: var(--shadow-overlay);
+}
+
+.z-sticky {
+  z-index: var(--z-sticky);
+}
+
+.z-dropdown {
+  z-index: var(--z-dropdown);
+}
+
+.z-drawer {
+  z-index: var(--z-drawer);
+}
+
+.z-modal {
+  z-index: var(--z-modal);
+}
+
+.z-toast {
+  z-index: var(--z-toast);
+}
+
+.aspect-iso-card {
+  aspect-ratio: 1.586 / 1;
+}
+
+/* Brand Lockup & Motion */
+.ymark-word {
+  margin-left: -0.08em;
+}
+
+@keyframes ymark-brote {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ymark-logro {
+  0%,
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+  35% {
+    color: var(--lime);
+    transform: scale(1.06);
+  }
+}
+
+@keyframes ymark-loop {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.68;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes leaf-wave-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-ymark-brote {
+  animation: ymark-brote var(--duration-base) var(--ease-standard) both;
+}
+
+.animate-ymark-logro .ymark-leaf-small {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ymark-logro 650ms var(--ease-standard) both;
+}
+
+.animate-ymark-loop .ymark-leaf-small {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ymark-loop 1.8s var(--ease-standard) infinite;
+}
+
+.animate-leaf-wave {
+  animation: leaf-wave-drift 3.2s linear infinite;
+}
+
+.animate-skeleton {
+  animation: skeleton-shimmer 1.5s var(--ease-standard) infinite;
+}
+
+/* YCard Surfaces & Finishes */
+.card-base-materia {
+  background-image: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0) 48%,
+    rgba(0, 0, 0, 0.14) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), var(--shadow-card);
+}
+
+.card-finish-metal {
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.06) 0px,
+    rgba(255, 255, 255, 0.06) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.card-finish-holo {
+  background-image: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0) 15%,
+    rgba(198, 244, 50, 0.12) 38%,
+    rgba(124, 155, 255, 0.16) 52%,
+    rgba(255, 255, 255, 0.08) 65%,
+    rgba(255, 255, 255, 0) 85%
+  );
+}
+
+.rounded-t-sheet {
+  border-top-left-radius: var(--radius-sheet);
+  border-top-right-radius: var(--radius-sheet);
+}
+
+/* YBank 2.0 1:1 visual parity utilities */
+.money-hero {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4.2vw, 60px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-hero-input {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 56px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--action);
+}
+
+@keyframes y2-wave {
+  0% {
+    transform: translateY(100%);
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes y2-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.y2-seg-wave {
+  position: absolute;
+  inset: 0;
+  background: var(--action);
+  opacity: 0;
+  pointer-events: none;
+  overflow: visible;
+  animation: y2-wave 600ms var(--ease-standard);
+}
+
+.y2-seg-crest {
+  position: absolute;
+  left: 0;
+  top: -9px;
+  width: 200%;
+  height: 12px;
+  fill: var(--action);
+  animation: y2-slide 1.2s linear infinite;
+}
+
+.toast-ybank {
+  background-color: var(--ink);
+  color: var(--canvas);
+  border-color: transparent;
+}
+
+.toast-ybank-success {
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-ybank-success::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background-color: var(--lime);
+}
+
+.toast-ybank-error {
+  background-color: var(--surface-raised);
+  color: var(--ink);
+  border-color: var(--debit);
+}
+
+.health-card-ink {
+  background-color: #0e0e10;
+  color: #f4f3ef;
+  border-color: transparent;
+}
+
+[data-theme="dark"] .health-card-ink,
+.dark .health-card-ink {
+  background-color: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.health-card-ink-muted {
+  color: #a3a29c;
+}
+
+[data-theme="dark"] .health-card-ink-muted,
+.dark .health-card-ink-muted {
+  color: var(--ink-2);
+}
+
+.health-card-ink-track {
+  background-color: rgba(244, 243, 239, 0.14);
+}
+
+.health-card-ink-link {
+  color: #7c9bff;
+}
+
+.y2-card-perspective {
+  perspective: 900px;
+}
+
+.y2-card-active-ring {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.y2-card-materia-shadow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.25), var(--shadow-card);
+}
+
+.y2-card-holo-blend {
+  mix-blend-mode: overlay;
+  opacity: 0.8;
+}
+
+.y2-track {
+  background-color: var(--track);
+}
+
+.y2-rail-hidden {
+  scrollbar-width: none;
+}
+
+.y2-rail-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* CardStack (Wallet Carousel) */
+.y2-stack {
+  outline: none;
+}
+
+.y2-stack:focus-visible .stage {
+  outline: 2px solid var(--action);
+  outline-offset: 4px;
+  border-radius: var(--radius-panel);
+}
+
+.y2-stack .stage {
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  width: 100%;
+  overflow: hidden;
+}
+
+.y2-stack .stage.dragging {
+  cursor: grabbing;
+}
+
+.y2-stack .slot {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform-origin: 50% 90%;
+  transition: transform 460ms cubic-bezier(.2,.9,.25,1.12), opacity 300ms cubic-bezier(.2,.8,.2,1);
+}
+
+.y2-stack .stage.dragging .slot {
+  transition: none;
+}
+
+.y2-stack .shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  aspect-ratio: 1.586 / 1;
+  border-radius: var(--radius-card);
+  background: #0E0E10;
+  pointer-events: none;
+  transition: opacity 300ms cubic-bezier(.2,.8,.2,1);
+}
+
+.y2-stack .foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: calc(var(--space-3) * -1);
+  position: relative;
+  z-index: 25;
+}
+
+.y2-stack .foot button {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  background: var(--surface);
+  transition: background-color 150ms, color 150ms;
+  cursor: pointer;
+}
+
+.y2-stack .foot button:hover:not(:disabled) {
+  background: var(--surface-hover, var(--canvas));
+}
+
+.y2-stack .foot button:disabled {
+  color: var(--ink-3);
+  cursor: default;
+  opacity: 0.4;
+}
+
+.y2-stack .foot svg {
+  width: 16px;
+  height: 16px;
+}
+
+.y2-stack .segs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.y2-stack .segs span {
+  width: 8px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  transition: width 250ms cubic-bezier(.2,.8,.2,1), background 250ms;
+}
+
+.y2-stack .segs span.on {
+  width: 24px;
+  background: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .y2-seg-wave,
+  .y2-seg-crest,
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

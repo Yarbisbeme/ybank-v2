@@ -1,75 +1,227 @@
-'use client'
+'use client';
 
 import { useState } from 'react';
-import { CreateAccountInput, EditCreateAccount, Institution } from '@/types'; 
+import { Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
-import AccountDetailsPanel from './AccountDetailsPanel';
-import { CheckCircle2, Power, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import type {
+  AccountType,
+  CustomPattern,
+  EditCreateAccount,
+  Institution,
+} from '@/types';
+import { ACCOUNT_TYPES, cn } from '@/lib/utils';
 import { useSaveAccount } from '@/hooks/useCatalogs';
-import UniversalCard from '../Tarjetas/UniversalCard';
+import { Button, Switch } from '@/components/atoms';
+import {
+  AmountInput,
+  Field,
+  SearchSelect,
+  Segmented,
+  TextInput,
+  sanitizeAmountInput,
+} from '@/components/molecules';
+import {
+  CARD_PALETTE,
+  YCard,
+  getCardBackgroundStyle,
+  getCardHoloStyle,
+  getCardTextTone,
+  getCardTextureStyle,
+  hexToWash,
+  mapDbPatternToCardShape,
+  type CardBase,
+  type CardFinish,
+  type CardNetwork,
+} from '@/components/organisms';
+import AccountDetailsPanel from './AccountDetailsPanel';
 
-const emptyInstitution: Institution = {
-  id: '', name: '', logo_url: null, exchange_rate_adjustment: 0, exchange_rate_buy_adjustment: 0, created_at: new Date().toISOString(), brand_color_primary: '#1e3a8a'
-};
+type EditorTab = 'datos' | 'base' | 'color' | 'forma' | 'acabado';
 
-export default function AccountFormWrapper({ 
-  initialData,
-  institutions,
-  onSuccess
-}: {
+const EDITOR_TABS: { id: EditorTab; label: string }[] = [
+  { id: 'datos', label: 'Datos' },
+  { id: 'base', label: 'Base' },
+  { id: 'color', label: 'Color' },
+  { id: 'forma', label: 'Forma' },
+  { id: 'acabado', label: 'Acabado' },
+];
+
+const BASE_OPTIONS: { id: CardBase; label: string; hint: string }[] = [
+  { id: 'plana', label: 'Plana', hint: 'Color sólido limpio para copiar tu tarjeta física' },
+  { id: 'degradado', label: 'Degradado', hint: 'Transición suave entre dos tonos' },
+  { id: 'materia', label: 'Materia', hint: 'Relieve sutil y luz interactiva al mover el cursor' },
+];
+
+const PATTERN_OPTIONS: { id: CustomPattern; label: string }[] = [
+  { id: 'solid', label: 'Ninguna' },
+  { id: 'geometric', label: 'Geometría' },
+  { id: 'dots', label: 'Puntos' },
+  { id: 'curve', label: 'Curvas' },
+  { id: 'waves', label: 'Olas' },
+  { id: 'lines', label: 'Líneas' },
+  { id: 'mesh', label: 'Malla' },
+];
+
+const INTENSITY_OPTIONS: { value: 0 | 1 | 2; label: string }[] = [
+  { value: 0, label: 'Sutil' },
+  { value: 1, label: 'Media' },
+  { value: 2, label: 'Fuerte' },
+];
+
+const FINISH_OPTIONS: { id: CardFinish; label: string; status: string }[] = [
+  { id: 'mate', label: 'Mate', status: 'Disponible' },
+  { id: 'metal', label: 'Metálico', status: 'Vista previa · al registrarte 30 días' },
+  { id: 'holo', label: 'Holográfico', status: 'Vista previa · al cumplir 1 presupuesto' },
+];
+
+const NETWORK_OPTIONS: { value: CardNetwork; label: string }[] = [
+  { value: 'VISA', label: 'VISA' },
+  { value: 'Mastercard', label: 'Mastercard' },
+  { value: '', label: 'Ninguna' },
+];
+
+const CURRENCY_OPTIONS: { value: 'DOP' | 'USD'; label: string }[] = [
+  { value: 'DOP', label: 'DOP' },
+  { value: 'USD', label: 'USD' },
+];
+
+export interface AccountFormWrapperProps {
   initialData?: EditCreateAccount;
   institutions: Institution[];
   onSuccess?: () => void;
-}) {
-  const isEditing = !!initialData?.id;
-  const router = useRouter(); 
-  const [isSubmitting, setIsSubmitting] = useState(false); 
+}
 
+/** Five-tab YBank 2.0 card designer ("Datos · Base · Color · Forma · Acabado"). */
+export default function AccountFormWrapper({
+  initialData,
+  institutions,
+  onSuccess,
+}: AccountFormWrapperProps) {
+  const isEditing = Boolean(initialData?.id);
+  const [activeTab, setActiveTab] = useState<EditorTab>('datos');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { mutateAsync: saveAccount } = useSaveAccount();
+
+  const [cardBase, setCardBase] = useState<CardBase>('materia');
+  const [secondaryColor, setSecondaryColor] = useState<string>(CARD_PALETTE.tinta);
+  const [shapeIntensity, setShapeIntensity] = useState<0 | 1 | 2>(1);
+  const [cardFinish, setCardFinish] = useState<CardFinish>('mate');
+  const [network, setNetwork] = useState<CardNetwork>('');
 
   const [accountData, setAccountData] = useState<EditCreateAccount>(() => {
     if (initialData) {
       return {
         ...initialData,
-        color: initialData.color || initialData.institution?.brand_color_primary || '#09090b',
-        custom_pattern: initialData.custom_pattern || initialData.institution?.card_pattern || 'geometric',
-        custom_text_theme: initialData.custom_text_theme || initialData.institution?.text_theme || 'light',
+        color:
+          initialData.color ||
+          initialData.institution?.brand_color_primary ||
+          CARD_PALETTE.tinta,
+        custom_pattern:
+          initialData.custom_pattern ||
+          initialData.institution?.card_pattern ||
+          'geometric',
+        custom_text_theme:
+          initialData.custom_text_theme ||
+          initialData.institution?.text_theme ||
+          'light',
       };
     }
+
     return {
-      name: '', type: 'checking', currency: 'DOP',
-      color: '#09090b', custom_pattern: 'geometric', custom_text_theme: 'light',
-      current_balance: 0, last_4_digits: '',
-      institution: emptyInstitution, is_active: true, initial_balance: 0
+      name: '',
+      type: 'savings',
+      currency: 'DOP',
+      color: CARD_PALETTE.ultramar,
+      custom_pattern: 'geometric',
+      custom_text_theme: 'light',
+      current_balance: 0,
+      initial_balance: 0,
+      last_4_digits: '',
+      institution: null,
+      institution_id: null,
+      is_active: true,
     };
   });
 
-  const handleChange = (field: string | Record<string, any>, value?: any) => {
-    setAccountData(prev => {
-      if (typeof field === 'object' && field !== null) {
-        return { ...prev, ...field };
-      }
-      return { ...prev, [field as string]: value };
-    });
+  const [balanceInput, setBalanceInput] = useState(() => {
+    const val = Math.abs(Number(initialData?.current_balance || 0));
+    return val === 0 ? '' : String(val);
+  });
+
+  const handlePatch = (patch: Partial<EditCreateAccount>) => {
+    setAccountData((prev) => ({ ...prev, ...patch }));
   };
-  const handleSave = async () => {
-    if (isSubmitting) return;
-    if (!accountData.name.trim()) return toast.error('El nombre del nodo es obligatorio.');
-    if (accountData.type !== 'cash' && (!accountData.institution?.id && !accountData.institution_id)) 
-        return toast.error('Selecciona una institución financiera.');
+
+  const handleTypeChange = (nextType: string) => {
+    const typed = nextType as AccountType;
+    const isPassive = typed === 'credit_card';
+    const wasPassive = accountData.type === 'credit_card';
+
+    const patch: Partial<EditCreateAccount> = { type: typed };
+    if (typed === 'cash') {
+      patch.institution_id = null;
+      patch.institution = null;
+      patch.last_4_digits = null;
+      patch.expiry_date = null;
+    }
+    if (isPassive !== wasPassive) {
+      patch.current_balance = 0;
+      patch.initial_balance = 0;
+      setBalanceInput('');
+    }
+    handlePatch(patch);
+  };
+
+  const handleBalanceChange = (raw: string) => {
+    const sanitized = sanitizeAmountInput(raw);
+    setBalanceInput(sanitized);
+    const num = Number(sanitized) || 0;
+    const signed = accountData.type === 'credit_card' ? -Math.abs(num) : num;
+    handlePatch({ current_balance: signed, initial_balance: signed });
+  };
+
+  const handleExpiryChange = (raw: string) => {
+    let digits = raw.replace(/\D/g, '').slice(0, 4);
+    if (digits.length >= 2) {
+      const month = Math.min(Math.max(parseInt(digits.slice(0, 2), 10), 1), 12);
+      digits = String(month).padStart(2, '0') + digits.slice(2);
+    }
+    const formatted =
+      digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+    handlePatch({ expiry_date: formatted });
+  };
+
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!accountData.name.trim()) {
+      toast.error('El nombre de la cuenta es obligatorio.');
+      setActiveTab('datos');
+      return;
+    }
+    if (
+      accountData.type !== 'cash' &&
+      !accountData.institution_id &&
+      !accountData.institution?.id
+    ) {
+      toast.error('Selecciona una institución financiera.');
+      setActiveTab('datos');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      const inputData = {
+      const payload = {
         id: accountData.id,
-        name: accountData.name, 
-        type: accountData.type, 
+        name: accountData.name,
+        type: accountData.type,
         currency: accountData.currency,
-        initial_balance: accountData.initial_balance ?? 0, 
-        current_balance: accountData.current_balance ?? 0, 
-        institution_id: accountData.institution_id || accountData.institution?.id || '', 
+        initial_balance: accountData.initial_balance ?? 0,
+        current_balance: accountData.current_balance ?? 0,
+        institution_id:
+          accountData.institution_id || accountData.institution?.id || '',
         last_4_digits: accountData.last_4_digits || undefined,
         credit_limit: accountData.credit_limit || undefined,
         is_active: accountData.is_active ?? true,
@@ -80,84 +232,477 @@ export default function AccountFormWrapper({
         cutoff_day: accountData.cutoff_day || undefined,
       };
 
-      await saveAccount(inputData);
+      await saveAccount(payload);
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al guardar la configuración');
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Error al guardar la configuración';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const typeOptions = ACCOUNT_TYPES.map((item) => ({
+    id: item.id,
+    label: item.label,
+  }));
+
+  const institutionOptions = institutions.map((inst) => ({
+    id: inst.id,
+    label: inst.name,
+  }));
+
+  const isCash = accountData.type === 'cash';
+  const stageHint =
+    cardFinish !== 'mate'
+      ? `Vista previa · ${FINISH_OPTIONS.find((f) => f.id === cardFinish)?.status.toLowerCase() ?? ''}`
+      : cardBase === 'plana'
+        ? 'Plana: ideal para copiar tu tarjeta física'
+        : 'Pasa el cursor para ver cómo le da la luz';
+
   return (
-    <div className="w-full h-full p-4 md:p-6 flex flex-col gap-8"> 
-      
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12"> 
-  
-        <div className="lg:col-span-6 w-full">
-          <div className="max-w-[400px] mx-auto"> 
-            <UniversalCard 
-              account={accountData} 
-              isEditable={true}     
-              onChange={handleChange} 
-              institutionsList={institutions} 
-            />
-          </div>
-        </div>
-
-        <div className="lg:col-span-6 flex flex-col w-full">
-          <AccountDetailsPanel data={accountData} onChange={handleChange} isEditing={isEditing} />
-        </div>
-      </div>
-      
-      <div className="border-t border-border pt-8 mt-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-  
-        {isEditing ? (
-          <div className="flex items-center justify-between w-full p-4 bg-surface-2 border border-border rounded-[12px]">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-background border border-border rounded-[8px] text-primary">
-                <Power size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Cuenta Activa</p>
-                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Visible en reportes.</p>
-              </div>
-            </div>
-            <button 
-              type="button"
-              onClick={() => handleChange('is_active', !accountData.is_active)}
-              className={cn(
-                "w-11 h-6 rounded-full transition-all duration-300 relative border border-black/5", 
-                accountData.is_active ? 'bg-primary' : 'bg-slate-300'
-              )}
+          <form onSubmit={handleSave} className="flex flex-col gap-5">
+            <div
+              style={{ backgroundColor: hexToWash(accountData.color, 0.14) }}
+              className="rounded-panel p-5 flex flex-col items-center gap-3 transition-colors duration-250"
             >
-              <div className={cn(
-                "absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm", 
-                accountData.is_active ? 'left-5.5 translate-x-0' : 'left-0.5'
-              )} />
-            </button>
-          </div>
-        ) : (
-          <div /> 
-        )}
+              <div className="max-w-sm w-full">
+                <YCard
+                  name={accountData.name || 'Nueva tarjeta'}
+                  balance={accountData.current_balance}
+                  currency={accountData.currency}
+                  accountType={accountData.type}
+                  bankName={accountData.institution?.name}
+                  bankLogoUrl={accountData.institution?.logo_url}
+                  last4={isCash ? '0000' : accountData.last_4_digits}
+                  network={network}
+                  base={cardBase}
+                  color={accountData.color}
+                  secondaryColor={secondaryColor}
+                  shape={mapDbPatternToCardShape(accountData.custom_pattern)}
+                  shapeIntensity={shapeIntensity}
+                  finish={cardFinish}
+                />
+              </div>
+              <p className="small text-ink-2 text-center">{stageHint}</p>
+            </div>
 
-        <button 
-          onClick={handleSave}
-          disabled={isSubmitting}
-          className={cn(
-            "w-full flex items-center h-full justify-center gap-2 px-8 py-4 rounded-[12px] text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] shadow-lg",
-            isSubmitting 
-              ? "bg-muted text-muted-foreground cursor-wait" 
-              : "bg-foreground text-background hover:bg-foreground/90"
-          )}
-        >
-          {isSubmitting ? (
-            <><RefreshCw className="animate-spin" size={14} /> Procesando...</>
-          ) : (
-            <><CheckCircle2 size={16} /> {isEditing ? 'Guardar Configuración' : 'Confirmar y Crear'}</>
-          )}
-        </button>
-      </div>
-    </div>
-  );
+                  <div
+                    role="tablist"
+                    aria-label="Opciones de diseño de tarjeta"
+                    className="flex items-center gap-1 overflow-x-auto border-b border-line pb-2.5"
+                  >
+                    {EDITOR_TABS.map((tab) => {
+                      const selected = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={selected}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={cn(
+                            'h-8.5 px-3.5 rounded-control small whitespace-nowrap transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                            selected
+                              ? 'bg-ink text-canvas'
+                              : 'text-ink-2 hover:bg-surface-sunk hover:text-ink',
+                          )}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {activeTab === 'datos' ? (
+                    <div className="flex flex-col gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Nombre de la tarjeta" htmlFor="acc-name" required>
+                          <TextInput
+                            id="acc-name"
+                            value={accountData.name}
+                            placeholder="Ej. Nómina Popular"
+                            onChange={(e) => handlePatch({ name: e.target.value })}
+                          />
+                        </Field>
+
+                        <Field label="Tipo de cuenta" htmlFor="acc-type" required>
+                          <SearchSelect
+                            id="acc-type"
+                            options={typeOptions}
+                            value={accountData.type}
+                            onChange={handleTypeChange}
+                            placeholder="Seleccionar tipo..."
+                          />
+                        </Field>
+
+                        {!isCash ? (
+                          <Field label="Institución financiera" htmlFor="acc-institution" required>
+                            <SearchSelect
+                              id="acc-institution"
+                              options={institutionOptions}
+                              value={accountData.institution_id || accountData.institution?.id || ''}
+                              onChange={(instId) => {
+                                const chosen = institutions.find((i) => i.id === instId) ?? null;
+                                handlePatch({
+                                  institution_id: instId,
+                                  institution: chosen,
+                                });
+                              }}
+                              placeholder="Buscar banco..."
+                            />
+                          </Field>
+                        ) : null}
+
+                        <Field label="Moneda" htmlFor="acc-currency">
+                          <Segmented<'DOP' | 'USD'>
+                            aria-label="Moneda de la cuenta"
+                            options={CURRENCY_OPTIONS}
+                            value={accountData.currency}
+                            onChange={(currency) => handlePatch({ currency })}
+                            fullWidth
+                          />
+                        </Field>
+
+                        <Field
+                          label={isEditing ? 'Balance actual' : 'Balance inicial'}
+                          htmlFor="acc-balance"
+                        >
+                          <AmountInput
+                            id="acc-balance"
+                            currency={accountData.currency}
+                            value={balanceInput}
+                            placeholder="0.00"
+                            onChange={handleBalanceChange}
+                          />
+                        </Field>
+
+                        {!isCash ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            <Field label="Últimos 4 dígitos" htmlFor="acc-last4">
+                              <TextInput
+                                id="acc-last4"
+                                inputMode="numeric"
+                                maxLength={4}
+                                value={accountData.last_4_digits || ''}
+                                placeholder="4288"
+                                onChange={(e) =>
+                                  handlePatch({
+                                    last_4_digits: e.target.value.replace(/\D/g, ''),
+                                  })
+                                }
+                              />
+                            </Field>
+
+                            <Field label="Vencimiento" htmlFor="acc-expiry">
+                              <TextInput
+                                id="acc-expiry"
+                                inputMode="numeric"
+                                maxLength={5}
+                                value={accountData.expiry_date || ''}
+                                placeholder="MM/AA"
+                                onChange={(e) => handleExpiryChange(e.target.value)}
+                              />
+                            </Field>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {!isCash ? (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="label text-ink-2">Red de la tarjeta</span>
+                          <div className="grid grid-cols-3 gap-2">
+                            {NETWORK_OPTIONS.map((opt) => {
+                              const active = network === opt.value;
+                              return (
+                                <button
+                                  key={opt.label}
+                                  type="button"
+                                  aria-pressed={active}
+                                  onClick={() => setNetwork(opt.value)}
+                                  className={cn(
+                                    'h-10 rounded-control border small transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                                    active
+                                      ? 'border-ink bg-ink text-canvas'
+                                      : 'border-line-strong bg-surface text-ink hover:bg-surface-sunk',
+                                  )}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <AccountDetailsPanel
+                        data={accountData}
+                        onChange={handlePatch}
+                        isEditing={isEditing}
+                      />
+                    </div>
+                  ) : null}
+
+                  {activeTab === 'base' ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="label text-ink-2">Cómo se construye la superficie</p>
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {BASE_OPTIONS.map((opt) => {
+                          const selected = cardBase === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => setCardBase(opt.id)}
+                              className={cn(
+                                'flex h-24 flex-col items-center justify-center gap-2 rounded-tile bg-surface p-2 transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                                selected
+                                  ? 'border-2 border-ink'
+                                  : 'border border-line hover:border-line-strong',
+                              )}
+                            >
+                              <span
+                                style={getCardBackgroundStyle({
+                                  base: opt.id,
+                                  color: accountData.color,
+                                  secondaryColor,
+                                })}
+                                className={cn(
+                                  'h-9 w-14 rounded-control',
+                                  opt.id === 'materia' && 'y2-card-materia-shadow',
+                                )}
+                              />
+                              <span className="label text-ink">{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="small text-ink-2">
+                        {BASE_OPTIONS.find((b) => b.id === cardBase)?.hint}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {activeTab === 'color' ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <span className="label text-ink-2">Color principal</span>
+                        <div className="grid grid-cols-6 gap-2.5">
+                          {Object.entries(CARD_PALETTE).map(([key, hex]) => {
+                            const isSelected =
+                              accountData.color.toLowerCase() === hex.toLowerCase();
+                            const isDarkInk = getCardTextTone(hex) === 'dark';
+
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                aria-label={`Color ${key}`}
+                                aria-pressed={isSelected}
+                                style={{ backgroundColor: hex }}
+                                onClick={() =>
+                                  handlePatch({
+                                    color: hex,
+                                    custom_text_theme: getCardTextTone(hex),
+                                  })
+                                }
+                                className={cn(
+                                  'aspect-square flex items-center justify-center rounded-control transition-transform duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                                  isSelected
+                                    ? 'border-2 border-ink scale-105'
+                                    : 'border border-line-strong',
+                                )}
+                              >
+                                {isSelected ? (
+                                  <Check
+                                    size={16}
+                                    strokeWidth={2.5}
+                                    className={isDarkInk ? 'text-lime-ink' : 'text-white'}
+                                  />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                          {cardBase === 'degradado' ? (
+                            <div className="flex flex-col gap-2">
+                              <span className="label text-ink-2">Segundo color del degradado</span>
+                              <div className="grid grid-cols-6 gap-2.5">
+                                {Object.entries(CARD_PALETTE).map(([key, hex]) => {
+                                  const isSelected =
+                                    secondaryColor.toLowerCase() === hex.toLowerCase();
+                                  const isDarkInk = getCardTextTone(hex) === 'dark';
+
+                                  return (
+                                    <button
+                                      key={`sec-${key}`}
+                                      type="button"
+                                      aria-label={`Segundo color ${key}`}
+                                      aria-pressed={isSelected}
+                                      style={{ backgroundColor: hex }}
+                                      onClick={() => setSecondaryColor(hex)}
+                                      className={cn(
+                                        'aspect-square flex items-center justify-center rounded-control transition-transform duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                                        isSelected
+                                          ? 'border-2 border-ink scale-105'
+                                          : 'border border-line-strong',
+                                      )}
+                                    >
+                                      {isSelected ? (
+                                        <Check
+                                          size={16}
+                                          strokeWidth={2.5}
+                                          className={isDarkInk ? 'text-lime-ink' : 'text-white'}
+                                        />
+                                      ) : null}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+      ) : null}
+
+                        {activeTab === 'forma' ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <span className="label text-ink-2">Forma encima del color</span>
+            <div className="grid grid-cols-4 gap-2">
+              {PATTERN_OPTIONS.map((pattern) => {
+                const active = accountData.custom_pattern === pattern.id;
+                return (
+                  <button
+                    key={pattern.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => handlePatch({ custom_pattern: pattern.id })}
+                    className={cn(
+                      'h-16 rounded-tile bg-surface label transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                      active
+                        ? 'border-2 border-ink text-ink'
+                        : 'border border-line text-ink-2 hover:text-ink',
+                    )}
+                  >
+                    {pattern.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="label text-ink-2">Intensidad</span>
+            <div className="grid grid-cols-3 gap-2">
+              {INTENSITY_OPTIONS.map((lvl) => {
+                const active = shapeIntensity === lvl.value;
+                return (
+                  <button
+                    key={lvl.label}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setShapeIntensity(lvl.value)}
+                    className={cn(
+                      'h-10 rounded-control border small transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                      active
+                        ? 'border-ink bg-ink text-canvas'
+                        : 'border-line-strong bg-surface text-ink hover:bg-surface-sunk',
+                    )}
+                  >
+                    {lvl.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+                  ) : null}
+
+                    {activeTab === 'acabado' ? (
+                      <div className="flex flex-col gap-2.5">
+                        <p className="label text-ink-2">Se aplica sobre cualquier base y forma</p>
+                        {FINISH_OPTIONS.map((fin) => {
+                          const active = cardFinish === fin.id;
+                          const swatchStyle =
+                            fin.id === 'holo'
+                              ? getCardHoloStyle(35, 30)
+                              : {
+                                ...getCardBackgroundStyle({
+                                  base: 'materia',
+                                  color: accountData.color,
+                                  finish: fin.id,
+                                }),
+                                ...getCardTextureStyle(fin.id),
+                              };
+
+                          return (
+                            <button
+                              key={fin.id}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => setCardFinish(fin.id)}
+                              className={cn(
+                                'flex items-center gap-3 rounded-tile bg-surface p-3 text-left transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2',
+                                active
+                                  ? 'border-2 border-ink'
+                                  : 'border border-line hover:border-line-strong',
+                              )}
+                            >
+                              <span
+                                style={swatchStyle}
+                                className="h-8 w-12 shrink-0 rounded-control border border-line"
+                              />
+                              <div className="flex flex-1 flex-col gap-0.5 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="body-strong text-ink">{fin.label}</span>
+                                  <span
+                                    className={cn(
+                                      'small',
+                                      fin.id === 'mate' ? 'text-credit' : 'text-pending',
+                                    )}
+                                  >
+                                    {fin.status}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-line pt-4">
+                    {isEditing ? (
+                      <div className="flex items-center justify-between gap-3 rounded-tile border border-line bg-surface-sunk px-3.5 py-2.5 sm:flex-1">
+                        <div>
+                          <p className="body-strong text-ink">Cuenta activa</p>
+                          <p className="small text-ink-2">Visible en balances y filtros.</p>
+                        </div>
+                        <Switch
+                          checked={Boolean(accountData.is_active ?? true)}
+                          onCheckedChange={(checked) => handlePatch({ is_active: checked })}
+                          aria-label="Activar o desactivar cuenta"
+                        />
+                      </div>
+                    ) : null}
+
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      loading={isSubmitting}
+                      loadingLabel="Guardando..."
+                      className={isEditing ? 'sm:w-56' : 'w-full'}
+                    >
+                      {isEditing ? 'Guardar cambios' : 'Crear cuenta'}
+                    </Button>
+                  </div>
+                </form>
+                );
 }

@@ -49,8 +49,8 @@ export async function signIn(page: Page) {
   await page.goto('/sign-in')
   const start = page.getByRole('button', { name: /comenzar|continuar con email|iniciar con email/i })
   if (await start.first().isVisible().catch(() => false)) await start.first().click()
-  await page.getByPlaceholder('Correo electrónico').fill(email)
-  await page.getByPlaceholder('Contraseña').fill(password)
+  await page.getByLabel(/correo electrónico/i).fill(email)
+  await page.locator('#signin-password').fill(password)
   await page.locator('form button[type="submit"]').first().click()
   await page.waitForURL(/dashboard/, { timeout: 20_000 })
 }

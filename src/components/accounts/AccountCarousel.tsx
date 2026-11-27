@@ -1,144 +1,426 @@
-'use client'
+'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Zap, Loader2 } from 'lucide-react';
-import DesktopAccounts from './DesktopAccounts';
-import MobileWalletStack from './MobileWalletCard'; 
-import { useAccounts, useProfile, useUpdateProfile } from '@/hooks/useCatalogs'; 
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTheme } from '@teispace/next-themes';
+import { ChevronLeft, ChevronRight, CreditCard, Plus } from 'lucide-react';
+import type { Account, Transaction } from '@/types';
+import {
+  useAccounts,
+  useProfile,
+  useTransactionsList,
+  useUpdateProfile,
+} from '@/hooks/useCatalogs';
+import { useModalStore } from '@/store/useModalStore';
+import { Button, IconButton, Skeleton, formatMoney } from '@/components/atoms';
+import { EmptyState } from '@/components/molecules';
+import {
+  CardStack,
+  YCard,
+  getCardWashAlpha,
+  hexToWash,
+  mapDbPatternToCardShape,
+} from '@/components/organisms';
+import {
+  computeAccountBarModel,
+  computeAccountMonthSummary,
+  sortAccountsByPrimary,
+  type CreditUsageTone,
+} from './account-carousel';
 
-export default function AccountCarousel() {
-  const desktopScrollRef = useRef<HTMLDivElement>(null);
-  
+const emptySubscribe = () => () => { };
+
+const CREDIT_BAR_CLASSES: Record<CreditUsageTone, string> = {
+  credit: 'bg-credit',
+  pending: 'bg-pending',
+  debit: 'bg-debit',
+};
+
+const CREDIT_TEXT_CLASSES: Record<CreditUsageTone, string> = {
+  credit: 'text-credit',
+  pending: 'text-pending',
+  debit: 'text-debit',
+};
+
+export interface AccountCarouselProps {
+  activeAccountId?: string | null;
+  onActiveAccountChange?: (account: Account) => void;
+  onActiveCardClick?: (account: Account) => void;
+  title?: string;
+  showFooterSummary?: boolean;
+  layoutMode?: 'responsive' | 'stack';
+  sideContent?: React.ReactNode;
+}
+
+/** Tinted wash accounts showcase matching YBank 2.0 desktop rail and mobile/stack CardStack. */
+export default function AccountCarousel({
+  activeAccountId,
+  onActiveAccountChange,
+  onActiveCardClick,
+  title = 'Tus tarjetas',
+  showFooterSummary = true,
+  layoutMode = 'responsive',
+  sideContent,
+}: AccountCarouselProps = {}) {
+  const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const openModal = useModalStore((state) => state.openModal);
+  const { resolvedTheme } = useTheme();
+  const isHydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+  const isDark = isHydrated && resolvedTheme === 'dark';
+
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
+  const { data: txData } = useTransactionsList();
   const updateProfileMutation = useUpdateProfile();
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const sortedAccounts = useMemo(() => {
-    if (accounts.length === 0) return [];
-    if (!profile?.primary_account_id) return accounts;
+  const primaryAccountId = profile?.primary_account_id;
 
-    const favoriteAcc = accounts.find(a => a.id === profile.primary_account_id);
-    if (!favoriteAcc) return accounts;
+  const sortedAccounts = useMemo(
+    () => sortAccountsByPrimary(accounts, primaryAccountId),
+    [accounts, primaryAccountId],
+  );
 
-    const otherAccs = accounts.filter(a => a.id !== profile.primary_account_id);
-    
-    return [favoriteAcc, ...otherAccs];
-  }, [accounts, profile?.primary_account_id]);
+  const transactions = useMemo(
+    () =>
+      (Array.isArray(txData)
+        ? txData
+        : txData?.transactions || []) as Transaction[],
+    [txData],
+  );
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (desktopScrollRef.current) {
-      const container = desktopScrollRef.current;
-      const card = container.firstElementChild as HTMLElement;
-      
-      if (card) {
-        const scrollAmount = card.offsetWidth + 20; 
-        container.scrollBy({ 
-          left: direction === 'left' ? -scrollAmount : scrollAmount, 
-          behavior: 'smooth' 
-        });
-      }
+  const controlledIndex = activeAccountId
+    ? sortedAccounts.findIndex((acc) => acc.id === activeAccountId)
+    : -1;
+  const safeIndex =
+    sortedAccounts.length === 0
+      ? 0
+      : controlledIndex >= 0
+        ? controlledIndex
+        : Math.min(activeIndex, sortedAccounts.length - 1);
+  const activeAccount = sortedAccounts[safeIndex];
+
+  const activeMonthSummary = useMemo(
+    () =>
+      activeAccount
+        ? computeAccountMonthSummary(transactions, activeAccount.id)
+        : { monthSpend: 0, monthCount: 0 },
+    [activeAccount, transactions],
+  );
+
+  const scrollToCard = (index: number) => {
+    const container = scrollRef.current;
+    const child = container?.children[index] as HTMLElement | undefined;
+    if (container && child) {
+      const containerRect = container.getBoundingClientRect();
+      const childRect = child.getBoundingClientRect();
+      const targetLeft =
+        container.scrollLeft + (childRect.left - containerRect.left) - 24;
+      container.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: 'smooth',
+      });
     }
   };
 
-  useEffect(() => {
-    const container = desktopScrollRef.current;
-    if (!container) return;
+  const selectIndex = (nextIdx: number) => {
+    const clamped = Math.max(0, Math.min(sortedAccounts.length - 1, nextIdx));
+    setActiveIndex(clamped);
+    scrollToCard(clamped);
+    const nextAcc = sortedAccounts[clamped];
+    if (nextAcc) {
+      onActiveAccountChange?.(nextAcc);
+    }
+  };
 
-    const handleWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault(); 
-        container.scrollLeft += e.deltaY;
-      }
-    };
+  const handleActiveCardTrigger = (acc: Account) => {
+    if (onActiveCardClick) {
+      onActiveCardClick(acc);
+      return;
+    }
+    router.push(`/accounts?accountId=${acc.id}`);
+  };
 
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+  const stepActive = (delta: -1 | 1) => {
+    if (sortedAccounts.length === 0) {
+      return;
+    }
+    const nextIdx = Math.max(
+      0,
+      Math.min(sortedAccounts.length - 1, safeIndex + delta),
+    );
+    if (nextIdx === safeIndex) {
+      return;
+    }
+    selectIndex(nextIdx);
+  };
 
-  const handleToggleFavorite = (accountId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const newPrimaryId = profile?.primary_account_id === accountId ? null : accountId;
-
-    updateProfileMutation.mutate({ 
-      primary_account_id: newPrimaryId 
-    });
+  const handleToggleFavorite = (accountId: string) => {
+    const nextPrimaryId =
+      profile?.primary_account_id === accountId ? null : accountId;
+    updateProfileMutation.mutate({ primary_account_id: nextPrimaryId });
   };
 
   if (isLoadingAccounts || isLoadingProfile) {
     return (
-      <div className="w-full h-[200px] bg-card/50 animate-pulse rounded-[10px] border border-border border-dashed flex flex-col items-center justify-center gap-2">
-        <Loader2 size={24} className="animate-spin text-primary/30" />
-        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Sincronizando Nodos...</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Skeleton variant="card" label="Cargando cuentas" />
+        <Skeleton variant="card" className="hidden md:block" />
       </div>
     );
   }
 
-  if (accounts.length === 0) return null;
+  if (!activeAccount) {
+    return (
+      <div className="rounded-panel border border-line bg-surface p-4">
+        <EmptyState
+          icon={<CreditCard size={24} strokeWidth={2} />}
+          title="Aún no tienes cuentas registradas"
+          description="Agrega tu cuenta bancaria, tarjeta o efectivo para empezar."
+          action={
+            <Button
+              variant="primary"
+              leftIcon={<Plus size={16} strokeWidth={2} />}
+              onClick={() => openModal('account')}
+            >
+              Diseñar tarjeta
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  const activeColor =
+    activeAccount.color || activeAccount.institution?.brand_color_primary;
+  const barModel = computeAccountBarModel(activeAccount, activeMonthSummary);
+
+  const handleStackSelect = (acc: Account) => {
+    const idx = sortedAccounts.findIndex((a) => a.id === acc.id);
+    if (idx >= 0) {
+      setActiveIndex(idx);
+      onActiveAccountChange?.(acc);
+    }
+  };
+
+  const sharedStackProps = {
+    accounts: sortedAccounts,
+    activeAccountId: activeAccount.id,
+    bare: true,
+    onSelectAccount: handleStackSelect,
+    onCardClick: handleActiveCardTrigger,
+    favoriteAccountId: profile?.primary_account_id,
+    onToggleFavorite: handleToggleFavorite,
+    onAddAccount: () => openModal('account'),
+  };
+
+  const isStackOnly = layoutMode === 'stack';
 
   return (
-    <section className="relative w-full">
-      
-      {/* VERSIÓN ESCRITORIO */}
-      <div className="hidden md:block">
-        
-        <div className="flex justify-between items-end mb-6 px-2">
-            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-muted-foreground" />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                Ecosistema de Nodos
-              </h2>
-              <span className="ml-2 px-2 py-0.5 rounded-[4px] bg-surface-2 border border-border text-[9px] font-mono font-bold text-foreground">
-                {accounts.length}
-              </span>
-            </div>
+    <>
+      <section
+        aria-label="Tus tarjetas"
+      style={{
+        backgroundColor: hexToWash(activeColor ?? '', getCardWashAlpha(isDark)),
+      }}
+      className={
+        isStackOnly
+          ? '-mx-5 md:-mx-6 lg:mx-0 overflow-hidden rounded-none lg:rounded-panel px-5 py-4 md:px-6 md:py-5 flex flex-col gap-3 md:gap-4 transition-colors duration-250'
+          : '-mx-5 md:-mx-6 lg:mx-0 overflow-hidden rounded-none lg:rounded-panel px-5 py-4 md:px-0 md:py-5 flex flex-col gap-3 md:gap-4 transition-colors duration-250'
+      }
+    >
+      <div
+        className={
+          isStackOnly
+            ? 'flex flex-wrap items-center justify-between gap-3'
+            : 'flex flex-wrap items-center justify-between gap-3 md:px-6'
+        }
+      >
+        <h2 className="title text-ink">{title}</h2>
 
-            <div className="flex justify-end gap-2 pr-2">
-              <button 
-                onClick={() => scroll('left')}
-                className="p-1.5 rounded-[6px] bg-surface-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-card active:scale-95 transition-all"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft size={16} strokeWidth={2.5} />
-              </button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<Plus size={15} strokeWidth={2} />}
+            aria-label="Diseñar nueva tarjeta"
+            onClick={() => openModal('account')}
+          >
+            Nueva
+          </Button>
 
-              <button 
-                onClick={() => scroll('right')}
-                className="p-1.5 rounded-[6px] bg-surface-2 border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-card active:scale-95 transition-all"
-                aria-label="Scroll right"
+          {!isStackOnly ? (
+            <div className="hidden md:flex items-center gap-1.5">
+              <IconButton
+                size="sm"
+                variant="surface"
+                aria-label="Tarjeta anterior"
+                disabled={safeIndex === 0}
+                onClick={() => stepActive(-1)}
               >
-                <ChevronRight size={16} strokeWidth={2.5} />
-              </button>
+                <ChevronLeft size={16} strokeWidth={2} />
+              </IconButton>
+              <IconButton
+                size="sm"
+                variant="surface"
+                aria-label="Tarjeta siguiente"
+                disabled={safeIndex === sortedAccounts.length - 1}
+                onClick={() => stepActive(1)}
+              >
+                <ChevronRight size={16} strokeWidth={2} />
+              </IconButton>
             </div>
+          ) : null}
         </div>
-
-        <DesktopAccounts 
-          accounts={sortedAccounts} 
-          scrollRef={desktopScrollRef}
-          primaryAccountId={profile?.primary_account_id}
-          onToggleFavorite={handleToggleFavorite}
-        />
-
       </div>
 
-      {/* VERSIÓN MÓVIL */}
-      <div className="block md:hidden">
-        <div className="flex items-center justify-center gap-2 mb-4">
-              <Zap size={16} className="text-muted-foreground" />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                Ecosistema de Nodos
-              </h2>
-              <span className="ml-2 px-2 py-0.5 rounded-[4px] bg-surface-2 border border-border text-[9px] font-mono font-bold text-foreground">
-                {accounts.length}
-              </span>
+      {!isStackOnly ? (
+        <>
+          <div
+            ref={scrollRef}
+            className="relative hidden md:flex items-stretch gap-4 w-full overflow-x-auto y2-rail-hidden scroll-px-6 pt-2 pb-8 -mb-6 px-6"
+          >
+            {sortedAccounts.map((acc, index) => {
+              const isSelected = index === safeIndex;
+              return (
+                <div key={acc.id} className="w-85 shrink-0">
+                  <YCard
+                    name={acc.name}
+                    balance={acc.current_balance}
+                    currency={acc.currency}
+                    accountType={acc.type}
+                    bankName={acc.institution?.name}
+                    bankLogoUrl={acc.institution?.logo_url}
+                    last4={acc.last_4_digits}
+                    color={acc.color || acc.institution?.brand_color_primary}
+                    secondaryColor={acc.institution?.brand_color_secondary}
+                    shape={mapDbPatternToCardShape(
+                      acc.custom_pattern || acc.institution?.card_pattern,
+                    )}
+                    active={isSelected}
+                    isFavorite={profile?.primary_account_id === acc.id}
+                    onToggleFavorite={() => handleToggleFavorite(acc.id)}
+                    onClick={() => {
+                      if (isSelected) {
+                        handleActiveCardTrigger(acc);
+                      } else {
+                        selectIndex(index);
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="md:hidden -mx-5">
+            <CardStack {...sharedStackProps} />
+          </div>
+        </>
+      ) : (
+        <div
+          className={
+            sideContent
+              ? 'grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-stretch'
+              : 'w-full'
+          }
+        >
+          <div className={sideContent ? 'lg:col-span-7' : 'w-full'}>
+            <div className="hidden md:block">
+              <CardStack {...sharedStackProps} cardWidth={310} />
+            </div>
+
+            <div className="md:hidden -mx-5">
+              <CardStack {...sharedStackProps} />
+            </div>
+          </div>
+
+          {sideContent ? (
+            <div className="hidden lg:flex lg:col-span-5 lg:flex-col lg:border-l lg:border-line lg:pl-8">
+              {sideContent}
+            </div>
+          ) : null}
         </div>
-        <MobileWalletStack 
-          accounts={sortedAccounts} 
-          primaryAccountId={profile?.primary_account_id}
-          onToggleFavorite={handleToggleFavorite}
-        />
-      </div>
-    </section>
+      )}
+
+      {showFooterSummary ? (
+        <div className="w-full md:px-6">
+          <div className="border-t border-line pt-3">
+            {barModel.isCreditCard ? (
+              <div className="min-h-10 md:min-h-8 flex items-center justify-between gap-4 small">
+                <div className="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                  <span className="text-ink-2">Disponible</span>
+                  <span className="font-semibold text-ink tabular-nums">
+                    {formatMoney(barModel.creditAvailable, {
+                      currency: activeAccount.currency,
+                    })}
+                  </span>
+                  <span className="text-ink-2 tabular-nums">
+                    · Límite{' '}
+                    {formatMoney(barModel.creditLimit, {
+                      currency: activeAccount.currency,
+                    })}
+                  </span>
+                  {barModel.cutoffDay ? (
+                    <span className="hidden md:inline text-ink-2">
+                      · Corta el {barModel.cutoffDay}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2.5">
+                  <div
+                    role="meter"
+                    aria-label={barModel.label}
+                    aria-valuenow={barModel.percent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    className="w-20 sm:w-28 h-2 overflow-hidden rounded-chip y2-track"
+                  >
+                    <div
+                      className={`h-full transition-all duration-250 ${CREDIT_BAR_CLASSES[barModel.creditTone]}`}
+                      style={{ width: `${barModel.percent}%` }}
+                    />
+                  </div>
+
+                  <span
+                    className={`tabular-nums font-semibold ${CREDIT_TEXT_CLASSES[barModel.creditTone]}`}
+                  >
+                    {barModel.percent}%
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-10 md:min-h-8 flex items-center justify-between gap-4 small">
+                <span className="text-ink-2">{barModel.label}</span>
+
+                <div className="shrink-0">
+                  {barModel.monthSpend > 0 ? (
+                    <span className="tabular-nums text-ink">
+                      −{' '}
+                      {formatMoney(barModel.monthSpend, {
+                        currency: activeAccount.currency,
+                      })}{' '}
+                      <span className="text-ink-2">
+                        · {barModel.monthCount} mov.
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-ink-2">Sin gastos este mes</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+      </section>
+      {sideContent ? <div className="lg:hidden">{sideContent}</div> : null}
+    </>
   );
 }

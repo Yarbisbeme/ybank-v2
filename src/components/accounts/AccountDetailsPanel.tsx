@@ -1,92 +1,81 @@
-'use client'
+'use client';
 
-import { cn } from '@/lib/utils';
-import { EditCreateAccount } from '@/types';
+import type { EditCreateAccount } from '@/types';
+import { AmountInput, Field, TextInput } from '@/components/molecules';
 
-interface DetailsProps {
+export interface AccountDetailsPanelProps {
   data: EditCreateAccount;
-  // 💡 CORRECCIÓN TÉCNICA: Actualizamos la firma para que coincida con el padre
-  onChange: (field: string | Record<string, any>, value?: any) => void;
+  onChange: (patch: Partial<EditCreateAccount>) => void;
   isEditing: boolean;
 }
 
-export default function AccountDetailsPanel({ data, onChange, isEditing }: DetailsProps) {
-  // 💡 CORRECCIÓN VISUAL: Usamos bg-black/20 (en oscuro) para un input hundido elegante
-  // en lugar del Negro Absoluto que domina demasiado.
-  const inputClasses = "w-full bg-black/5 dark:bg-black/20 border border-border rounded-[10px] px-4 py-3 text-sm font-bold text-foreground outline-none focus:border-primary transition-all";
-  const labelClasses = "text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 block";
-
-  const handleCutoffChange = (value: string) => {
-    const v = value.replace(/\D/g, '');
-    const num = parseInt(v);
-    
-    if (v === '') {
-        onChange('cutoff_day', '');
-        return;
-    }
-    
-    let clamped = Math.min(Math.max(num, 1), 31);
-    onChange('cutoff_day', clamped);
-  };
-
+/** Supplementary credit card settings and read-only audit timestamps. */
+export default function AccountDetailsPanel({
+  data,
+  onChange,
+  isEditing,
+}: AccountDetailsPanelProps) {
   const isCreditCard = data.type === 'credit_card';
 
-  return (
-    <div className="flex flex-col h-full w-full">
-      
-      {/* 1. SECCIÓN DE DETALLES ESPECÍFICOS */}
-      {isCreditCard && (
-        <div className="space-y-4 pb-4">
-          <div className="space-y-1">
-            <label className={labelClasses}>Límite Aprobado</label>
-            <input 
-              type="number"
-              value={data.credit_limit || ''}
-              onChange={(e) => onChange('credit_limit', Number(e.target.value))}
-              className={inputClasses}
-              placeholder="0.00"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className={labelClasses}>Día de Corte</label>
-            <input 
-              type="text"
-              inputMode="numeric"
-              value={data.cutoff_day || ''}
-              onChange={(e) => handleCutoffChange(e.target.value)}
-              className={inputClasses}
-              placeholder="Día (1-31)"
-            />
-          </div>
-        </div>
-      )}
+  const handleCutoffChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits === '') {
+      onChange({ cutoff_day: null });
+      return;
+    }
+    const clamped = Math.min(Math.max(parseInt(digits, 10), 1), 31);
+    onChange({ cutoff_day: clamped });
+  };
 
-      {/* 2. SECCIÓN DE AUDITORÍA */}
-      {isEditing && data.created_at && data.updated_at && (
-        <div className={cn("mt-auto", isCreditCard ? "" : "border-t border-border/80")}>
-           <div className={cn(
-             "grid gap-4",
-             isCreditCard ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 mt-4"
-           )}>
-            <div className="space-y-1">
-              <label className={labelClasses}>Creada</label>
-              <input 
-                disabled 
-                value={new Date(data.created_at).toLocaleDateString()} 
-                className={cn(inputClasses, "bg-transparent dark:bg-transparent border-transparent text-muted-foreground cursor-not-allowed font-mono px-0 py-1")} 
-              />
-            </div>
-            <div className="space-y-1">
-              <label className={labelClasses}>Actualizada</label>
-              <input 
-                disabled 
-                value={new Date(data.updated_at).toLocaleDateString()} 
-                className={cn(inputClasses, "bg-transparent dark:bg-transparent border-transparent text-muted-foreground cursor-not-allowed font-mono px-0 py-1")} 
-              />
-            </div>
+  if (!isCreditCard && !(isEditing && data.created_at && data.updated_at)) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {isCreditCard ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Límite de crédito" htmlFor="acc-credit-limit">
+            <AmountInput
+              id="acc-credit-limit"
+              currency={data.currency}
+              value={data.credit_limit ? String(data.credit_limit) : ''}
+              placeholder="0.00"
+              onChange={(val) =>
+                onChange({ credit_limit: val ? Number(val) : null })
+              }
+            />
+          </Field>
+
+          <Field label="Día de corte (1–31)" htmlFor="acc-cutoff-day">
+            <TextInput
+              id="acc-cutoff-day"
+              inputMode="numeric"
+              maxLength={2}
+              value={data.cutoff_day ? String(data.cutoff_day) : ''}
+              placeholder="Ej. 15"
+              onChange={(e) => handleCutoffChange(e.target.value)}
+            />
+          </Field>
+        </div>
+      ) : null}
+
+      {isEditing && data.created_at && data.updated_at ? (
+        <div className="grid grid-cols-2 gap-4 border-t border-line pt-3">
+          <div>
+            <p className="nav text-ink-2">Creada</p>
+            <p className="small text-ink tabular-nums">
+              {new Date(data.created_at).toLocaleDateString('es-DO')}
+            </p>
+          </div>
+          <div>
+            <p className="nav text-ink-2">Actualizada</p>
+            <p className="small text-ink tabular-nums">
+              {new Date(data.updated_at).toLocaleDateString('es-DO')}
+            </p>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

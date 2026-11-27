@@ -1,211 +1,245 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react'; // 💡 FIX 1: Añadido useEffect aquí
-import { useYBankStore } from '@/store/useYBankStore';
-import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, TrendingUp, TrendingDown, CreditCard, Wallet, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Account, Transaction } from '@/types';
 import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs';
-import { AnimatedNumber } from './AnimatedNumber';
-import WeeklyActivityChart from './WeeklyActivityChart';
-import { Account, Transaction } from '@/types'; 
+import { useYBankStore } from '@/store/useYBankStore';
+import {
+  AchievementBadge,
+  Money,
+  Skeleton,
+  YMark,
+  formatMoney,
+} from '@/components/atoms';
+import { Segmented } from '@/components/molecules';
 
+const CURRENCY_OPTIONS: { value: 'DOP' | 'USD'; label: string }[] = [
+  { value: 'DOP', label: 'DOP' },
+  { value: 'USD', label: 'USD' },
+];
+
+const DEBT_OPTIONS: { value: 'without' | 'with'; label: string }[] = [
+  { value: 'without', label: 'Sin deudas' },
+  { value: 'with', label: 'Con deudas' },
+];
+
+/** Protagonist balance panel matching YBank 2.0 desktop-home without truncation. */
 export default function HeroBalance() {
-  // 💡 FIX 2: Una sola declaración limpia para Zustand y React Query
-  const { currency, preferredRate, isCalculatingRate, setCurrency, updateRateContext } = useYBankStore();
+  const {
+    currency,
+    preferredRate,
+    isCalculatingRate,
+    setCurrency,
+    updateRateContext,
+  } = useYBankStore();
   const [includeCredit, setIncludeCredit] = useState(false);
 
-  const { data: accounts = [], isLoading: isLoadingAccs, fetchStatus: fetchAccs, status: statusAccs } = useAccounts();
-  const { data: queryData, isLoading: isLoadingTx, fetchStatus: fetchTx, status: statusTx } = useTransactionsList();
+  const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
+  const { data: queryData, isLoading: isLoadingTx } = useTransactionsList();
 
-  const transactions = Array.isArray(queryData) ? queryData : (queryData?.transactions || []);
+  const transactions = useMemo(
+    () =>
+      (Array.isArray(queryData)
+        ? queryData
+        : queryData?.transactions || []) as Transaction[],
+    [queryData],
+  );
 
-  // =========================================================================
-  // 🔄 TRIGGER DE SINCRONIZACIÓN DINÁMICA
-  // =========================================================================
   useEffect(() => {
-    if (isLoadingAccs || accounts.length === 0) return;
+    if (isLoadingAccs || accounts.length === 0) {
+      return;
+    }
 
-    // 1. Buscamos la cuenta de enfoque (la preferida o la primera cuenta líquida que exista)
-    const focusAccount = accounts.find((a: Account) => a.id === useYBankStore.getState().preferredAccountId) 
-      || accounts.find((a: Account) => a.type !== 'credit_card') 
-      || accounts[0];
+    const focusAccount =
+      accounts.find(
+        (a: Account) => a.id === useYBankStore.getState().preferredAccountId,
+      ) ||
+      accounts.find((a: Account) => a.type !== 'credit_card') ||
+      accounts[0];
 
-    // 2. Extraemos el ID de la institución (banco) de esa cuenta
     const institutionId = focusAccount?.institution_id;
 
-    // 3. Si tenemos el banco y la tasa aún no se ha calculado para él, disparamos la petición al servidor
-    if (institutionId && preferredRate?.institutionName !== focusAccount?.institution?.name) {
+    if (
+      institutionId &&
+      preferredRate?.institutionName !== focusAccount?.institution?.name
+    ) {
       updateRateContext(institutionId);
     }
   }, [accounts, isLoadingAccs, preferredRate, updateRateContext]);
 
-  // =========================================================================
-  // 🧮 MATEMÁTICA MULTIMONEDA NORMALIZADA
-  // =========================================================================
-  const displayBalance = useMemo(() => {
-    const rate = preferredRate?.rate || 1;
+    const { displayBalance, oppositeBalance, oppositeCurrency, savingsCount, liquidCount } =
+      useMemo(() => {
+        const rate = preferredRate?.rate || 1;
+        const otherCurrency: 'DOP' | 'USD' = currency === 'DOP' ? 'USD' : 'DOP';
 
-    const convertToActiveCurrency = (acc: Account) => {
-      const balance = Number(acc.current_balance) || 0;
-      if (currency === 'USD') {
-        return acc.currency === 'DOP' ? balance / rate : balance;
-      } else {
-        return acc.currency === 'USD' ? balance * rate : balance;
-      }
+        const convertToActiveCurrency = (acc: Account) => {
+          const balance = Number(acc.current_balance) || 0;
+          if (currency === 'USD') {
+            return acc.currency === 'DOP' ? balance / rate : balance;
+          }
+          return acc.currency === 'USD' ? balance * rate : balance;
+        };
+
+        const nonCredit = accounts.filter((a: Account) => a.type !== 'credit_card');
+        const available = nonCredit.reduce(
+          (sum: number, a: Account) => sum + convertToActiveCurrency(a),
+          0,
+        );
+
+        const debt = accounts
+          .filter((a: Account) => a.type === 'credit_card')
+          .reduce((sum: number, a: Account) => sum + convertToActiveCurrency(a), 0);
+
+        const oppTotal = nonCredit
+          .filter((a: Account) => a.currency === otherCurrency)
+          .reduce(
+            (sum: number, a: Account) => sum + (Number(a.current_balance) || 0),
+            0,
+          );
+
+        return {
+          displayBalance: includeCredit ? available - Math.abs(debt) : available,
+          oppositeBalance: oppTotal,
+          oppositeCurrency: otherCurrency,
+          savingsCount: accounts.filter((a: Account) => a.type === 'savings').length,
+          liquidCount: accounts.filter(
+            (a: Account) => a.type === 'checking' || a.type === 'cash',
+          ).length,
+        };
+      }, [accounts, currency, preferredRate, includeCredit]);
+
+    const { monthExpenses, savingsDeltaPct } = useMemo(() => {
+      const rate = preferredRate?.rate || 1;
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth();
+      const prevDate = new Date(curYear, curMonth - 1, 1);
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = prevDate.getMonth();
+
+          let currentTotal = 0;
+          let previousTotal = 0;
+
+          for (const tx of transactions) {
+            if (tx.type !== 'expense' || !tx.date) {
+              continue;
+            }
+          const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);
+          if (Number.isNaN(parsed.getTime())) {
+            continue;
+          }
+          const accCurrency = tx.account?.currency ?? 'DOP';
+          let amount = Math.abs(Number(tx.amount) || 0);
+          if (currency === 'USD' && accCurrency === 'DOP') {
+            amount = amount / rate;
+          } else if (currency === 'DOP' && accCurrency === 'USD') {
+            amount = amount * rate;
+          }
+
+          if (parsed.getFullYear() === curYear && parsed.getMonth() === curMonth) {
+            currentTotal += amount;
+          } else if (
+            parsed.getFullYear() === prevYear &&
+            parsed.getMonth() === prevMonth
+          ) {
+            previousTotal += amount;
+          }
+        }
+
+        const deltaPct =
+          previousTotal > 0 && currentTotal < previousTotal
+            ? Math.round(((previousTotal - currentTotal) / previousTotal) * 100)
+            : null;
+
+    return {
+      monthExpenses: currentTotal,
+      savingsDeltaPct: deltaPct,
     };
-
-    const liquid = accounts
-      .filter((a: Account) => a.type !== 'credit_card')
-      .reduce((sum: number, a: Account) => sum + convertToActiveCurrency(a), 0);
-    
-    const debt = accounts
-      .filter((a: Account) => a.type === 'credit_card')
-      .reduce((sum: number, a: Account) => sum + convertToActiveCurrency(a), 0);
-
-    return includeCredit ? (liquid - Math.abs(debt)) : liquid;
-  }, [accounts, currency, preferredRate, includeCredit]);
-
-  const isNegative = displayBalance < 0;
-  const absoluteBalance = Math.abs(displayBalance);
-
-  const trend = useMemo(() => {
-    if (transactions.length === 0) return { percentage: 0, isUp: true };
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    
-    const currentMonthTotal = transactions
-      .filter((tx: Transaction) => new Date(tx.date).getMonth() === currentMonth)
-      .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
-
-    const lastMonthTotal = transactions
-      .filter((tx: Transaction) => {
-        const d = new Date(tx.date);
-        return d.getMonth() === (currentMonth === 0 ? 11 : currentMonth - 1);
-      })
-      .reduce((sum: number, tx: Transaction) => sum + (Number(tx.amount) || 0), 0);
-
-    if (lastMonthTotal === 0) return { percentage: 0, isUp: currentMonthTotal >= 0 };
-    const diff = ((currentMonthTotal - lastMonthTotal) / Math.abs(lastMonthTotal)) * 100;
-    return { percentage: Math.abs(Math.round(diff * 10) / 10), isUp: diff >= 0 };
-  }, [transactions]);
-
-  const TrendIcon = trend.isUp ? TrendingUp : TrendingDown;
+  }, [transactions, currency, preferredRate]);
 
   if (isLoadingAccs || isLoadingTx) {
     return (
-      <div className="w-full h-[320px] bg-card animate-pulse rounded-[10px] border border-border flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary/30" size={32} />
+      <div className="py-1 md:rounded-panel md:border md:border-line md:bg-surface md:p-6 flex flex-col gap-4 h-full">
+        <Skeleton variant="line" className="w-40" label="Cargando balance" />
+        <Skeleton variant="tile" className="h-14" />
+        <Skeleton variant="line" className="w-56" />
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full bg-card p-6 md:p-10 rounded-[10px] border border-border shadow-sm overflow-hidden group flex flex-col md:flex-row gap-8">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
-
-      {/* COLUMNA IZQUIERDA: Balance y Controles */}
-      <div className="relative z-10 flex flex-col justify-between flex-1 space-y-8">
-        {/* === FILA DE ENCABEZADO ESTABILIZADA === */}
-        {/* 💡 Añadimos 'layout' al padre para que si el botón se mueve, lo haga con una transición fluida */}
-        <motion.div layout className="flex items-center justify-between md:gap-4">
-          
-          {/* 💡 FIX 1: Añadimos 'h-6' para congelar la altura y evitar que brinque al desmontar el texto */}
-          {/* 💡 FIX 2: Añadimos 'layout' aquí también para que el ancho transicione de forma elástica */}
-          <motion.div 
-            layout
-            className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground flex items-center h-6 overflow-hidden"
-          >
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={includeCredit ? 'net' : 'liquid'}
-                initial={{ opacity: 0, y: -4 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                exit={{ opacity: 0, y: 4 }}
-                transition={{ duration: 0.15 }}
-                className="whitespace-nowrap" // 💡 Evita que el texto intente hacerse en dos líneas durante la animación
-              >
-                {includeCredit ? "Patrimonio Neto" : "Capital Líquido"}
-              </motion.span>
-            </AnimatePresence>
-            {isCalculatingRate && <RefreshCw size={12} className="ml-2 animate-spin text-blue-500" />}
-          </motion.div>
-          
-          <button 
-            onClick={() => setIncludeCredit(!includeCredit)}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-full border transition-all text-[10px] font-bold uppercase tracking-tight shrink-0 ${
-              includeCredit 
-              ? 'bg-foreground text-background border-foreground shadow-md' 
-              : 'bg-background text-muted-foreground border-border hover:border-blue-500/30'
-            }`}
-          >
-            <motion.div
-              key={includeCredit ? 'credit' : 'wallet'}
-              initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              {includeCredit ? <CreditCard size={12} /> : <Wallet size={12} />}
-            </motion.div>
-            <span className="hidden sm:inline">{includeCredit ? "Ocultar Deuda" : "Incluir Deuda"}</span>
-          </button>
-        </motion.div>
-
-        {/* Balance Numérico */}
-        <div className="space-y-3">
-          <motion.h2 
-            layout
-            className={`text-4xl sm:text-5xl font-mono tracking-tight flex items-baseline gap-1 md:gap-2 ${isNegative ? 'text-destructive' : 'text-foreground'}`}
-          >
-            <motion.span layout className="text-blue-600 font-sans text-3xl md:text-5xl shrink-0">
-              {isNegative ? '-$' : '$'}
-            </motion.span>
-            <motion.span layout className="truncate">
-              <AnimatedNumber value={absoluteBalance} />
-            </motion.span>
-          </motion.h2>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-surface-2 p-1 rounded-lg border border-border relative">
-              {(['DOP', 'USD'] as const).map((curr) => (
-                <button
-                  key={curr}
-                  onClick={() => setCurrency(curr)}
-                  className={`relative px-4 py-1.5 text-xs font-bold rounded-md transition-colors z-10 ${
-                    currency === curr ? 'text-white' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {currency === curr && (
-                    <motion.div
-                      layoutId="currency-toggle-pill"
-                      className="absolute inset-0 bg-blue-600 shadow-[0_2px_8px_rgba(37,99,235,0.4)] rounded-md -z-10"
-                      transition={{ type: "spring", bounce: 0.25, duration: 0.5 }}
-                    />
-                  )}
-                  {curr}
-                </button>
-              ))}
+    <section
+      aria-label="Balance general"
+      className="h-full flex flex-col justify-between gap-2 md:gap-5 py-1 md:rounded-panel md:border md:border-line md:bg-surface md:p-6"
+    >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="small md:body text-ink-2">
+                {includeCredit ? 'Balance neto' : 'Tienes en total'}
+              </span>
+              {isCalculatingRate ? (
+                <YMark size={14} animation="loop" tone="action" />
+              ) : null}
             </div>
 
-            <AnimatePresence>
-              {currency === 'USD' && preferredRate && (
-                <motion.span 
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
-                  className="text-[10px] font-mono text-blue-600 bg-blue-500/10 px-2 py-1 rounded-md whitespace-nowrap"
-                >
-                  {preferredRate.rate} ({preferredRate.institutionName})
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
+        <div className="flex flex-wrap items-center gap-2">
+                <Segmented<'without' | 'with'>
+                  aria-label="Incluir deudas"
+                  size="sm"
+                  options={DEBT_OPTIONS}
+                  value={includeCredit ? 'with' : 'without'}
+                  onChange={(val) => setIncludeCredit(val === 'with')}
+                />
 
-      {/* COLUMNA DERECHA: Gráfico Semanal */}
-      <div className="hidden md:flex w-72 flex-col justify-end border-l border-border pl-8">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Actividad Semanal</p>
-        <div className="h-40 w-full">
-          <WeeklyActivityChart transactions={transactions} />
-        </div>
-      </div>
-    </div>
-  );
+                <div className="hidden md:block">
+                  <Segmented<'DOP' | 'USD'>
+                    aria-label="Moneda de visualización"
+                    size="sm"
+                    options={CURRENCY_OPTIONS}
+                    value={currency}
+                    onChange={setCurrency}
+                  />
+                </div>
+              </div>
+            </div>
+
+                <div className="flex flex-col md:flex-row md:flex-wrap md:items-baseline gap-x-4 gap-y-1">
+                  <Money
+                    value={displayBalance}
+                    currency={currency}
+                    size="hero"
+                    tone={displayBalance < 0 ? 'debit' : 'default'}
+                  />
+                  <span className="small md:body text-ink-2 tabular-nums">
+                    + {formatMoney(oppositeBalance, { currency: oppositeCurrency })} · {accounts.length} {accounts.length === 1 ? 'cuenta' : 'cuentas'}
+                  </span>
+                </div>
+
+                <div className="hidden md:flex flex-wrap items-center gap-x-10 gap-y-3 border-t border-line pt-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="label text-ink-2">Cuentas de ahorro</span>
+                    <span className="title text-ink tabular-nums">{savingsCount}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-0.5">
+                    <span className="label text-ink-2">Corriente y efectivo</span>
+                    <span className="title text-ink tabular-nums">{liquidCount}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-0.5">
+                    <span className="label text-ink-2">Este mes</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="title text-ink tabular-nums">
+                        {monthExpenses > 0
+                          ? formatMoney(-monthExpenses, { currency })
+                          : formatMoney(0, { currency })}
+                      </span>
+                      {savingsDeltaPct !== null && savingsDeltaPct > 0 ? (
+                        <AchievementBadge label={`−${savingsDeltaPct}% vs mes ant.`} />
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            );
 }

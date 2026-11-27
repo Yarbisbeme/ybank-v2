@@ -5,9 +5,9 @@ import { auditUser, balanceOf, expectBalance, signIn, snap, sql, watch } from '.
 
 async function openRow(page: Page, text: string) {
   await page.getByText(text, { exact: true }).first().click()
-  // Transfers open a read-only detail view first; editing is behind "Auditar Traspaso".
+  // Transfers open a read-only detail view first; editing is behind "Editar traspaso".
   const submit = page.locator('button[type="submit"][form="tx-form"]')
-  const editTransfer = page.getByRole('button', { name: /auditar traspaso/i })
+  const editTransfer = page.getByRole('button', { name: /editar traspaso/i })
   await expect(submit.or(editTransfer).first()).toBeVisible()
   if (await editTransfer.isVisible()) await editTransfer.click()
   await expect(submit).toBeVisible()
@@ -53,12 +53,11 @@ test('delete expense restores balance', async ({ page }) => {
   const { email } = auditUser()
   const amount = Number(sql(`select t.amount from transactions t join auth.users u on u.id=t.user_id where u.email='${email}' and t.description='Audit gasto'`))
   await openRow(page, 'Audit gasto')
-  page.once('dialog', (d) => d.accept())
-  await page.getByTitle('Suprimir').click()
+  await page.getByRole('button', { name: /eliminar movimiento/i }).click()
+  const dialog = page.getByRole('dialog', { name: /eliminar movimiento/i })
+  await expect(dialog).toBeVisible()
   await snap(page, '23-delete-confirm', errors)
-  // Some versions show an in-page confirm instead of window.confirm.
-  const confirm = page.getByRole('button', { name: /confirmar|eliminar|sí/i }).first()
-  await confirm.waitFor({ state: 'visible', timeout: 2000 }).then(() => confirm.click(), () => {})
+  await dialog.getByRole('button', { name: /^eliminar$/i }).click()
   await expectBalance('Nómina', before + amount)
   await snap(page, '24-after-delete', errors)
 })
@@ -72,13 +71,12 @@ test('type filters show only matching rows', async ({ page }) => {
   }
   // "Audit gasto" was deleted by the previous test.
   const expected: Record<string, string[]> = {
-    INGRESOS: ['Audit ingreso'],
-    TRASPASOS: ['Audit traspaso'],
-    GLOBAL: ['Audit ingreso', 'Audit traspaso'],
+    Ingresos: ['Audit ingreso'],
+    Traspasos: ['Audit traspaso'],
+    Todos: ['Audit ingreso', 'Audit traspaso'],
   }
   for (const [tab, rows] of Object.entries(expected)) {
-    // Labels are uppercased by CSS; the accessible name is not.
-    await page.getByRole('button', { name: new RegExp(`^${tab}$`, 'i') }).first().click()
+    await page.getByRole('radio', { name: new RegExp(`^${tab}$`, 'i') }).first().click()
     await expect.poll(visible, { message: `filter ${tab}` }).toEqual(rows)
   }
   await snap(page, '25-filters', errors)
