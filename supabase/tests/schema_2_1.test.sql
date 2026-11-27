@@ -59,7 +59,7 @@ SELECT pg_temp.rejects($$INSERT INTO public.transactions (user_id, account_id, t
 SELECT pg_temp.rejects($$INSERT INTO public.transactions (user_id, account_id, transfer_to_account_id, type, amount, target_amount, description, date)
   VALUES ('00000000-0000-0000-0000-0000000000a1', 'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'transfer', 10, 10, 'x', '2026-11-27')$$,
   'B5: cannot transfer into another user''s account');
-SELECT pg_temp.ok((SELECT current_balance FROM public.accounts WHERE id = 'b0000000-0000-0000-0000-000000000001') = 500, 'rejected transfer did not touch the foreign balance');
+SELECT pg_temp.ok((SELECT current_balance FROM public.accounts WHERE id = 'b0000000-0000-0000-0000-000000000001') = 450, 'rejected transfer did not touch the foreign balance (500 - B''s own 50 expense)');
 
 -- ---------------------------------------------------------------- color constraints
 SELECT pg_temp.rejects($$UPDATE public.accounts SET color_secondary = 'red' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, 'color_secondary must be #RRGGBB');

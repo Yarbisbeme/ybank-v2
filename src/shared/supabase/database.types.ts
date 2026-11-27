@@ -16,7 +16,11 @@ export type Database = {
     Tables: {
       accounts: {
         Row: {
+          card_base: string
+          card_finish: string
+          card_shape_intensity: number
           color: string | null
+          color_secondary: string | null
           created_at: string | null
           credit_limit: number | null
           currency: Database["public"]["Enums"]["currency_code"] | null
@@ -41,7 +45,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          card_base?: string
+          card_finish?: string
+          card_shape_intensity?: number
           color?: string | null
+          color_secondary?: string | null
           created_at?: string | null
           credit_limit?: number | null
           currency?: Database["public"]["Enums"]["currency_code"] | null
@@ -66,7 +74,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          card_base?: string
+          card_finish?: string
+          card_shape_intensity?: number
           color?: string | null
+          color_secondary?: string | null
           created_at?: string | null
           credit_limit?: number | null
           currency?: Database["public"]["Enums"]["currency_code"] | null
@@ -365,6 +377,7 @@ export type Database = {
           target_amount: number | null
           transfer_to_account_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -384,6 +397,7 @@ export type Database = {
           target_amount?: number | null
           transfer_to_account_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -403,6 +417,7 @@ export type Database = {
           target_amount?: number | null
           transfer_to_account_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -434,7 +449,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_usable_category: {
+        Args: { p_category_id: string }
+        Returns: boolean
+      }
+      owns_transaction: {
+        Args: { p_transaction_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type:
