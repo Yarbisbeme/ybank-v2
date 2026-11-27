@@ -15,6 +15,18 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'La contraseña es requerida'),
 })
 
+// Card style values stored in the DB (English; Spanish labels live in the UI).
+// Single source for the UI pickers; mirrored by CHECK constraints in
+// supabase/migrations/20261127100600_accounts_card_style.sql.
+export const CARD_BASES = ['flat', 'gradient', 'textured'] as const
+export const CARD_FINISHES = ['matte', 'metal', 'holo'] as const
+export const CARD_NETWORKS = ['visa', 'mastercard'] as const
+export const CARD_SHAPE_INTENSITIES = [0, 1, 2] as const
+export type CardBaseValue = (typeof CARD_BASES)[number]
+export type CardFinishValue = (typeof CARD_FINISHES)[number]
+export type CardNetworkValue = (typeof CARD_NETWORKS)[number]
+export type CardShapeIntensityValue = (typeof CARD_SHAPE_INTENSITIES)[number]
+
 export const createAccountSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(50),
   institution_id: z.string().uuid().nullable().optional(),
@@ -24,8 +36,13 @@ export const createAccountSchema = z.object({
   last_4_digits: z.string().regex(/^\d{0,4}$/, 'Deben ser 0-4 dígitos').optional(),
   credit_limit: z.number().positive().finite().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color HEX inválido').optional(),
+  color_secondary: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color HEX inválido').nullable().optional(),
   custom_pattern: z.enum(['solid', 'waves', 'geometric', 'mesh', 'lines', 'dots', 'curve']).optional(),
   custom_text_theme: z.enum(['light', 'dark']).optional(),
+  card_base: z.enum(CARD_BASES).optional(),
+  card_shape_intensity: z.number().int().min(0).max(2).optional(),
+  card_finish: z.enum(CARD_FINISHES).optional(),
+  network: z.enum(CARD_NETWORKS).nullable().optional(),
   expiry_date: z.string().optional(),
   cutoff_day: z.coerce.number().int().min(1).max(31).optional(),
   is_active: z.boolean(),

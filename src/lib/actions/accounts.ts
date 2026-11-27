@@ -80,6 +80,12 @@ export async function createAccount(input: any) {
     cutoff_day: valid.cutoff_day || null, 
     expiry_date: valid.expiry_date || null,
     color: valid.color || '#0f172a',
+    color_secondary: valid.color_secondary ?? null,
+    network: valid.network ?? null,
+    // Omitted when not sent so the DB defaults apply (textured / 1 / matte).
+    ...(valid.card_base !== undefined && { card_base: valid.card_base }),
+    ...(valid.card_shape_intensity !== undefined && { card_shape_intensity: valid.card_shape_intensity }),
+    ...(valid.card_finish !== undefined && { card_finish: valid.card_finish }),
     custom_pattern: valid.custom_pattern || 'geometric',
     custom_text_theme: valid.custom_text_theme || 'light',
     is_active: valid.is_active
