@@ -1,3 +1,4 @@
+import type { CardBaseValue, CardFinishValue, CardNetworkValue, CardShapeIntensityValue } from "@/lib/validation";
 import { ReactNode } from "react";
 
 // ==========================================
@@ -115,6 +116,10 @@ export interface Account {
   // 💡 Corrección: punto y coma y tipos estrictos
   color: string;
   color_secondary: string | null; // second card colour for gradients; null = derived by the UI
+  card_base: CardBaseValue;
+  card_shape_intensity: CardShapeIntensityValue;
+  card_finish: CardFinishValue;
+  network: CardNetworkValue | null;
   custom_pattern: CustomPattern;
   custom_text_theme: CustomTextTheme;
   
@@ -230,6 +235,10 @@ export interface EditCreateAccount {
   currency: CurrencyCode;
   color: string;
   color_secondary?: string | null;
+  card_base?: CardBaseValue;
+  card_shape_intensity?: CardShapeIntensityValue;
+  card_finish?: CardFinishValue;
+  network?: CardNetworkValue | null;
   custom_pattern: CustomPattern;
   custom_text_theme: CustomTextTheme;
   current_balance: number;
@@ -258,6 +267,10 @@ export interface CreateAccountInput {
   
   color?: string;
   color_secondary?: string | null;
+  card_base?: CardBaseValue;
+  card_shape_intensity?: CardShapeIntensityValue;
+  card_finish?: CardFinishValue;
+  network?: CardNetworkValue | null;
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
 
@@ -275,6 +288,10 @@ export interface UpdateAccountInput {
   
   color?: string;
   color_secondary?: string | null;
+  card_base?: CardBaseValue;
+  card_shape_intensity?: CardShapeIntensityValue;
+  card_finish?: CardFinishValue;
+  network?: CardNetworkValue | null;
   custom_pattern?: CustomPattern; // 💡 Seguridad estricta
   custom_text_theme?: CustomTextTheme;
 }

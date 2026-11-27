@@ -69,6 +69,17 @@ SELECT pg_temp.ok((SELECT color_secondary FROM public.accounts WHERE id = 'a0000
 UPDATE public.accounts SET color_secondary = NULL WHERE id = 'a0000000-0000-0000-0000-000000000001';
 SELECT pg_temp.ok(true, 'NULL secondary colour is allowed');
 
+-- ---------------------------------------------------------------- card style
+SELECT pg_temp.ok((SELECT card_base = 'textured' AND card_shape_intensity = 1 AND card_finish = 'matte' AND network IS NULL
+                   FROM public.accounts WHERE id = 'a0000000-0000-0000-0000-000000000002'), 'new accounts get card style defaults');
+UPDATE public.accounts SET card_base = 'gradient', card_shape_intensity = 2, card_finish = 'holo', network = 'mastercard'
+  WHERE id = 'a0000000-0000-0000-0000-000000000001';
+SELECT pg_temp.ok(true, 'valid card style values are stored');
+SELECT pg_temp.rejects($$UPDATE public.accounts SET card_base = 'degradado' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, 'card_base rejects UI (Spanish) ids');
+SELECT pg_temp.rejects($$UPDATE public.accounts SET card_finish = 'mate' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, 'card_finish rejects unknown values');
+SELECT pg_temp.rejects($$UPDATE public.accounts SET card_shape_intensity = 3 WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, 'card_shape_intensity must be 0..2');
+SELECT pg_temp.rejects($$UPDATE public.accounts SET network = 'Visa  ' WHERE id = 'a0000000-0000-0000-0000-000000000001'$$, 'network must be normalised (visa | mastercard)');
+
 -- ---------------------------------------------------------------- user A (RLS)
 SELECT pg_temp.as_user('00000000-0000-0000-0000-0000000000a1');
 
