@@ -24,7 +24,11 @@ import {
 import {
   computeAccountBarModel,
   computeAccountMonthSummary,
+  createCarouselSelection,
+  requestCarouselSelection,
+  resolveCarouselIndex,
   sortAccountsByPrimary,
+  syncCarouselSelectionFromProp,
   type CreditUsageTone,
 } from './account-carousel';
 
@@ -77,7 +81,15 @@ export default function AccountCarousel({
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const { data: txData } = useTransactionsList();
   const updateProfileMutation = useUpdateProfile();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [selection, setSelection] = useState(() =>
+    createCarouselSelection(activeAccountId),
+  );
+
+  // Adjusting state during render (not in an effect) so a URL change made
+  // outside the carousel is reflected without painting the stale card first.
+  if ((activeAccountId ?? null) !== selection.syncedPropId) {
+    setSelection(syncCarouselSelectionFromProp(selection, activeAccountId));
+  }
 
   const primaryAccountId = profile?.primary_account_id;
 
@@ -94,15 +106,7 @@ export default function AccountCarousel({
     [txData],
   );
 
-  const controlledIndex = activeAccountId
-    ? sortedAccounts.findIndex((acc) => acc.id === activeAccountId)
-    : -1;
-  const safeIndex =
-    sortedAccounts.length === 0
-      ? 0
-      : controlledIndex >= 0
-        ? controlledIndex
-        : Math.min(activeIndex, sortedAccounts.length - 1);
+  const safeIndex = resolveCarouselIndex(sortedAccounts, selection.selectedId);
   const activeAccount = sortedAccounts[safeIndex];
 
   const activeMonthSummary = useMemo(
@@ -128,13 +132,19 @@ export default function AccountCarousel({
     }
   };
 
+  const selectAccount = (acc: Account) => {
+    setSelection((prev) =>
+      requestCarouselSelection(prev, acc.id, Boolean(onActiveAccountChange)),
+    );
+    onActiveAccountChange?.(acc);
+  };
+
   const selectIndex = (nextIdx: number) => {
     const clamped = Math.max(0, Math.min(sortedAccounts.length - 1, nextIdx));
-    setActiveIndex(clamped);
     scrollToCard(clamped);
     const nextAcc = sortedAccounts[clamped];
     if (nextAcc) {
-      onActiveAccountChange?.(nextAcc);
+      selectAccount(nextAcc);
     }
   };
 
@@ -201,10 +211,8 @@ export default function AccountCarousel({
   const barModel = computeAccountBarModel(activeAccount, activeMonthSummary);
 
   const handleStackSelect = (acc: Account) => {
-    const idx = sortedAccounts.findIndex((a) => a.id === acc.id);
-    if (idx >= 0) {
-      setActiveIndex(idx);
-      onActiveAccountChange?.(acc);
+    if (sortedAccounts.some((a) => a.id === acc.id)) {
+      selectAccount(acc);
     }
   };
 

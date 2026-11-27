@@ -114,3 +114,77 @@ export function computeAccountBarModel(
     creditTone,
   };
 }
+
+/**
+ * Selection state for a carousel whose active card can also be driven from
+ * outside (the `?accountId=` URL on /accounts).
+ *
+ * The local selection must win so the card animates on the same frame as the
+ * gesture; the URL lags behind by a server round-trip. When the controlling
+ * prop changes we must tell apart the echo of our own request (ignore it, a
+ * newer request may be in flight) from a genuine external navigation (adopt it).
+ */
+export interface CarouselSelection {
+  selectedId: string | null;
+  /** Ids we asked the controller for that it has not echoed back yet, oldest first. */
+  pendingIds: string[];
+  /** Last value of the controlling prop we reconciled against. */
+  syncedPropId: string | null;
+}
+
+export function createCarouselSelection(
+  propId?: string | null,
+): CarouselSelection {
+  const id = propId ?? null;
+  return { selectedId: id, pendingIds: [], syncedPropId: id };
+}
+
+/** Records a user selection. `tracked` is false when nobody controls the carousel. */
+export function requestCarouselSelection(
+  state: CarouselSelection,
+  id: string,
+  tracked: boolean,
+): CarouselSelection {
+  return {
+    ...state,
+    selectedId: id,
+    pendingIds: tracked ? [...state.pendingIds, id] : state.pendingIds,
+  };
+}
+
+/** Reconciles the local selection with a new value of the controlling prop. */
+export function syncCarouselSelectionFromProp(
+  state: CarouselSelection,
+  propId?: string | null,
+): CarouselSelection {
+  const id = propId ?? null;
+  if (id === state.syncedPropId) {
+    return state;
+  }
+
+  const echoIndex = id === null ? -1 : state.pendingIds.indexOf(id);
+  if (echoIndex >= 0) {
+    // Navigations resolve in order, so older requests can no longer arrive.
+    return {
+      ...state,
+      pendingIds: state.pendingIds.slice(echoIndex + 1),
+      syncedPropId: id,
+    };
+  }
+
+  return { selectedId: id, pendingIds: [], syncedPropId: id };
+}
+
+/** Index of the selected account, falling back to the first card when it is gone. */
+export function resolveCarouselIndex(
+  accounts: Pick<Account, 'id'>[],
+  selectedId: string | null,
+): number {
+  if (accounts.length === 0 || !selectedId) {
+    return 0;
+  }
+  return Math.max(
+    0,
+    accounts.findIndex((acc) => acc.id === selectedId),
+  );
+}
