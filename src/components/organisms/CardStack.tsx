@@ -7,6 +7,7 @@ import type { Account } from '@/types';
 import { Button } from '@/components/atoms';
 import { EmptyState } from '@/components/molecules';
 import { YCard } from './YCard';
+import { SharedCard } from './SharedCard';
 import { computeCardFrame, computeLiveDragOffset } from './card-stack';
 import {
   getAccountCardStyle,
@@ -25,6 +26,11 @@ export interface CardStackProps {
   cardWidth?: number;
   bare?: boolean;
   className?: string;
+  /**
+   * Account whose active card takes part in the screen-to-screen card transition
+   * (see SharedCard). Only the visible stack may set it: names must be unique.
+   */
+  sharedAccountId?: string | null;
 }
 
 /**
@@ -44,6 +50,7 @@ export function CardStack({
   cardWidth = 290,
   bare = false,
   className,
+  sharedAccountId = null,
 }: CardStackProps) {
   const initialIndex = Math.max(
     0,
@@ -198,6 +205,9 @@ export function CardStack({
                 }
               }}
             >
+              <SharedCard
+                accountId={isActive && acc.id === sharedAccountId ? acc.id : null}
+              >
               <YCard
                 name={acc.name}
                 balance={acc.current_balance}
@@ -227,6 +237,7 @@ export function CardStack({
                     : undefined
                 }
               />
+              </SharedCard>
               <span
                 className="shade"
                 style={{ opacity: frame.dim }}

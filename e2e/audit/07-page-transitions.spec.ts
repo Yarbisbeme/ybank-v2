@@ -1,74 +1,14 @@
-import { test, expect, type Page } from '@playwright/test'
-import { signIn, snap, watch } from './helpers'
+import { test, expect } from '@playwright/test'
+import { snap, watch } from './helpers'
+import {
+  recordedAnimations as animations,
+  resetRecording as reset,
+  settled,
+  signInRecording,
+} from './view-transitions'
 
 // Route changes animate the page content (PageTransition + View Transitions API).
 // Each test is one scenario of the agreed behaviour.
-
-interface RecordedAnimation {
-  name: string
-  delay: number
-  duration: number
-}
-
-declare global {
-  interface Window {
-    __vtAnimations: RecordedAnimation[]
-    __vtPending: number
-    __vtReady: number
-  }
-}
-
-/** Records the CSS animations each view transition runs, without changing its behaviour. */
-async function recordViewTransitions(page: Page) {
-  await page.addInitScript(() => {
-    window.__vtAnimations = []
-    window.__vtPending = 0
-    window.__vtReady = 0
-    const original = document.startViewTransition?.bind(document)
-    if (!original) return
-    document.startViewTransition = ((arg: Parameters<typeof original>[0]) => {
-      window.__vtPending += 1
-      const transition = original(arg)
-      transition.ready
-        .then(() => {
-          window.__vtReady += 1
-          for (const anim of document.getAnimations()) {
-            const name = (anim as CSSAnimation).animationName
-            if (!name) continue
-            const timing = anim.effect?.getComputedTiming()
-            window.__vtAnimations.push({
-              name,
-              delay: Number(timing?.delay ?? 0),
-              duration: Number(timing?.duration ?? 0),
-            })
-          }
-        })
-        .catch(() => {})
-      // Pending until the transition has fully finished, not just started animating.
-      transition.finished
-        .catch(() => {})
-        .finally(() => {
-          window.__vtPending -= 1
-        })
-      return transition
-    }) as typeof document.startViewTransition
-  })
-}
-
-const settled = (page: Page) => page.waitForFunction(() => window.__vtPending === 0)
-const reset = (page: Page) =>
-  page.evaluate(() => {
-    window.__vtAnimations = []
-    window.__vtReady = 0
-  })
-const animations = (page: Page) => page.evaluate(() => window.__vtAnimations)
-
-async function signInRecording(page: Page) {
-  await recordViewTransitions(page)
-  await signIn(page)
-  await settled(page)
-  await reset(page)
-}
 
 test.describe('Transición entre páginas', () => {
   test('al navegar del Inicio a Cuentas, la página sale y la nueva entra', async ({ page }) => {
