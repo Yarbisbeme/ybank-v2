@@ -55,6 +55,7 @@ test('credit card: limit is required and the balance is edited as "available"', 
   await expect.poll(() => card()[2]).toBe('-65')
   expect(sql(`select type || ' ' || amount || ' ' || is_balance_adjustment from transactions where account_id = '${accountId}'`)).toBe('expense 50 true')
   await expect(page.getByText('DOP 135.00').filter({ visible: true }).first()).toBeVisible()
-  await expect(page.getByText('Disponible · Deuda 65.00 de 200.00').filter({ visible: true }).first()).toBeVisible()
+  await expect(page.getByText('DOP 65.00').filter({ visible: true }).first()).toBeVisible()
+  await expect(page.getByText(/Límite DOP 200\.00/).filter({ visible: true }).first()).toBeVisible()
   await snap(page, '51-card-face-available', errors)
 })

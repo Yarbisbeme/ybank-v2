@@ -105,88 +105,55 @@ export default function AccountInsightSection() {
       className="flex flex-col gap-5 lg:h-full lg:justify-between"
     >
       {metrics.isCreditCard ? (
-        <>
-          <div className="md:hidden flex flex-col justify-between gap-2 min-h-30">
-            <div className="flex flex-col gap-1.5">
-              <span className="small text-ink-2">Balance</span>
+        <div className="flex flex-col justify-between gap-2 min-h-30">
+          <div className="flex flex-col gap-1.5">
+            <span className="small text-ink-2">
+              Consumos · {metrics.monthLabel}
+            </span>
+
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <Money
-                value={metrics.creditAvailable}
+                value={metrics.monthSpend}
                 currency={activeAccount.currency}
                 size="l"
               />
+              {metrics.savingsDeltaPct !== null &&
+              metrics.savingsDeltaPct > 0 ? (
+                <AchievementBadge
+                  label={`−${metrics.savingsDeltaPct}% vs ${metrics.prevMonthLabel}`}
+                />
+              ) : null}
             </div>
+          </div>
 
-            <div className="flex flex-col gap-2 pt-1">
-              <div className="flex items-baseline justify-between gap-2 small">
-                <span className="text-ink-2 tabular-nums">
-                  Límite{' '}
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 small">
+              <span className="text-ink-2">
+                Usado{' '}
+                <strong className="font-semibold text-ink tabular-nums">
+                  {formatMoney(metrics.creditUsed, {
+                    currency: activeAccount.currency,
+                  })}
+                </strong>{' '}
+                <span className="tabular-nums">
+                  · Límite{' '}
                   {formatMoney(metrics.creditLimit, {
                     currency: activeAccount.currency,
                   })}
                 </span>
-                <span
-                  className={cn(
-                    'tabular-nums font-semibold',
-                    CREDIT_TEXT_CLASSES[metrics.creditTone],
-                  )}
-                >
-                  {metrics.creditPercent}%
-                </span>
-              </div>
-              {creditMeterBar}
-            </div>
-          </div>
-
-          <div className="hidden md:flex flex-col justify-between gap-2 min-h-30">
-            <div className="flex flex-col gap-1.5">
-              <span className="small text-ink-2">
-                Gastado · {metrics.monthLabel}
               </span>
-
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <Money
-                  value={metrics.monthSpend}
-                  currency={activeAccount.currency}
-                  size="l"
-                />
-                {metrics.savingsDeltaPct !== null &&
-                metrics.savingsDeltaPct > 0 ? (
-                  <AchievementBadge
-                    label={`−${metrics.savingsDeltaPct}% vs ${metrics.prevMonthLabel}`}
-                  />
-                ) : null}
-              </div>
+              <span
+                className={cn(
+                  'tabular-nums font-semibold',
+                  CREDIT_TEXT_CLASSES[metrics.creditTone],
+                )}
+              >
+                {metrics.creditPercent}%
+              </span>
             </div>
-
-            <div className="flex flex-col gap-2 pt-1">
-              <div className="flex flex-wrap items-baseline justify-between gap-2 small">
-                <span className="text-ink-2">
-                  Disponible{' '}
-                  <strong className="font-semibold text-ink tabular-nums">
-                    {formatMoney(metrics.creditAvailable, {
-                      currency: activeAccount.currency,
-                    })}
-                  </strong>{' '}
-                  <span className="tabular-nums">
-                    · Límite{' '}
-                    {formatMoney(metrics.creditLimit, {
-                      currency: activeAccount.currency,
-                    })}
-                  </span>
-                </span>
-                <span
-                  className={cn(
-                    'tabular-nums font-semibold',
-                    CREDIT_TEXT_CLASSES[metrics.creditTone],
-                  )}
-                >
-                  {metrics.creditPercent}%
-                </span>
-              </div>
-              {creditMeterBar}
-            </div>
+            {creditMeterBar}
           </div>
-        </>
+        </div>
       ) : (
         <>
           <div className="md:hidden flex flex-col justify-between gap-2 min-h-30">

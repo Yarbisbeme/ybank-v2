@@ -385,9 +385,9 @@ export default function AccountCarousel({
             {barModel.isCreditCard ? (
               <div className="min-h-10 md:min-h-8 flex items-center justify-between gap-4 small">
                 <div className="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                  <span className="text-ink-2">Disponible</span>
+                  <span className="text-ink-2">Usado</span>
                   <span className="font-semibold text-ink tabular-nums">
-                    {formatMoney(barModel.creditAvailable, {
+                    {formatMoney(barModel.creditUsed, {
                       currency: activeAccount.currency,
                     })}
                   </span>

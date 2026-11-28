@@ -50,10 +50,6 @@ export interface YCardProps {
   className?: string;
 }
 
-// Caption amounts without the currency code: the big number above already shows it.
-const formatAmount = (n: number) =>
-  new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-
 const SHAPE_OPACITY: Record<0 | 1 | 2, number> = {
   0: 0.12,
   1: 0.22,
@@ -246,12 +242,6 @@ export function YCard({
             size="card"
             className="text-inherit block truncate"
           />
-          {face.caption ? (
-            <p className={cn('small truncate tabular-nums', mutedInkClass)}>
-              Disponible · Deuda {formatAmount(face.caption.debt)} de{' '}
-              {formatAmount(face.caption.limit)}
-            </p>
-          ) : null}
         </div>
 
         <div className="relative z-10 flex items-end justify-between gap-3 pointer-events-none">
