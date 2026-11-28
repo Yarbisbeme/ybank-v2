@@ -2,11 +2,8 @@
 
 import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  useAccounts,
-  useProfile,
-  useTransactionsList,
-} from '@/hooks/useCatalogs';
+import { useAccounts, useProfile } from '@/hooks/useCatalogs';
+import { useAccountMonthMetrics } from '@/hooks/useMetrics';
 import { useModalStore } from '@/store/useModalStore';
 import { cn } from '@/lib/utils';
 import {
@@ -16,10 +13,7 @@ import {
   formatMoney,
 } from '@/components/atoms';
 import { sortAccountsByPrimary, type CreditUsageTone } from './account-carousel';
-import {
-  computeAccountDetailMetrics,
-  type AccountDetailTransaction,
-} from './account-detail';
+import { buildAccountDetailMetrics } from './account-detail';
 
 const CREDIT_BAR_CLASSES: Record<CreditUsageTone, string> = {
   credit: 'bg-credit',
@@ -41,7 +35,6 @@ export default function AccountInsightSection() {
 
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
   const { data: profile } = useProfile();
-  const { data: txData, isLoading: isLoadingTx } = useTransactionsList();
 
   const sortedAccounts = useMemo(
     () => sortAccountsByPrimary(accounts, profile?.primary_account_id),
@@ -57,22 +50,16 @@ export default function AccountInsightSection() {
     );
   }, [sortedAccounts, urlAccountId]);
 
-  const transactions = useMemo(
-    () =>
-      (Array.isArray(txData)
-        ? txData
-        : txData?.transactions || []) as AccountDetailTransaction[],
-    [txData],
-  );
+  const { data: metricsRow, isLoading: isLoadingMetrics } = useAccountMonthMetrics(activeAccount?.id);
 
   const metrics = useMemo(() => {
     if (!activeAccount) {
       return null;
     }
-    return computeAccountDetailMetrics(activeAccount, transactions);
-  }, [activeAccount, transactions]);
+    return buildAccountDetailMetrics(activeAccount, metricsRow ?? null);
+  }, [activeAccount, metricsRow]);
 
-  if (isLoadingAccounts || (isLoadingTx && transactions.length === 0)) {
+  if (isLoadingAccounts || (isLoadingMetrics && !metricsRow)) {
     return (
       <div className="flex flex-col gap-3">
         <Skeleton variant="line" className="w-48" label="Cargando resumen" />
@@ -277,7 +264,7 @@ export default function AccountInsightSection() {
           <>
             <h3 className="label text-ink-2 pb-1.5">Requiere tu atención</h3>
 
-            {metrics.uncategorizedCount > 0 && metrics.firstUncategorizedTx ? (
+            {metrics.uncategorizedCount > 0 && metrics.firstUncategorizedId ? (
               <div className="flex min-h-10 items-center justify-between gap-3 py-1">
                 <span className="body-strong text-ink">
                   Categorizar {metrics.uncategorizedCount}{' '}
@@ -288,12 +275,12 @@ export default function AccountInsightSection() {
                 <button
                   type="button"
                   onClick={() => {
-                    const tx = metrics.firstUncategorizedTx;
-                    if (!tx) return;
+                    const id = metrics.firstUncategorizedId;
+                    if (!id) return;
+                    // The modal loads the movement by id.
                     openModal('transaction', {
-                      transactionId: tx.id,
-                      accountId: tx.account_id,
-                      initialData: tx,
+                      transactionId: id,
+                      accountId: activeAccount.id,
                     });
                   }}
                   className="small text-action hover:underline cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-action focus-visible:outline-offset-2"

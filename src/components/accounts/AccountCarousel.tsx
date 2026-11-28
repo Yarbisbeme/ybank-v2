@@ -4,13 +4,13 @@ import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@teispace/next-themes';
 import { ChevronLeft, ChevronRight, CreditCard, Plus } from 'lucide-react';
-import type { Account, Transaction } from '@/types';
+import type { Account } from '@/types';
 import {
   useAccounts,
   useProfile,
-  useTransactionsList,
   useUpdateProfile,
 } from '@/hooks/useCatalogs';
+import { useAccountMonthMetrics } from '@/hooks/useMetrics';
 import { useModalStore } from '@/store/useModalStore';
 import { Button, IconButton, Skeleton, formatMoney } from '@/components/atoms';
 import { EmptyState } from '@/components/molecules';
@@ -24,7 +24,6 @@ import {
 } from '@/components/organisms';
 import {
   computeAccountBarModel,
-  computeAccountMonthSummary,
   createCarouselSelection,
   requestCarouselSelection,
   resolveCarouselIndex,
@@ -80,7 +79,6 @@ export default function AccountCarousel({
 
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
-  const { data: txData } = useTransactionsList();
   const updateProfileMutation = useUpdateProfile();
   const [selection, setSelection] = useState(() =>
     createCarouselSelection(activeAccountId),
@@ -99,24 +97,15 @@ export default function AccountCarousel({
     [accounts, primaryAccountId],
   );
 
-  const transactions = useMemo(
-    () =>
-      (Array.isArray(txData)
-        ? txData
-        : txData?.transactions || []) as Transaction[],
-    [txData],
-  );
-
   const safeIndex = resolveCarouselIndex(sortedAccounts, selection.selectedId);
   const activeAccount = sortedAccounts[safeIndex];
 
-  const activeMonthSummary = useMemo(
-    () =>
-      activeAccount
-        ? computeAccountMonthSummary(transactions, activeAccount.id)
-        : { monthSpend: 0, monthCount: 0 },
-    [activeAccount, transactions],
-  );
+  // Complete monthly figures from Postgres (the table only holds one page of movements).
+  const { data: activeMetrics } = useAccountMonthMetrics(activeAccount?.id);
+  const activeMonthSummary = {
+    monthSpend: activeMetrics?.month_spend ?? 0,
+    monthCount: activeMetrics?.month_count ?? 0,
+  };
 
   const scrollToCard = (index: number) => {
     const container = scrollRef.current;

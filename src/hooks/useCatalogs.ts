@@ -15,6 +15,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useYBankStore } from '@/store/useYBankStore';
 import { storageService } from '@/lib/actions/storageService';
 import { transactionKeys, TRANSACTIONS_PAGE_SIZE } from '@/lib/transaction-keys';
+import { metricsKeys } from '@/lib/metrics-keys';
 
 const isOffline = () => typeof window !== 'undefined' && !navigator.onLine;
 
@@ -264,6 +265,7 @@ export function useSaveTransaction() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: metricsKeys.all });
     },
 
     onSuccess: () => {
@@ -315,6 +317,7 @@ export function useDeleteTransaction() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: metricsKeys.all });
     },
 
     onSuccess: () => {
@@ -336,6 +339,7 @@ export function useUpdateSubTransaction() {
       toast.success('Ítem actualizado correctamente');
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: metricsKeys.all });
     },
     onError: (error) => {
       toast.error(`Error al actualizar el ítem: ${error.message}`);
@@ -358,6 +362,7 @@ export function useSaveAccount() {
     },
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: metricsKeys.all });
       // A balance change creates an "Ajuste de saldo" movement.
       if ('adjusted' in response && response.adjusted) {
         queryClient.invalidateQueries({ queryKey: transactionKeys.all });

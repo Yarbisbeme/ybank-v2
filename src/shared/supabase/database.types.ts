@@ -513,6 +513,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_month_metrics: {
+        Args: { p_account_id: string; p_month?: string }
+        Returns: {
+          first_uncategorized_id: string
+          last_date: string
+          last_description: string
+          month_count: number
+          month_inflow: number
+          month_income: number
+          month_outflow: number
+          month_spend: number
+          month_start: string
+          prev_month_spend: number
+          uncategorized_count: number
+        }[]
+      }
       classify_transfer: {
         Args: {
           p_description: string
@@ -533,6 +549,18 @@ export type Database = {
         Args: { p_account_id: string; p_target: number }
         Returns: string
       }
+      spending_by_day: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          category_id: string
+          category_name: string
+          currency: string
+          day: string
+          source: string
+          total: number
+        }[]
+      }
+      today_rd: { Args: Record<PropertyKey, never>; Returns: string }
       transfer_tax_rule: {
         Args: { p_date: string; p_kind: string }
         Returns: {
