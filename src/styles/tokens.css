@@ -713,6 +713,32 @@
   animation: none;
 }
 
+/*
+ * Card continuity (SharedCard): the opened card travels from Inicio to its place
+ * in Cuentas while the pages fade through around it. A bit longer than the page
+ * change so the eye can follow it.
+ */
+::view-transition-group(.y2-card-share) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-standard);
+  /* Above the page content: lifting the card out reveals the card behind it in
+     the stack, which would otherwise be painted over the travelling card. */
+  z-index: 1;
+}
+
+/*
+ * It is one object, so show a single image: crossfading the Inicio and Cuentas
+ * renders (different sizes, selection ring) doubles every label mid-flight.
+ */
+::view-transition-old(.y2-card-share) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(.y2-card-share) {
+  animation: none;
+}
+
 /* Toasts are app-level overlays: they stay above the shell layers too. */
 .y2-vt-toasts {
   view-transition-name: y2-toasts;

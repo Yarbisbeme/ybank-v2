@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@teispace/next-themes';
 import { ChevronLeft, ChevronRight, CreditCard, Plus } from 'lucide-react';
@@ -11,7 +11,10 @@ import {
   useUpdateProfile,
 } from '@/hooks/useCatalogs';
 import { useAccountMonthMetrics } from '@/hooks/useMetrics';
+import { useMediaQuery, MD_UP } from '@/hooks/useMediaQuery';
 import { useModalStore } from '@/store/useModalStore';
+import { useCardContinuityStore } from '@/store/useCardContinuityStore';
+import { SharedCard } from '@/components/organisms/SharedCard';
 import { Button, IconButton, Skeleton, formatMoney } from '@/components/atoms';
 import { EmptyState } from '@/components/molecules';
 import {
@@ -76,6 +79,20 @@ export default function AccountCarousel({
     () => false,
   );
   const isDark = isHydrated && resolvedTheme === 'dark';
+
+  // Card continuity (SharedCard): only the visible layout may name a card, and on
+  // Inicio only the card the user just tapped to open it.
+  const isDesktop = useMediaQuery(MD_UP);
+  const openingAccountId = useCardContinuityStore((s) => s.openingAccountId);
+  const markOpening = useCardContinuityStore((s) => s.markOpening);
+  const clearOpening = useCardContinuityStore((s) => s.clearOpening);
+  useEffect(() => {
+    // Arrived at Cuentas: Inicio is gone, so the mark has done its job. Leaving
+    // it would make a later menu navigation from Inicio fly this card.
+    if (layoutMode === 'stack') {
+      clearOpening();
+    }
+  }, [layoutMode, clearOpening]);
 
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
@@ -143,6 +160,8 @@ export default function AccountCarousel({
       onActiveCardClick(acc);
       return;
     }
+    // Marked before navigating so this card is named when Inicio is snapshotted.
+    markOpening(acc.id);
     router.push(`/accounts?accountId=${acc.id}`);
   };
 
@@ -218,6 +237,11 @@ export default function AccountCarousel({
   };
 
   const isStackOnly = layoutMode === 'stack';
+  // Cuentas always names its active card (any arrival may pair with it); Inicio
+  // names only the tapped one, so the pair exists only for an intentional open.
+  const sharedId = isStackOnly ? activeAccount.id : openingAccountId;
+  const desktopSharedId = isDesktop ? sharedId : null;
+  const mobileSharedId = isDesktop ? null : sharedId;
 
   return (
     <>
@@ -287,6 +311,9 @@ export default function AccountCarousel({
               const isSelected = index === safeIndex;
               return (
                 <div key={acc.id} className="w-85 shrink-0">
+                  <SharedCard
+                    accountId={desktopSharedId === acc.id ? acc.id : null}
+                  >
                   <YCard
                     name={acc.name}
                     balance={acc.current_balance}
@@ -311,13 +338,14 @@ export default function AccountCarousel({
                       }
                     }}
                   />
+                  </SharedCard>
                 </div>
               );
             })}
           </div>
 
           <div className="md:hidden -mx-5">
-            <CardStack {...sharedStackProps} />
+            <CardStack {...sharedStackProps} sharedAccountId={mobileSharedId} />
           </div>
         </>
       ) : (
@@ -330,11 +358,15 @@ export default function AccountCarousel({
         >
           <div className={sideContent ? 'lg:col-span-7' : 'w-full'}>
             <div className="hidden md:block">
-              <CardStack {...sharedStackProps} cardWidth={310} />
+              <CardStack
+                {...sharedStackProps}
+                cardWidth={310}
+                sharedAccountId={desktopSharedId}
+              />
             </div>
 
             <div className="md:hidden -mx-5">
-              <CardStack {...sharedStackProps} />
+              <CardStack {...sharedStackProps} sharedAccountId={mobileSharedId} />
             </div>
           </div>
 
