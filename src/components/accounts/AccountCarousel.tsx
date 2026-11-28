@@ -80,25 +80,39 @@ export default function AccountCarousel({
   );
   const isDark = isHydrated && resolvedTheme === 'dark';
 
-  // Card continuity (SharedCard): only the visible layout may name a card, and on
-  // Inicio only the card the user just tapped to open it.
+  // Card continuity (SharedCard): only the visible layout may name a card. On
+  // Inicio that is the card just tapped to open it, or the card coming back from
+  // Cuentas; Cuentas always names the card in hand.
   const isDesktop = useMediaQuery(MD_UP);
   const openingAccountId = useCardContinuityStore((s) => s.openingAccountId);
   const markOpening = useCardContinuityStore((s) => s.markOpening);
   const clearOpening = useCardContinuityStore((s) => s.clearOpening);
+  const setFocused = useCardContinuityStore((s) => s.setFocused);
+  // The card the user had in hand in Cuentas. Inicio names it while it is set
+  // (the return flight) and starts selected on it.
+  const focusedAccountId = useCardContinuityStore((s) => s.focusedAccountId);
+  const [returningAccountId] = useState(() =>
+    layoutMode === 'stack'
+      ? null
+      : useCardContinuityStore.getState().focusedAccountId,
+  );
   useEffect(() => {
-    // Arrived at Cuentas: Inicio is gone, so the mark has done its job. Leaving
-    // it would make a later menu navigation from Inicio fly this card.
     if (layoutMode === 'stack') {
+      // Arrived at Cuentas: Inicio is gone, so the mark has done its job. Leaving
+      // it would make a later menu navigation from Inicio fly this card.
       clearOpening();
+    } else {
+      // Back on Inicio: the return flight was captured with the page. Forget the
+      // card, or a later menu navigation to Cuentas would fly it as well.
+      setFocused(null);
     }
-  }, [layoutMode, clearOpening]);
+  }, [layoutMode, clearOpening, setFocused]);
 
   const { data: accounts = [], isLoading: isLoadingAccounts } = useAccounts();
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const updateProfileMutation = useUpdateProfile();
   const [selection, setSelection] = useState(() =>
-    createCarouselSelection(activeAccountId),
+    createCarouselSelection(activeAccountId, returningAccountId),
   );
 
   // Adjusting state during render (not in an effect) so a URL change made
@@ -116,6 +130,15 @@ export default function AccountCarousel({
 
   const safeIndex = resolveCarouselIndex(sortedAccounts, selection.selectedId);
   const activeAccount = sortedAccounts[safeIndex];
+
+  // Cuentas keeps the store told which card is in hand. Arriving at Inicio from
+  // anywhere else finds no partner for it, so nothing flies there either.
+  const activeAccountIdInHand = activeAccount?.id ?? null;
+  useEffect(() => {
+    if (layoutMode === 'stack') {
+      setFocused(activeAccountIdInHand);
+    }
+  }, [layoutMode, activeAccountIdInHand, setFocused]);
 
   // Complete monthly figures from Postgres (the table only holds one page of movements).
   const { data: activeMetrics } = useAccountMonthMetrics(activeAccount?.id);
@@ -238,8 +261,10 @@ export default function AccountCarousel({
 
   const isStackOnly = layoutMode === 'stack';
   // Cuentas always names its active card (any arrival may pair with it); Inicio
-  // names only the tapped one, so the pair exists only for an intentional open.
-  const sharedId = isStackOnly ? activeAccount.id : openingAccountId;
+  // names only the tapped card, or the one returning from Cuentas.
+  const sharedId = isStackOnly
+    ? activeAccount.id
+    : (openingAccountId ?? focusedAccountId);
   const desktopSharedId = isDesktop ? sharedId : null;
   const mobileSharedId = isDesktop ? null : sharedId;
 

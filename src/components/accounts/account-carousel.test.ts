@@ -139,6 +139,17 @@ describe('computeAccountBarModel', () => {
 });
 
 describe('carousel selection sync', () => {
+  it('starts on the card in hand when nothing controls the carousel', () => {
+    const state = createCarouselSelection(undefined, 'b');
+    expect(state).toEqual({ selectedId: 'b', pendingIds: [], syncedPropId: null });
+    // The uncontrolled prop stays null, so the next render must not reset it.
+    expect(syncCarouselSelectionFromProp(state, undefined)).toBe(state);
+  });
+
+  it('lets the controlling prop win over the initial card', () => {
+    expect(createCarouselSelection('a', 'b').selectedId).toBe('a');
+  });
+
   // Regression: on /accounts the active card came only from the URL, so a swipe
   // did nothing until router navigation finished and the card snapped back first.
   it('moves the selection immediately, before the URL catches up', () => {
