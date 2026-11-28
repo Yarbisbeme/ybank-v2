@@ -4,6 +4,7 @@ import {
   computeAccountMonthSummary,
   type CreditUsageTone,
 } from './account-carousel';
+import { countsInReports } from '@/lib/reporting';
 
 export interface AccountLastTransaction {
   description: string;
@@ -136,7 +137,8 @@ export function computeDaysUntilCutoff(
 export function isTransactionUncategorized(
   tx: AccountDetailTransaction,
 ): boolean {
-  if (tx.type === 'transfer' || tx.is_split_child) {
+  // Balance adjustments are corrections, not spending: nothing to categorize.
+  if (tx.type === 'transfer' || tx.is_split_child || !countsInReports(tx)) {
     return false;
   }
 
@@ -203,7 +205,7 @@ export function computeAccountDetailMetrics(
         parsed.getFullYear() === curYear &&
         parsed.getMonth() === curMonth;
 
-      if (isCurrentMonth) {
+      if (isCurrentMonth && countsInReports(tx)) {
         if (isOwnerAccount && !tx.is_split_child) {
           const absAmount = Math.abs(Number(tx.amount) || 0);
           if (tx.type === 'income') {

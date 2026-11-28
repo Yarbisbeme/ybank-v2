@@ -106,20 +106,33 @@ export async function updateAccount(accountId: string, input: any) {
   if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
 
   const supabase = await createSupabaseClient()
+  const { current_balance, ...fields } = parsed.data
 
-  const { data, error } = await supabase
-    .from('accounts')
-    .update({
-        ...parsed.data,
-        updated_at: new Date().toISOString()
+  // updated_at is set by the DB trigger.
+  if (Object.keys(fields).length > 0) {
+    const { error } = await supabase.from('accounts').update(fields).eq('id', accountId)
+    if (error) return { success: false, error: error.message }
+  }
+
+  // A different "Balance actual" is recorded as an adjustment movement; a no-op if unchanged.
+  let adjusted = false
+  if (current_balance !== undefined) {
+    const { data: adjustmentId, error: adjustError } = await supabase.rpc('set_account_balance', {
+      p_account_id: accountId,
+      p_target: current_balance,
     })
-    .eq('id', accountId)
+    if (adjustError) return { success: false, error: adjustError.message }
+    adjusted = adjustmentId !== null
+  }
+
+  const { data, error: readError } = await supabase
+    .from('accounts')
     .select(ACCOUNT_SELECT_QUERY)
+    .eq('id', accountId)
     .single()
+  if (readError) return { success: false, error: readError.message }
 
-  if (error) return { success: false, error: error.message }
-
-  return { success: true, data: JSON.parse(JSON.stringify(data)) }
+  return { success: true, adjusted, data: JSON.parse(JSON.stringify(data)) }
 }
 
 // =========================================================

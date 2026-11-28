@@ -4,6 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 import type { Transaction } from '@/types';
 import { cn } from '@/lib/utils';
 import { Money, type CurrencyCode } from '@/components/atoms';
+import { countsInReports } from '@/lib/reporting';
 
   export interface WeeklyActivityChartProps {
     transactions: Transaction[];
@@ -52,6 +53,7 @@ import { Money, type CurrencyCode } from '@/components/atoms';
             });
 
               const expenseTxs = dayTxs.filter((tx) => {
+                if (!countsInReports(tx)) return false;
                 const isExpense = tx.type === 'expense';
                 const isExternalTransfer =
                   tx.type === 'transfer' && !tx.transfer_to_account_id;
