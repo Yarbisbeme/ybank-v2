@@ -739,6 +739,75 @@
   animation: none;
 }
 
+/*
+ * Movement lists (TransactionTable + planListMotion). Rows only move when the
+ * list's content changes because of something the user did.
+ */
+
+/* New results (filter, search, page): rows rise in, staggered by an inline delay. */
+.y2-row-enter {
+  animation: y2-row-enter 200ms var(--ease-standard) both;
+}
+
+@keyframes y2-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* A movement the user just registered: a short wash over the row that fades. */
+.y2-row-highlight {
+  position: relative;
+}
+
+.y2-row-highlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--action) 14%, transparent);
+  animation: y2-row-highlight 1000ms ease-out forwards;
+}
+
+@keyframes y2-row-highlight {
+  to {
+    opacity: 0;
+  }
+}
+
+/* A deleted movement folds away so the rows below slide up instead of jumping. */
+.y2-row-collapse {
+  display: grid;
+  pointer-events: none;
+  animation: y2-row-collapse 200ms ease-in forwards;
+}
+
+.y2-row-collapse > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@keyframes y2-row-collapse {
+  from {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  to {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
+/*
+ * Previous results stay on screen while the next query loads; they dim (after a
+ * beat, so fast answers do not flash) instead of vanishing or jumping.
+ */
+.y2-list-stale {
+  opacity: 0.55;
+  transition: opacity 150ms ease-out 150ms;
+}
+
 /* Toasts are app-level overlays: they stay above the shell layers too. */
 .y2-vt-toasts {
   view-transition-name: y2-toasts;
@@ -788,6 +857,17 @@
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  /*
+   * The `*` rule below only shortens animations: a staggered row would still
+   * wait out its delay invisible. Row motion is removed outright (the table also
+   * skips keeping deleted rows for a collapse that will not run).
+   */
+  .y2-row-enter,
+  .y2-row-highlight::after,
+  .y2-row-collapse {
     animation: none !important;
   }
 
