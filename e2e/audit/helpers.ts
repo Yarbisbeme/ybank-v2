@@ -1,13 +1,22 @@
 import { execFileSync } from 'node:child_process'
+import path from 'node:path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { expect, type Page } from '@playwright/test'
 
 export const OUT = 'e2e/.audit'
 mkdirSync(OUT, { recursive: true })
 
-/** Every user the suite creates matches this, so global-setup can delete them. */
-export const AUDIT_EMAIL_LIKE = 'audit+%@ybank.test'
-export const newAuditEmail = () => `audit+${Date.now()}@ybank.test`
+/**
+ * Test users are namespaced per agent/worktree (folder name, or E2E_NAMESPACE), so agents that
+ * share the local Supabase never touch each other's users: audit+<namespace>-<ts>@ybank.test.
+ */
+export const E2E_NAMESPACE = (process.env.E2E_NAMESPACE || path.basename(process.cwd()))
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, '-')
+  .slice(0, 40)
+/** Every user this agent's suite creates matches this, so global-setup can delete them. */
+export const AUDIT_EMAIL_LIKE = `audit+${E2E_NAMESPACE}-%@ybank.test`
+export const newAuditEmail = () => `audit+${E2E_NAMESPACE}-${Date.now()}@ybank.test`
 
 const EVIDENCE = !!process.env.E2E_EVIDENCE
 
