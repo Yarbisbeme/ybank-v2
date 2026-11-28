@@ -1,4 +1,5 @@
 import type { Account, Transaction } from '@/types';
+import { countsInReports } from '@/lib/reporting';
 
 export type CreditUsageTone = 'credit' | 'pending' | 'debit';
 
@@ -63,7 +64,12 @@ export function computeAccountMonthSummary(
   let monthCount = 0;
 
   for (const tx of transactions) {
-    if (tx.account_id !== accountId || getLedgerType(tx) !== 'expense' || !tx.date) {
+    if (
+      tx.account_id !== accountId ||
+      getLedgerType(tx) !== 'expense' ||
+      !tx.date ||
+      !countsInReports(tx)
+    ) {
       continue;
     }
     const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);

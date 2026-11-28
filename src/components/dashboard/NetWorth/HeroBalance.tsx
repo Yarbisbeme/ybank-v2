@@ -12,6 +12,7 @@ import {
   formatMoney,
 } from '@/components/atoms';
 import { Segmented } from '@/components/molecules';
+import { countsInReports } from '@/lib/reporting';
 
 const CURRENCY_OPTIONS: { value: 'DOP' | 'USD'; label: string }[] = [
   { value: 'DOP', label: 'DOP' },
@@ -121,7 +122,7 @@ export default function HeroBalance() {
           let previousTotal = 0;
 
           for (const tx of transactions) {
-            if (tx.type !== 'expense' || !tx.date) {
+            if (tx.type !== 'expense' || !tx.date || !countsInReports(tx)) {
               continue;
             }
           const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);
