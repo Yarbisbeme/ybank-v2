@@ -60,7 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
         >
           {children}
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="top-right" className="y2-vt-toasts" />
           
           {/* 💡 2. Usamos next/script con strategy="afterInteractive" */}
           <Script id="sw-registration" strategy="afterInteractive">

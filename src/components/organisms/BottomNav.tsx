@@ -22,7 +22,7 @@ export function BottomNav({ onNewTransaction, className }: BottomNavProps) {
     <nav
       aria-label="Navegación móvil"
       className={cn(
-        'md:hidden fixed inset-x-0 bottom-0 z-sticky border-t border-line bg-surface px-2 pb-2 pt-1.5',
+        'y2-vt-bottom-nav md:hidden fixed inset-x-0 bottom-0 z-sticky border-t border-line bg-surface px-2 pb-2 pt-1.5',
         className,
       )}
     >

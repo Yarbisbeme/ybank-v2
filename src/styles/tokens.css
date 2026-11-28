@@ -663,10 +663,16 @@
 }
 
 /*
- * Route change (PageTransition). The old page leaves quickly so the new one
- * is never fighting it for attention; the new page rises 8px to signal "you
- * moved", short enough to never feel like waiting.
+ * Route change (PageTransition), "fade through": the old page is fully gone
+ * before the new one starts, so two different layouts never show at once.
+ * The new page rises 8px to signal "you moved"; the whole change stays
+ * around 300ms so it never feels like waiting.
  */
+:root {
+  --page-exit-duration: 90ms;
+  --page-enter-duration: 210ms;
+}
+
 /*
  * No default full-screen crossfade: the shell does not change, and while the
  * root snapshot animates it covers the live page, which would freeze in-page
@@ -678,11 +684,64 @@
 }
 
 ::view-transition-old(.y2-page-exit) {
-  animation: y2-page-out var(--duration-fast) ease-in both;
+  animation: y2-page-out var(--page-exit-duration) ease-in both;
 }
 
 ::view-transition-new(.y2-page-enter) {
-  animation: y2-page-in var(--duration-base) var(--ease-standard) both;
+  animation: y2-page-in var(--page-enter-duration) var(--ease-standard)
+    var(--page-exit-duration) both;
+}
+
+/*
+ * The page content scrolls inside <main>, and view-transition snapshots are not
+ * clipped by that scroller: without their own layer on top, the moving content
+ * is painted over the header and the mobile bottom nav, which then seem to
+ * "pop in" when the transition ends. They do not change on navigation, so they
+ * do not animate.
+ */
+.y2-vt-header {
+  view-transition-name: y2-header;
+}
+
+.y2-vt-bottom-nav {
+  view-transition-name: y2-bottom-nav;
+}
+
+::view-transition-group(y2-header),
+::view-transition-group(y2-bottom-nav) {
+  z-index: 1;
+  animation: none;
+}
+
+/* Toasts are app-level overlays: they stay above the shell layers too. */
+.y2-vt-toasts {
+  view-transition-name: y2-toasts;
+}
+
+::view-transition-group(y2-toasts) {
+  z-index: 2;
+  animation: none;
+}
+
+::view-transition-old(y2-toasts),
+::view-transition-new(y2-toasts) {
+  animation: none;
+}
+
+/*
+ * Nav items fade their colour on hover. During a route change that fade would
+ * start just before the snapshot is taken, freezing the previous tab as active
+ * for the whole transition and then jumping: switch the active tab instantly.
+ */
+:root:active-view-transition nav a {
+  transition: none;
+}
+
+::view-transition-old(y2-header),
+::view-transition-new(y2-header),
+::view-transition-old(y2-bottom-nav),
+::view-transition-new(y2-bottom-nav) {
+  animation: none;
 }
 
 @keyframes y2-page-out {
