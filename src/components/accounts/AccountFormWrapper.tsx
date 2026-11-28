@@ -23,12 +23,14 @@ import {
 import {
   CARD_PALETTE,
   YCard,
+  getAccountCardStyle,
   getCardBackgroundStyle,
   getCardHoloStyle,
   getCardTextTone,
   getCardTextureStyle,
   hexToWash,
   mapDbPatternToCardShape,
+  toDbCardStyle,
   type CardBase,
   type CardFinish,
   type CardNetwork,
@@ -101,11 +103,18 @@ export default function AccountFormWrapper({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { mutateAsync: saveAccount } = useSaveAccount();
 
-  const [cardBase, setCardBase] = useState<CardBase>('materia');
-  const [secondaryColor, setSecondaryColor] = useState<string>(CARD_PALETTE.tinta);
-  const [shapeIntensity, setShapeIntensity] = useState<0 | 1 | 2>(1);
-  const [cardFinish, setCardFinish] = useState<CardFinish>('mate');
-  const [network, setNetwork] = useState<CardNetwork>('');
+  // Seeded from the stored account so editing starts from what was saved;
+  // a new card gets the same defaults as the database columns.
+  const [initialStyle] = useState(() => getAccountCardStyle(initialData ?? {}));
+  const [cardBase, setCardBase] = useState<CardBase>(initialStyle.base);
+  const [secondaryColor, setSecondaryColor] = useState<string>(
+    initialStyle.secondaryColor ?? CARD_PALETTE.tinta,
+  );
+  const [shapeIntensity, setShapeIntensity] = useState<0 | 1 | 2>(
+    initialStyle.shapeIntensity,
+  );
+  const [cardFinish, setCardFinish] = useState<CardFinish>(initialStyle.finish);
+  const [network, setNetwork] = useState<CardNetwork>(initialStyle.network);
 
   const [accountData, setAccountData] = useState<EditCreateAccount>(() => {
     if (initialData) {
@@ -230,6 +239,16 @@ export default function AccountFormWrapper({
         custom_text_theme: accountData.custom_text_theme,
         expiry_date: accountData.expiry_date || undefined,
         cutoff_day: accountData.cutoff_day || undefined,
+        ...toDbCardStyle(
+          {
+            base: cardBase,
+            secondaryColor,
+            shapeIntensity,
+            finish: cardFinish,
+            network,
+          },
+          { isCash: accountData.type === 'cash' },
+        ),
       };
 
       await saveAccount(payload);

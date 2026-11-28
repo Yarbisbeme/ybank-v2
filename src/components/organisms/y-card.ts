@@ -1,5 +1,11 @@
 import type { CSSProperties } from 'react';
 import type { AccountType, CustomPattern } from '@/types';
+import type {
+  CardBaseValue,
+  CardFinishValue,
+  CardNetworkValue,
+  CardShapeIntensityValue,
+} from '@/lib/validation';
 
 export type CardBase = 'plana' | 'degradado' | 'materia';
 export type CardShape =
@@ -269,3 +275,105 @@ export function getCardHoloStyle(px: number, py: number): CSSProperties {
       backgroundImage: `radial-gradient(circle at ${px}% ${py}%, rgba(255, 255, 255, ${alpha}), transparent 55%)`,
     };
   }
+
+// The database stores card style values in English (see the accounts_card_style
+// migration); the designer and YCard use the Spanish tokens of the visual spec.
+const BASE_FROM_DB: Record<CardBaseValue, CardBase> = {
+  flat: 'plana',
+  gradient: 'degradado',
+  textured: 'materia',
+};
+const BASE_TO_DB: Record<CardBase, CardBaseValue> = {
+  plana: 'flat',
+  degradado: 'gradient',
+  materia: 'textured',
+};
+const FINISH_FROM_DB: Record<CardFinishValue, CardFinish> = {
+  matte: 'mate',
+  metal: 'metal',
+  holo: 'holo',
+};
+const FINISH_TO_DB: Record<CardFinish, CardFinishValue> = {
+  mate: 'matte',
+  metal: 'metal',
+  holo: 'holo',
+};
+const NETWORK_FROM_DB: Record<CardNetworkValue, CardNetwork> = {
+  visa: 'VISA',
+  mastercard: 'Mastercard',
+};
+const NETWORK_TO_DB: Record<CardNetwork, CardNetworkValue | null> = {
+  VISA: 'visa',
+  Mastercard: 'mastercard',
+  '': null,
+};
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/** Visual style of a card as YCard consumes it. */
+export interface CardStyle {
+  base: CardBase;
+  /** null = no stored or derivable second colour. */
+  secondaryColor: string | null;
+  shapeIntensity: 0 | 1 | 2;
+  finish: CardFinish;
+  network: CardNetwork;
+}
+
+/** Card style columns of an account row, as persisted. */
+export interface DbCardStyle {
+  card_base: CardBaseValue;
+  card_shape_intensity: CardShapeIntensityValue;
+  card_finish: CardFinishValue;
+  network: CardNetworkValue | null;
+  color_secondary?: string;
+}
+
+interface CardStyleSource {
+  card_base?: string | null;
+  card_shape_intensity?: number | null;
+  card_finish?: string | null;
+  network?: string | null;
+  color_secondary?: string | null;
+  institution?: { brand_color_secondary?: string | null } | null;
+}
+
+/** Reads a stored account into YCard style props, with the DB defaults for missing values. */
+export function getAccountCardStyle(account: CardStyleSource): CardStyle {
+  const intensity = account.card_shape_intensity;
+  return {
+    base: BASE_FROM_DB[account.card_base as CardBaseValue] ?? 'materia',
+    secondaryColor:
+      account.color_secondary || account.institution?.brand_color_secondary || null,
+    shapeIntensity: intensity === 0 || intensity === 2 ? intensity : 1,
+    finish: FINISH_FROM_DB[account.card_finish as CardFinishValue] ?? 'mate',
+    network: NETWORK_FROM_DB[account.network as CardNetworkValue] ?? '',
+  };
+}
+
+/**
+ * Converts designer state into the columns to save.
+ *
+ * color_secondary is only written for gradient cards: NULL means "derived by the
+ * UI", so a flat or textured card must not freeze the derived colour into the row.
+ * Cash accounts have no card network.
+ */
+export function toDbCardStyle(
+  style: CardStyle,
+  options: { isCash?: boolean } = {},
+): DbCardStyle {
+  const result: DbCardStyle = {
+    card_base: BASE_TO_DB[style.base],
+    card_shape_intensity: style.shapeIntensity,
+    card_finish: FINISH_TO_DB[style.finish],
+    network: options.isCash ? null : NETWORK_TO_DB[style.network],
+  };
+  if (
+    style.base === 'degradado' &&
+    style.secondaryColor &&
+    HEX_COLOR.test(style.secondaryColor)
+  ) {
+    result.color_secondary = style.secondaryColor;
+  }
+  return result;
+}
