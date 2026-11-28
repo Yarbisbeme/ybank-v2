@@ -20,6 +20,7 @@ import {
   Sidebar,
   type SidebarUser,
 } from '@/components/organisms';
+import { PageTransition } from './PageTransition';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -196,7 +197,7 @@ export function DashboardShell({
 
       <div className="flex flex-1 min-w-0 flex-col h-full">
             <main className="flex-1 overflow-y-auto overflow-x-hidden px-5 md:px-6 lg:px-10 pt-4 md:pt-5 lg:pt-6 pb-24 lg:pb-12 flex flex-col">
-              <header className="mx-auto mb-3 md:mb-7 flex w-full max-w-6xl flex-wrap items-center justify-between gap-4">
+              <header className="y2-vt-header mx-auto mb-3 md:mb-7 flex w-full max-w-6xl flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <IconButton
                     variant="surface"
@@ -301,6 +302,8 @@ export function DashboardShell({
           </div>
         </header>
 
+          {/* The footer moves with the page height, so it transitions with it. */}
+          <PageTransition>
           <div className="mx-auto w-full max-w-6xl flex-1">{children}</div>
 
           <footer className="mx-auto mt-10 hidden md:flex md:flex-row w-full max-w-6xl items-center justify-between gap-3 border-t border-line pt-5 small text-ink-2">
@@ -320,6 +323,7 @@ export function DashboardShell({
               </Button>
             ) : null}
           </footer>
+          </PageTransition>
         </main>
       </div>
 

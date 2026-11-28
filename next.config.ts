@@ -30,6 +30,11 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  // Lets route navigations run inside document.startViewTransition so
+  // PageTransition can animate them.
+  experimental: {
+    viewTransition: true,
+  },
   images: {
     remotePatterns: [
       {
