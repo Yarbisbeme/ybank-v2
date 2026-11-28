@@ -662,7 +662,50 @@
   background: var(--ink);
 }
 
+/*
+ * Route change (PageTransition). The old page leaves quickly so the new one
+ * is never fighting it for attention; the new page rises 8px to signal "you
+ * moved", short enough to never feel like waiting.
+ */
+/*
+ * No default full-screen crossfade: the shell does not change, and while the
+ * root snapshot animates it covers the live page, which would freeze in-page
+ * motion such as the card stack during same-page (query-string) transitions.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(.y2-page-exit) {
+  animation: y2-page-out var(--duration-fast) ease-in both;
+}
+
+::view-transition-new(.y2-page-enter) {
+  animation: y2-page-in var(--duration-base) var(--ease-standard) both;
+}
+
+@keyframes y2-page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes y2-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* `*` below does not reach view-transition pseudo-elements. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
   .y2-seg-wave,
   .y2-seg-crest,
   *,

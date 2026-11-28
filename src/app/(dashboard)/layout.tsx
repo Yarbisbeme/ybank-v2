@@ -9,6 +9,7 @@ import { createSupabaseClient } from '@/lib/supabase/createServerClient';
 import { TRANSACTIONS_PAGE_SIZE } from '@/lib/transaction-keys';
 import DashboardProviders from '@/components/providers/DashboardProviders';
 import { DashboardShell } from '@/components/templates';
+import { PageTransition } from '@/components/templates/PageTransition';
 
 interface DashboardInitialData {
   accounts: Account[];
@@ -125,7 +126,7 @@ export default async function DashboardLayout({
           tags: initialData.tags,
         }}
       >
-        {children}
+        <PageTransition>{children}</PageTransition>
       </DashboardShell>
     </DashboardProviders>
   );
