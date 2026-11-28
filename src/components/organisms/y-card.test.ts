@@ -84,6 +84,7 @@ describe('card style persistence mapping', () => {
       type: 'credit_card',
       currency: 'DOP',
       initial_balance: 0,
+      credit_limit: 1000,
       is_active: true,
       ...payload,
     });

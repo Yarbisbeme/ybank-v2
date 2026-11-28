@@ -3,7 +3,7 @@
 import { Account, Operation } from '@/types'
 import { createSupabaseClient } from '@/lib/supabase/createServerClient'
 import { getSmartRate } from '@/services/rates'
-import { createAccountSchema, updateAccountSchema, getFirstError } from '@/lib/validation'
+import { createAccountSchema, updateAccountSchema, getFirstError, CREDIT_LIMIT_REQUIRED } from '@/lib/validation'
 
 const ACCOUNT_SELECT_QUERY = `
   *,
@@ -67,14 +67,20 @@ export async function createAccount(input: any) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Usuario no autenticado' }
 
+  // Cards are entered by what is left: the opening debt is available - limit (e.g. 185 - 200 = -15).
+  const openingBalance =
+    valid.type === 'credit_card' && valid.available_balance !== undefined && valid.credit_limit
+      ? valid.available_balance - valid.credit_limit
+      : valid.initial_balance
+
   const { data, error } = await supabase.from('accounts').insert({
     user_id: user.id,
     name: valid.name,
     institution_id: valid.institution_id,
     type: valid.type,
     currency: valid.currency,
-    initial_balance: valid.initial_balance,
-    current_balance: valid.initial_balance,
+    initial_balance: openingBalance,
+    current_balance: openingBalance,
     last_4_digits: valid.last_4_digits || null,
     credit_limit: valid.credit_limit || null,
     cutoff_day: valid.cutoff_day || null, 
@@ -106,7 +112,19 @@ export async function updateAccount(accountId: string, input: any) {
   if (!parsed.success) return { success: false, error: getFirstError(parsed.error) }
 
   const supabase = await createSupabaseClient()
-  const { current_balance, ...fields } = parsed.data
+  const { current_balance, available_balance, ...fields } = parsed.data
+
+  // The limit rule depends on the stored account (type and limit may come from either side).
+  const { data: stored, error: storedError } = await supabase
+    .from('accounts')
+    .select('type, credit_limit')
+    .eq('id', accountId)
+    .single()
+  if (storedError) return { success: false, error: storedError.message }
+  const isCard = (fields.type ?? stored.type) === 'credit_card'
+  if (isCard && !(fields.credit_limit ?? stored.credit_limit)) {
+    return { success: false, error: CREDIT_LIMIT_REQUIRED }
+  }
 
   // updated_at is set by the DB trigger.
   if (Object.keys(fields).length > 0) {
@@ -114,13 +132,17 @@ export async function updateAccount(accountId: string, input: any) {
     if (error) return { success: false, error: error.message }
   }
 
-  // A different "Balance actual" is recorded as an adjustment movement; a no-op if unchanged.
+  // A changed balance is recorded as an adjustment movement; a no-op if unchanged. Cards are
+  // set by their available balance (the DB derives the debt from the limit saved above).
   let adjusted = false
-  if (current_balance !== undefined) {
-    const { data: adjustmentId, error: adjustError } = await supabase.rpc('set_account_balance', {
-      p_account_id: accountId,
-      p_target: current_balance,
-    })
+  const balanceChange =
+    isCard && available_balance !== undefined
+      ? supabase.rpc('set_account_available', { p_account_id: accountId, p_available: available_balance })
+      : current_balance !== undefined
+        ? supabase.rpc('set_account_balance', { p_account_id: accountId, p_target: current_balance })
+        : null
+  if (balanceChange) {
+    const { data: adjustmentId, error: adjustError } = await balanceChange
     if (adjustError) return { success: false, error: adjustError.message }
     adjusted = adjustmentId !== null
   }

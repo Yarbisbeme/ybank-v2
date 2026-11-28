@@ -27,14 +27,16 @@ export type CardFinishValue = (typeof CARD_FINISHES)[number]
 export type CardNetworkValue = (typeof CARD_NETWORKS)[number]
 export type CardShapeIntensityValue = (typeof CARD_SHAPE_INTENSITIES)[number]
 
-export const createAccountSchema = z.object({
+const accountFieldsSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(50),
   institution_id: z.string().uuid().nullable().optional(),
   type: z.enum(['checking', 'savings', 'credit_card', 'investment', 'cash']),
   currency: z.enum(['DOP', 'USD']),
   initial_balance: z.number().finite(),
   last_4_digits: z.string().regex(/^\d{0,4}$/, 'Deben ser 0-4 dígitos').optional(),
-  credit_limit: z.number().positive().finite().optional(),
+  credit_limit: z.number().positive('El límite debe ser mayor que 0').finite().optional(),
+  // Credit cards: what is left of the limit. The DB derives the debt (available - limit).
+  available_balance: z.number().finite().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color HEX inválido').optional(),
   color_secondary: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color HEX inválido').nullable().optional(),
   custom_pattern: z.enum(['solid', 'waves', 'geometric', 'mesh', 'lines', 'dots', 'curve']).optional(),
@@ -48,9 +50,19 @@ export const createAccountSchema = z.object({
   is_active: z.boolean(),
 })
 
+export const CREDIT_LIMIT_REQUIRED = 'El límite de crédito es obligatorio para tarjetas de crédito'
+
+// A credit card without a limit cannot show what is left, so the limit is required.
+export const createAccountSchema = accountFieldsSchema.superRefine((v, ctx) => {
+  if (v.type === 'credit_card' && !v.credit_limit) {
+    ctx.addIssue({ code: 'custom', path: ['credit_limit'], message: CREDIT_LIMIT_REQUIRED })
+  }
+})
+
 // Balances are not account fields once the account exists: the initial balance is fixed and
 // the current balance is changed through set_account_balance() (an "Ajuste de saldo").
-export const updateAccountSchema = createAccountSchema
+// The limit rule needs the stored account, so updateAccount checks it.
+export const updateAccountSchema = accountFieldsSchema
   .omit({ initial_balance: true })
   .partial()
   .extend({ current_balance: z.number().finite().optional() })
