@@ -211,6 +211,7 @@ export function CardStack({
               <YCard
                 name={acc.name}
                 balance={acc.current_balance}
+                creditLimit={acc.credit_limit}
                 currency={acc.currency}
                 accountType={acc.type}
                 bankName={acc.institution?.name}

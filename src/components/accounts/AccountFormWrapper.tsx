@@ -11,7 +11,8 @@ import type {
 } from '@/types';
 import { ACCOUNT_TYPES, cn } from '@/lib/utils';
 import { useSaveAccount } from '@/hooks/useCatalogs';
-import { Button, Switch } from '@/components/atoms';
+import { Button, Switch, formatMoney } from '@/components/atoms';
+import { availableCredit, cardDebt } from '@/lib/credit-card';
 import {
   AmountInput,
   Field,
@@ -155,6 +156,11 @@ export default function AccountFormWrapper({
     const val = Math.abs(Number(initialData?.current_balance || 0));
     return val === 0 ? '' : String(val);
   });
+  // Credit cards are edited by what is left; the debt follows (available - limit).
+  const [availableInput, setAvailableInput] = useState(() => {
+    const available = availableCredit(Number(initialData?.current_balance || 0), initialData?.credit_limit);
+    return available === null ? '' : String(available);
+  });
 
   const handlePatch = (patch: Partial<EditCreateAccount>) => {
     setAccountData((prev) => ({ ...prev, ...patch }));
@@ -176,6 +182,7 @@ export default function AccountFormWrapper({
       patch.current_balance = 0;
       patch.initial_balance = 0;
       setBalanceInput('');
+      setAvailableInput(isPassive && accountData.credit_limit ? String(accountData.credit_limit) : '');
     }
     handlePatch(patch);
   };
@@ -186,6 +193,24 @@ export default function AccountFormWrapper({
     const num = Number(sanitized) || 0;
     const signed = accountData.type === 'credit_card' ? -Math.abs(num) : num;
     handlePatch({ current_balance: signed, initial_balance: signed });
+  };
+
+  // Changing only the limit keeps the debt: what is left moves with it.
+  const handleLimitChange = (raw: string) => {
+    const limit = Number(sanitizeAmountInput(raw)) || null;
+    handlePatch({ credit_limit: limit });
+    const available = availableCredit(Number(accountData.current_balance || 0), limit);
+    setAvailableInput(available === null ? '' : String(available));
+  };
+
+  const handleAvailableChange = (raw: string) => {
+    const sanitized = sanitizeAmountInput(raw);
+    setAvailableInput(sanitized);
+    const limit = Number(accountData.credit_limit) || 0;
+    if (limit > 0) {
+      const balance = (Number(sanitized) || 0) - limit;
+      handlePatch({ current_balance: balance, initial_balance: balance });
+    }
   };
 
   const handleExpiryChange = (raw: string) => {
@@ -220,6 +245,12 @@ export default function AccountFormWrapper({
       return;
     }
 
+    if (accountData.type === 'credit_card' && !(Number(accountData.credit_limit) > 0)) {
+      toast.error('Ingresa el límite de crédito de la tarjeta.');
+      setActiveTab('datos');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -233,6 +264,10 @@ export default function AccountFormWrapper({
           accountData.institution_id || accountData.institution?.id || '',
         last_4_digits: accountData.last_4_digits || undefined,
         credit_limit: accountData.credit_limit || undefined,
+        available_balance:
+          accountData.type === 'credit_card' && availableInput !== ''
+            ? Number(availableInput)
+            : undefined,
         is_active: accountData.is_active ?? true,
         color: accountData.color,
         custom_pattern: accountData.custom_pattern,
@@ -292,6 +327,7 @@ export default function AccountFormWrapper({
                 <YCard
                   name={accountData.name || 'Nueva tarjeta'}
                   balance={accountData.current_balance}
+                  creditLimit={accountData.credit_limit}
                   currency={accountData.currency}
                   accountType={accountData.type}
                   bankName={accountData.institution?.name}
@@ -386,18 +422,48 @@ export default function AccountFormWrapper({
                           />
                         </Field>
 
-                        <Field
-                          label={isEditing ? 'Balance actual' : 'Balance inicial'}
-                          htmlFor="acc-balance"
-                        >
-                          <AmountInput
-                            id="acc-balance"
-                            currency={accountData.currency}
-                            value={balanceInput}
-                            placeholder="0.00"
-                            onChange={handleBalanceChange}
-                          />
-                        </Field>
+                        {accountData.type === 'credit_card' ? (
+                          <div className="flex flex-col gap-1.5">
+                            <div className="grid grid-cols-2 gap-3">
+                              <Field label="Límite de crédito *" htmlFor="acc-credit-limit">
+                                <AmountInput
+                                  id="acc-credit-limit"
+                                  currency={accountData.currency}
+                                  value={accountData.credit_limit ? String(accountData.credit_limit) : ''}
+                                  placeholder="0.00"
+                                  onChange={handleLimitChange}
+                                />
+                              </Field>
+                              <Field label="Balance disponible" htmlFor="acc-available">
+                                <AmountInput
+                                  id="acc-available"
+                                  currency={accountData.currency}
+                                  value={availableInput}
+                                  placeholder="0.00"
+                                  onChange={handleAvailableChange}
+                                />
+                              </Field>
+                            </div>
+                            <p className="small text-ink-2 tabular-nums" aria-live="polite">
+                              {Number(accountData.credit_limit) > 0
+                                ? `Deuda: ${formatMoney(cardDebt(Number(accountData.current_balance || 0)), { currency: accountData.currency })}`
+                                : 'Ingresa el límite para calcular cuánto te queda.'}
+                            </p>
+                          </div>
+                        ) : (
+                          <Field
+                            label={isEditing ? 'Balance actual' : 'Balance inicial'}
+                            htmlFor="acc-balance"
+                          >
+                            <AmountInput
+                              id="acc-balance"
+                              currency={accountData.currency}
+                              value={balanceInput}
+                              placeholder="0.00"
+                              onChange={handleBalanceChange}
+                            />
+                          </Field>
+                        )}
 
                         {!isCash ? (
                           <div className="grid grid-cols-2 gap-3">

@@ -6,6 +6,7 @@ import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AccountType } from '@/types';
 import { IconButton, Money, type CurrencyCode } from '@/components/atoms';
+import { cardFace } from '@/lib/credit-card';
 import {
   CARD_METAL_HEX,
   YMARK_BIG_PATH,
@@ -27,6 +28,8 @@ import {
 export interface YCardProps {
   name: string;
   balance: number | string;
+  /** Credit cards: with a limit the face shows what is left instead of the debt. */
+  creditLimit?: number | null;
   currency?: CurrencyCode;
   accountType?: AccountType | string;
   bankName?: string | null;
@@ -60,6 +63,7 @@ const SHAPE_OPACITY: Record<0 | 1 | 2, number> = {
 export function YCard({
   name,
   balance,
+  creditLimit,
   currency = 'DOP',
   accountType = 'savings',
   bankName,
@@ -88,6 +92,7 @@ export function YCard({
   const textTone = getCardTextTone(effectiveHex);
   const inkColor = getCardInkHex(color, finish);
   const typeLabel = getAccountTypeLabel(accountType);
+  const face = cardFace(accountType, Number(balance), creditLimit);
 
   const inkClass = textTone === 'dark' ? 'text-lime-ink' : 'text-white';
   const mutedInkClass =
@@ -232,7 +237,7 @@ export function YCard({
         <div className="relative z-10 my-auto flex flex-col gap-0.5 pointer-events-none">
           <p className={cn('title-s truncate', mutedInkClass)}>{name}</p>
           <Money
-            value={balance}
+            value={face.amount}
             currency={currency}
             size="card"
             className="text-inherit block truncate"

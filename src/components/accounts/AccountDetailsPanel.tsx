@@ -1,7 +1,7 @@
 'use client';
 
 import type { EditCreateAccount } from '@/types';
-import { AmountInput, Field, TextInput } from '@/components/molecules';
+import { Field, TextInput } from '@/components/molecules';
 
 export interface AccountDetailsPanelProps {
   data: EditCreateAccount;
@@ -35,18 +35,7 @@ export default function AccountDetailsPanel({
     <div className="flex flex-col gap-4">
       {isCreditCard ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Límite de crédito" htmlFor="acc-credit-limit">
-            <AmountInput
-              id="acc-credit-limit"
-              currency={data.currency}
-              value={data.credit_limit ? String(data.credit_limit) : ''}
-              placeholder="0.00"
-              onChange={(val) =>
-                onChange({ credit_limit: val ? Number(val) : null })
-              }
-            />
-          </Field>
-
+          {/* The limit lives next to the available balance in the main form. */}
           <Field label="Día de corte (1–31)" htmlFor="acc-cutoff-day">
             <TextInput
               id="acc-cutoff-day"

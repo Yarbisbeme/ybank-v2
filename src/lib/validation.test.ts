@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { completeOnboardingSchema, createAccountSchema } from './validation'
+import { completeOnboardingSchema, createAccountSchema, CREDIT_LIMIT_REQUIRED } from './validation'
 
 const base = { fullName: 'Usuario', currency: 'DOP', primaryAccountId: '6f1c2d3e-4b5a-4c7d-8e9f-0a1b2c3d4e5f' }
 
@@ -45,5 +45,21 @@ describe('createAccountSchema card style', () => {
 
   it('allows clearing the network and the secondary colour', () => {
     expect(createAccountSchema.safeParse({ ...account, network: null, color_secondary: null }).success).toBe(true)
+  })
+})
+
+describe('credit card limit', () => {
+  const card = { name: 'Visa', type: 'credit_card', currency: 'DOP', initial_balance: 0, is_active: true }
+
+  it('requires a positive limit to create a credit card', () => {
+    const r = createAccountSchema.safeParse(card)
+    expect(r.success).toBe(false)
+    expect(r.error?.issues[0]?.message).toBe(CREDIT_LIMIT_REQUIRED)
+    expect(createAccountSchema.safeParse({ ...card, credit_limit: 0 }).success).toBe(false)
+    expect(createAccountSchema.safeParse({ ...card, credit_limit: 200, available_balance: 185 }).success).toBe(true)
+  })
+
+  it('does not ask other account types for a limit', () => {
+    expect(createAccountSchema.safeParse({ ...card, type: 'savings' }).success).toBe(true)
   })
 })
