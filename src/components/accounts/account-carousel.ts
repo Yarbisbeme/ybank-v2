@@ -93,11 +93,20 @@ export interface CarouselSelection {
   syncedPropId: string | null;
 }
 
+/**
+ * @param initialSelectedId card to start on when nothing controls the carousel,
+ *   e.g. the card the user had in hand in Cuentas when returning to Inicio.
+ */
 export function createCarouselSelection(
   propId?: string | null,
+  initialSelectedId?: string | null,
 ): CarouselSelection {
   const id = propId ?? null;
-  return { selectedId: id, pendingIds: [], syncedPropId: id };
+  return {
+    selectedId: id ?? initialSelectedId ?? null,
+    pendingIds: [],
+    syncedPropId: id,
+  };
 }
 
 /** Records a user selection. `tracked` is false when nobody controls the carousel. */
