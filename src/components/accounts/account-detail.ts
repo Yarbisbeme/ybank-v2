@@ -1,8 +1,10 @@
-import type { Account, Transaction } from '@/types';
+import type { Account } from '@/types';
 import {
   computeAccountBarModel,
   computeAccountMonthSummary,
+  getLedgerType,
   type CreditUsageTone,
+  type ListedTransaction,
 } from './account-carousel';
 
 export interface AccountLastTransaction {
@@ -16,7 +18,7 @@ export interface TransactionSubItem {
   category?: { id?: string; name?: string | null } | null;
 }
 
-export type AccountDetailTransaction = Transaction & {
+export type AccountDetailTransaction = ListedTransaction & {
   items?: TransactionSubItem[] | null;
   is_split_child?: boolean;
 };
@@ -136,7 +138,7 @@ export function computeDaysUntilCutoff(
 export function isTransactionUncategorized(
   tx: AccountDetailTransaction,
 ): boolean {
-  if (tx.type === 'transfer' || tx.is_split_child) {
+  if (getLedgerType(tx) === 'transfer' || tx.is_split_child) {
     return false;
   }
 
@@ -186,10 +188,11 @@ export function computeAccountDetailMetrics(
   let latestTx: AccountDetailTransaction | null = null;
 
   for (const tx of transactions) {
+    const type = getLedgerType(tx);
     const isOwnerAccount = tx.account_id === account.id;
     const isIncomingTransfer =
       !tx.is_split_child &&
-      tx.type === 'transfer' &&
+      type === 'transfer' &&
       tx.transfer_to_account_id === account.id;
 
     if (!isOwnerAccount && !isIncomingTransfer) {
@@ -206,13 +209,13 @@ export function computeAccountDetailMetrics(
       if (isCurrentMonth) {
         if (isOwnerAccount && !tx.is_split_child) {
           const absAmount = Math.abs(Number(tx.amount) || 0);
-          if (tx.type === 'income') {
+          if (type === 'income') {
             monthIncome += absAmount;
             monthInflow += absAmount;
           } else if (
-            tx.type === 'expense' ||
-            tx.type === 'transfer' ||
-            tx.type === 'payment'
+            type === 'expense' ||
+            type === 'transfer' ||
+            type === 'payment'
           ) {
             monthOutflow += absAmount;
           }

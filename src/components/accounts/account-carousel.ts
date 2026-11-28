@@ -37,9 +37,23 @@ export function sortAccountsByPrimary(
   return [favoriteAcc, ...accounts.filter((acc) => acc.id !== primaryAccountId)];
 }
 
+/** A transaction as the list hook returns it; see getLedgerType. */
+export type ListedTransaction = Transaction & { original_type?: string | null };
+
+/**
+ * Stored type of a transaction. When the list is scoped to one account,
+ * useTransactionsList rewrites transfers as 'income' / 'expense' so the table
+ * reads naturally, keeping the real type in original_type. Metrics must use the
+ * real one: an incoming transfer is not owned by this account, and moving money
+ * between your own accounts is not spending.
+ */
+export function getLedgerType(tx: ListedTransaction): string {
+  return tx.original_type || tx.type;
+}
+
 /** Sums absolute expense amounts and counts expense movements for an account in the reference month. */
 export function computeAccountMonthSummary(
-  transactions: Transaction[],
+  transactions: ListedTransaction[],
   accountId: string,
   referenceDate: Date = new Date(),
 ): AccountMonthSummary {
@@ -49,7 +63,7 @@ export function computeAccountMonthSummary(
   let monthCount = 0;
 
   for (const tx of transactions) {
-    if (tx.account_id !== accountId || tx.type !== 'expense' || !tx.date) {
+    if (tx.account_id !== accountId || getLedgerType(tx) !== 'expense' || !tx.date) {
       continue;
     }
     const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);

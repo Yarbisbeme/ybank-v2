@@ -165,4 +165,43 @@ describe('computeAccountDetailMetrics', () => {
     expect(metrics.uncategorizedCount).toBe(1);
     expect(metrics.firstUncategorizedTx?.id).toBe('split-missing-cat');
   });
+
+  // Regression: on /accounts the list hook rewrites transfers as income/expense for
+  // the table. Metrics read that rewritten type, so incoming transfers vanished from
+  // "Entradas" and outgoing ones counted as spending and as uncategorized.
+  it('uses the stored type of transfers rewritten by the account-scoped list', () => {
+    const ref = new Date(2026, 10, 27);
+    const acc = makeAccount();
+    const txs = [
+      makeTx({
+        id: 'in',
+        account_id: 'acc-other',
+        transfer_to_account_id: 'acc-1',
+        type: 'income',
+        original_type: 'transfer',
+        amount: 3000,
+        target_amount: 3000,
+        category_id: null,
+        date: '2026-11-20',
+      }),
+      makeTx({
+        id: 'out',
+        account_id: 'acc-1',
+        transfer_to_account_id: 'acc-other',
+        type: 'expense',
+        original_type: 'transfer',
+        amount: 800,
+        category_id: null,
+        date: '2026-11-21',
+      }),
+      makeTx({ id: 'spend', amount: 200, date: '2026-11-22' }),
+    ];
+
+    const metrics = computeAccountDetailMetrics(acc, txs, ref);
+    expect(metrics.monthInflow).toBe(3000);
+    expect(metrics.monthIncome).toBe(0);
+    expect(metrics.monthOutflow).toBe(1000);
+    expect(metrics.monthSpend).toBe(200);
+    expect(metrics.uncategorizedCount).toBe(0);
+  });
 });
