@@ -6,8 +6,9 @@ import { auditUser, signIn, snap, sql, watch } from './helpers'
 
 function cardStyleOf(accountName: string): string {
   const { email } = auditUser()
+  // coalesce: concat_ws skips NULLs, which would shift the fields.
   return sql(
-    `select concat_ws('|', a.card_base, a.color_secondary, a.card_shape_intensity, a.card_finish, a.network)
+    `select concat_ws('|', a.card_base, coalesce(a.color_secondary, ''), a.card_shape_intensity, a.card_finish, coalesce(a.network, ''))
      from accounts a join auth.users u on u.id = a.user_id
      where u.email = '${email}' and a.name = '${accountName}'`,
   )
