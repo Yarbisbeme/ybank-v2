@@ -3,7 +3,11 @@ import type { Account, Institution, Transaction } from '@/types';
 import {
   computeAccountBarModel,
   computeAccountMonthSummary,
+  createCarouselSelection,
+  requestCarouselSelection,
+  resolveCarouselIndex,
   sortAccountsByPrimary,
+  syncCarouselSelectionFromProp,
 } from './account-carousel';
 
 const MOCK_INSTITUTION: Institution = {
@@ -166,5 +170,60 @@ describe('computeAccountBarModel', () => {
       percent: 0,
       creditTone: 'credit',
     });
+  });
+});
+
+describe('carousel selection sync', () => {
+  // Regression: on /accounts the active card came only from the URL, so a swipe
+  // did nothing until router navigation finished and the card snapped back first.
+  it('moves the selection immediately, before the URL catches up', () => {
+    let state = createCarouselSelection('a');
+    state = requestCarouselSelection(state, 'b', true);
+    expect(state.selectedId).toBe('b');
+  });
+
+  it('ignores a late echo of an older request while a newer one is in flight', () => {
+    let state = createCarouselSelection('a');
+    state = requestCarouselSelection(state, 'b', true);
+    state = requestCarouselSelection(state, 'c', true);
+
+    state = syncCarouselSelectionFromProp(state, 'b');
+    expect(state.selectedId).toBe('c');
+    expect(state.pendingIds).toEqual(['c']);
+
+    state = syncCarouselSelectionFromProp(state, 'c');
+    expect(state.selectedId).toBe('c');
+    expect(state.pendingIds).toEqual([]);
+  });
+
+  it('adopts an external navigation that the carousel did not request', () => {
+    let state = createCarouselSelection('a');
+    state = requestCarouselSelection(state, 'b', true);
+
+    state = syncCarouselSelectionFromProp(state, 'z');
+    expect(state).toEqual({ selectedId: 'z', pendingIds: [], syncedPropId: 'z' });
+  });
+
+  it('adopts the prop once it resolves after loading', () => {
+    const state = syncCarouselSelectionFromProp(createCarouselSelection(null), 'a');
+    expect(state.selectedId).toBe('a');
+  });
+
+  it('does not accumulate pending ids when uncontrolled', () => {
+    const state = requestCarouselSelection(createCarouselSelection(), 'b', false);
+    expect(state).toEqual({ selectedId: 'b', pendingIds: [], syncedPropId: null });
+  });
+
+  it('returns the same state when the prop did not change', () => {
+    const state = createCarouselSelection('a');
+    expect(syncCarouselSelectionFromProp(state, 'a')).toBe(state);
+  });
+
+  it('resolves the index and falls back to the first card when the id is gone', () => {
+    const accounts = [{ id: 'a' }, { id: 'b' }];
+    expect(resolveCarouselIndex(accounts, 'b')).toBe(1);
+    expect(resolveCarouselIndex(accounts, 'deleted')).toBe(0);
+    expect(resolveCarouselIndex(accounts, null)).toBe(0);
+    expect(resolveCarouselIndex([], 'a')).toBe(0);
   });
 });

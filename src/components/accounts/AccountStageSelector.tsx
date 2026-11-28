@@ -31,8 +31,10 @@ export default function AccountStageSelector({
   return (
     <AccountCarousel
       activeAccountId={targetId}
+      // replace, not push: one history entry per swiped card would make Back
+      // walk through every card instead of leaving the page.
       onActiveAccountChange={(acc) =>
-        router.push(`/accounts?accountId=${acc.id}`, { scroll: false })
+        router.replace(`/accounts?accountId=${acc.id}`, { scroll: false })
       }
       onActiveCardClick={(acc) => openModal('account', { accountId: acc.id })}
       showFooterSummary={false}
