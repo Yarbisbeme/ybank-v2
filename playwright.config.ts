@@ -6,6 +6,7 @@ import { defineConfig, devices } from '@playwright/test'
  *   npm run e2e                      builds the app against local Supabase, starts it on :3100, runs
  *   E2E_SKIP_BUILD=1 npm run e2e     reuses the last build (no code changes since)
  *   E2E_EVIDENCE=1 npm run e2e       also saves screenshots + page text to e2e/.audit
+ *   E2E_PORT=3200 npm run e2e        another port, e.g. while another agent's run uses 3100
  *
  * No `supabase db reset` is needed between runs: every run signs up a fresh user and
  * global-setup deletes the users left by the previous run.
@@ -17,7 +18,7 @@ const LOCAL_SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? 'http://127.0.0.1:543
 const LOCAL_PUBLISHABLE_KEY = process.env.E2E_SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
 
 const externalBaseUrl = process.env.E2E_BASE_URL
-const port = 3100
+const port = Number(process.env.E2E_PORT) || 3100
 
 export default defineConfig({
   testDir: './e2e',

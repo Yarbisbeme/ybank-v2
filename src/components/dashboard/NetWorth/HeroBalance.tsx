@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Account, Transaction } from '@/types';
-import { useAccounts, useTransactionsList } from '@/hooks/useCatalogs';
+import type { Account } from '@/types';
+import { useAccounts } from '@/hooks/useCatalogs';
+import { useDashboardSpending } from '@/hooks/useMetrics';
+import { monthSpendTotals } from '@/lib/spending';
 import { useYBankStore } from '@/store/useYBankStore';
 import {
   AchievementBadge,
@@ -12,7 +14,6 @@ import {
   formatMoney,
 } from '@/components/atoms';
 import { Segmented } from '@/components/molecules';
-import { countsInReports } from '@/lib/reporting';
 
 const CURRENCY_OPTIONS: { value: 'DOP' | 'USD'; label: string }[] = [
   { value: 'DOP', label: 'DOP' },
@@ -36,15 +37,8 @@ export default function HeroBalance() {
   const [includeCredit, setIncludeCredit] = useState(false);
 
   const { data: accounts = [], isLoading: isLoadingAccs } = useAccounts();
-  const { data: queryData, isLoading: isLoadingTx } = useTransactionsList();
-
-  const transactions = useMemo(
-    () =>
-      (Array.isArray(queryData)
-        ? queryData
-        : queryData?.transactions || []) as Transaction[],
-    [queryData],
-  );
+  // Complete figures from Postgres (the table only holds one page of movements).
+  const { data: spendingRows = [], isLoading: isLoadingTx, window: spendWindow } = useDashboardSpending();
 
   useEffect(() => {
     if (isLoadingAccs || accounts.length === 0) {
@@ -109,54 +103,13 @@ export default function HeroBalance() {
         };
       }, [accounts, currency, preferredRate, includeCredit]);
 
-    const { monthExpenses, savingsDeltaPct } = useMemo(() => {
-      const rate = preferredRate?.rate || 1;
-      const now = new Date();
-      const curYear = now.getFullYear();
-      const curMonth = now.getMonth();
-      const prevDate = new Date(curYear, curMonth - 1, 1);
-      const prevYear = prevDate.getFullYear();
-      const prevMonth = prevDate.getMonth();
-
-          let currentTotal = 0;
-          let previousTotal = 0;
-
-          for (const tx of transactions) {
-            if (tx.type !== 'expense' || !tx.date || !countsInReports(tx)) {
-              continue;
-            }
-          const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);
-          if (Number.isNaN(parsed.getTime())) {
-            continue;
-          }
-          const accCurrency = tx.account?.currency ?? 'DOP';
-          let amount = Math.abs(Number(tx.amount) || 0);
-          if (currency === 'USD' && accCurrency === 'DOP') {
-            amount = amount / rate;
-          } else if (currency === 'DOP' && accCurrency === 'USD') {
-            amount = amount * rate;
-          }
-
-          if (parsed.getFullYear() === curYear && parsed.getMonth() === curMonth) {
-            currentTotal += amount;
-          } else if (
-            parsed.getFullYear() === prevYear &&
-            parsed.getMonth() === prevMonth
-          ) {
-            previousTotal += amount;
-          }
-        }
-
-        const deltaPct =
-          previousTotal > 0 && currentTotal < previousTotal
-            ? Math.round(((previousTotal - currentTotal) / previousTotal) * 100)
-            : null;
-
-    return {
-      monthExpenses: currentTotal,
-      savingsDeltaPct: deltaPct,
-    };
-  }, [transactions, currency, preferredRate]);
+  const { monthExpenses, savingsDeltaPct } = useMemo(() => {
+    const totals = monthSpendTotals(spendingRows, spendWindow, {
+      currency,
+      rate: preferredRate?.rate || 1,
+    });
+    return { monthExpenses: totals.current, savingsDeltaPct: totals.savingsDeltaPct };
+  }, [spendingRows, spendWindow, currency, preferredRate]);
 
   if (isLoadingAccs || isLoadingTx) {
     return (

@@ -79,7 +79,8 @@ npm run db:types     # regenera src/shared/supabase/database.types.ts desde el p
 
 - **Unitarios (Vitest):** junto al código (`*.test.ts`). Todo bug corregido lleva su test de regresión.
 - **E2E (Playwright):** `e2e/`, siempre contra **Supabase local** (`npx supabase start`), nunca contra producción. `npm run e2e` compila la app apuntando a Supabase local y la levanta en :3100 (`E2E_SKIP_BUILD=1` reusa el último build; `E2E_EVIDENCE=1` guarda capturas). Corre también en CI (job `e2e`).
-  - **No hace falta `supabase db reset` entre corridas:** cada corrida crea su propio usuario `audit+…@ybank.test` y `e2e/global-setup.ts` borra los de la corrida anterior.
+  - **No hace falta `supabase db reset` entre corridas:** cada corrida crea su propio usuario `audit+…@ybank.test` y `e2e/global-setup.ts` borra los de corridas anteriores (los de más de 30 minutos).
+  - **Varios agentes a la vez:** comparten el Supabase local. Si el puerto 3100 está ocupado por la corrida de otro agente, usa otro (`E2E_PORT=3200`); nunca mates su servidor. No hagas `db reset` mientras otro agente corre pruebas.
   - **Esperas:** nunca `waitForTimeout`. Espera al estado real (`expectBalance`, `expect.poll`, `toBeVisible`).
   - **Bugs conocidos:** como test aparte con `test.fail('KNOWN BUG …')`. Al arreglar el bug ese test se pone rojo: borra el `.fail`.
 - Cuando verifiques saldos, compruébalos **en la BD**, no solo en pantalla (ver `e2e/audit/helpers.ts`).
