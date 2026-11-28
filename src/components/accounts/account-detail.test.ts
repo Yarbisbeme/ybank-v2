@@ -113,6 +113,23 @@ describe('computeAccountDetailMetrics', () => {
     expect(metrics.showCutoffAlert).toBe(false);
   });
 
+  it('leaves balance adjustments out of flows and of the uncategorized count', () => {
+    const ref = new Date(2026, 10, 27);
+    const txs = [
+      makeTx({ id: 't1', date: '2026-11-05', amount: 100, category_id: 'cat-food' }),
+      makeTx({ id: 'adj-down', date: '2026-11-27', amount: 170, category_id: null, description: 'Ajuste de saldo', is_balance_adjustment: true }),
+      makeTx({ id: 'adj-up', type: 'income', date: '2026-11-27', amount: 50, category_id: null, description: 'Ajuste de saldo', is_balance_adjustment: true }),
+    ];
+    const metrics = computeAccountDetailMetrics(makeAccount(), txs, ref);
+    expect(metrics.monthSpend).toBe(100);
+    expect(metrics.monthIncome).toBe(0);
+    expect(metrics.monthInflow).toBe(0);
+    expect(metrics.monthOutflow).toBe(100);
+    expect(metrics.uncategorizedCount).toBe(0);
+    // Still the latest movement shown on the account: it explains the balance change.
+    expect(metrics.lastTransaction?.description).toBe('Ajuste de saldo');
+  });
+
   it('activates cutoff alert when credit card has used balance and cutoff day', () => {
     const ref = new Date(2026, 10, 25);
     const cc = makeAccount({

@@ -177,7 +177,8 @@ export interface Transaction {
   amount: number;
   target_amount?: number;
   exchange_rate?: number;
-  
+  is_balance_adjustment?: boolean; // "Ajuste de saldo": moves the balance, skipped by reports
+
   created_at: string;
 
   account?: Account;           

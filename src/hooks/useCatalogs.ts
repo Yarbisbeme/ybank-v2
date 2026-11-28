@@ -356,9 +356,15 @@ export function useSaveAccount() {
       if (!response.success) throw new Error(response.error);
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      toast.success('Nodo guardado con éxito');
+      // A balance change creates an "Ajuste de saldo" movement.
+      if ('adjusted' in response && response.adjusted) {
+        queryClient.invalidateQueries({ queryKey: transactionKeys.all });
+        toast.success('Cuenta guardada. La diferencia de saldo se registró como "Ajuste de saldo".');
+      } else {
+        toast.success('Cuenta guardada');
+      }
     }
   });
 }

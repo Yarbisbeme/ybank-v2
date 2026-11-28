@@ -48,7 +48,12 @@ export const createAccountSchema = z.object({
   is_active: z.boolean(),
 })
 
-export const updateAccountSchema = createAccountSchema.partial()
+// Balances are not account fields once the account exists: the initial balance is fixed and
+// the current balance is changed through set_account_balance() (an "Ajuste de saldo").
+export const updateAccountSchema = createAccountSchema
+  .omit({ initial_balance: true })
+  .partial()
+  .extend({ current_balance: z.number().finite().optional() })
 
 export const transactionItemSchema = z.object({
   name: z.string().optional(),

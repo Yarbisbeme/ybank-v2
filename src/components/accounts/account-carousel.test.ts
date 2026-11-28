@@ -105,6 +105,15 @@ describe('computeAccountMonthSummary', () => {
       monthCount: 2,
     });
   });
+
+  it('ignores balance adjustments (corrections are not spending)', () => {
+    const ref = new Date('2026-11-27T12:00:00Z');
+    const txs = [
+      makeTx({ id: 't1', account_id: 'acc-1', type: 'expense', date: '2026-11-05', amount: 640 }),
+      makeTx({ id: 'adj', account_id: 'acc-1', type: 'expense', date: '2026-11-27', amount: 170, is_balance_adjustment: true }),
+    ];
+    expect(computeAccountMonthSummary(txs, 'acc-1', ref)).toEqual({ monthSpend: 640, monthCount: 1 });
+  });
 });
 
 describe('computeAccountBarModel', () => {

@@ -428,6 +428,7 @@ export type Database = {
           exchange_rate: number | null
           exclude_from_reports: boolean | null
           id: string
+          is_balance_adjustment: boolean
           match_key: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           source_email_id: string | null
@@ -449,6 +450,7 @@ export type Database = {
           exchange_rate?: number | null
           exclude_from_reports?: boolean | null
           id?: string
+          is_balance_adjustment?: boolean
           match_key?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           source_email_id?: string | null
@@ -470,6 +472,7 @@ export type Database = {
           exchange_rate?: number | null
           exclude_from_reports?: boolean | null
           id?: string
+          is_balance_adjustment?: boolean
           match_key?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           source_email_id?: string | null
@@ -525,6 +528,10 @@ export type Database = {
       owns_transaction: {
         Args: { p_transaction_id: string }
         Returns: boolean
+      }
+      set_account_balance: {
+        Args: { p_account_id: string; p_target: number }
+        Returns: string
       }
       transfer_tax_rule: {
         Args: { p_date: string; p_kind: string }
