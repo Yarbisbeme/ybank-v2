@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Account, Institution } from '@/types';
 import {
-  computeAccountDetailMetrics,
+  buildAccountDetailMetrics,
   computeDaysUntilCutoff,
-  type AccountDetailTransaction,
+  type AccountMonthMetricsRow,
 } from './account-detail';
 
 const MOCK_INSTITUTION: Institution = {
@@ -43,22 +43,19 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
   };
 }
 
-function makeTx(
-  overrides: Partial<AccountDetailTransaction> = {},
-): AccountDetailTransaction {
+function makeRow(overrides: Partial<AccountMonthMetricsRow> = {}): AccountMonthMetricsRow {
   return {
-    id: 'tx-1',
-    user_id: 'user-1',
-    account_id: 'acc-1',
-    category_id: 'cat-1',
-    transfer_to_account_id: null,
-    type: 'expense',
-    description: 'Colmado',
-    date: '2026-11-15',
-    status: 'completed',
-    payment_method: 'card',
-    amount: 500,
-    created_at: '2026-11-15T12:00:00Z',
+    month_start: '2026-11-01',
+    month_spend: 0,
+    month_count: 0,
+    month_income: 0,
+    month_inflow: 0,
+    month_outflow: 0,
+    prev_month_spend: 0,
+    uncategorized_count: 0,
+    first_uncategorized_id: null,
+    last_description: null,
+    last_date: null,
     ...overrides,
   };
 }
@@ -72,30 +69,26 @@ describe('computeDaysUntilCutoff', () => {
   });
 });
 
-describe('computeAccountDetailMetrics', () => {
-  it('computes monthly income, spend comparison, last movement, and uncategorized items', () => {
-    const ref = new Date(2026, 10, 27); // Nov 27, 2026
-    const acc = makeAccount();
-    const txs = [
-      makeTx({ id: 't1', description: 'Supermercado', date: '2026-11-05', amount: 1700, category_id: 'cat-food' }),
-      makeTx({ id: 't2', description: 'Quincena', type: 'income', date: '2026-11-18', amount: 15000, category_id: 'cat-salary' }),
-      makeTx({ id: 't3', description: 'Retiro', date: '2026-11-22', amount: 0, category_id: null }),
-      makeTx({ id: 't4', date: '2026-11-11', type: 'transfer', amount: 500, category_id: null }),
-      makeTx({ id: 't5', date: '2026-10-15', amount: 2000, category_id: 'cat-food' }),
-      makeTx({
-        id: 't6',
-        account_id: 'acc-other',
-        transfer_to_account_id: 'acc-1',
-        type: 'transfer',
-        description: 'Traspaso recibido',
-        date: '2026-11-28',
-        amount: 100,
-        target_amount: 5800,
-        category_id: null,
+// The figures themselves are computed in Postgres (supabase/tests/metrics.test.sql);
+// these tests cover the shaping done in the browser.
+describe('buildAccountDetailMetrics', () => {
+  it('passes the Postgres figures through and adds labels and the spend comparison', () => {
+    const metrics = buildAccountDetailMetrics(
+      makeAccount(),
+      makeRow({
+        month_spend: 1700,
+        month_count: 3,
+        month_income: 15000,
+        month_inflow: 20800,
+        month_outflow: 2200,
+        prev_month_spend: 2000,
+        uncategorized_count: 2,
+        first_uncategorized_id: 'tx-9',
+        last_description: '  Traspaso recibido ',
+        last_date: '2026-11-28',
       }),
-    ];
-
-    const metrics = computeAccountDetailMetrics(acc, txs, ref);
+      new Date(2026, 10, 27),
+    );
     expect(metrics.monthLabel).toBe('noviembre');
     expect(metrics.prevMonthLabel).toBe('octubre');
     expect(metrics.monthSpend).toBe(1700);
@@ -104,34 +97,20 @@ describe('computeAccountDetailMetrics', () => {
     expect(metrics.monthOutflow).toBe(2200);
     expect(metrics.prevMonthSpend).toBe(2000);
     expect(metrics.savingsDeltaPct).toBe(15);
-    expect(metrics.lastTransaction).toEqual({
-      description: 'Traspaso recibido',
-      dateLabel: '28 nov',
-    });
-    expect(metrics.uncategorizedCount).toBe(1);
-    expect(metrics.firstUncategorizedTx?.id).toBe('t3');
-    expect(metrics.showCutoffAlert).toBe(false);
+    expect(metrics.uncategorizedCount).toBe(2);
+    expect(metrics.firstUncategorizedId).toBe('tx-9');
+    expect(metrics.lastTransaction).toEqual({ description: 'Traspaso recibido', dateLabel: '28 nov' });
   });
 
-  it('leaves balance adjustments out of flows and of the uncategorized count', () => {
-    const ref = new Date(2026, 10, 27);
-    const txs = [
-      makeTx({ id: 't1', date: '2026-11-05', amount: 100, category_id: 'cat-food' }),
-      makeTx({ id: 'adj-down', date: '2026-11-27', amount: 170, category_id: null, description: 'Ajuste de saldo', is_balance_adjustment: true }),
-      makeTx({ id: 'adj-up', type: 'income', date: '2026-11-27', amount: 50, category_id: null, description: 'Ajuste de saldo', is_balance_adjustment: true }),
-    ];
-    const metrics = computeAccountDetailMetrics(makeAccount(), txs, ref);
-    expect(metrics.monthSpend).toBe(100);
-    expect(metrics.monthIncome).toBe(0);
-    expect(metrics.monthInflow).toBe(0);
-    expect(metrics.monthOutflow).toBe(100);
-    expect(metrics.uncategorizedCount).toBe(0);
-    // Still the latest movement shown on the account: it explains the balance change.
-    expect(metrics.lastTransaction?.description).toBe('Ajuste de saldo');
+  it('shows empty figures while the metrics are not loaded yet', () => {
+    const metrics = buildAccountDetailMetrics(makeAccount(), null, new Date(2026, 10, 27));
+    expect(metrics.monthSpend).toBe(0);
+    expect(metrics.lastTransaction).toBeNull();
+    expect(metrics.firstUncategorizedId).toBeNull();
+    expect(metrics.savingsDeltaPct).toBeNull();
   });
 
   it('activates cutoff alert when credit card has used balance and cutoff day', () => {
-    const ref = new Date(2026, 10, 25);
     const cc = makeAccount({
       type: 'credit_card',
       name: 'Infinite',
@@ -139,47 +118,10 @@ describe('computeAccountDetailMetrics', () => {
       current_balance: -4120,
       cutoff_day: 28,
     });
-
-    const metrics = computeAccountDetailMetrics(cc, [], ref);
+    const metrics = buildAccountDetailMetrics(cc, makeRow(), new Date(2026, 10, 25));
     expect(metrics.isCreditCard).toBe(true);
     expect(metrics.creditAvailable).toBe(15880);
     expect(metrics.daysUntilCutoff).toBe(3);
     expect(metrics.showCutoffAlert).toBe(true);
-    expect(metrics.lastTransaction).toBeNull();
-  });
-
-  it('handles split transactions and split children when counting uncategorized items', () => {
-    const ref = new Date(2026, 10, 27);
-    const acc = makeAccount();
-    const txs: AccountDetailTransaction[] = [
-      makeTx({
-        id: 'split-categorized',
-        description: 'Desglosado completo',
-        category_id: null,
-        items: [
-          { id: 'i1', category: { name: 'Supermercado' } },
-          { id: 'i2', category_id: 'cat-home', category: null },
-        ],
-      }),
-      makeTx({
-        id: 'split-child',
-        description: 'Sub-item sin padre',
-        category_id: null,
-        is_split_child: true,
-      }),
-      makeTx({
-        id: 'split-missing-cat',
-        description: 'Desglosado incompleto',
-        category_id: null,
-        items: [
-          { id: 'i3', category: { name: 'Comida' } },
-          { id: 'i4', category_id: null, category: null },
-        ],
-      }),
-    ];
-
-    const metrics = computeAccountDetailMetrics(acc, txs, ref);
-    expect(metrics.uncategorizedCount).toBe(1);
-    expect(metrics.firstUncategorizedTx?.id).toBe('split-missing-cat');
   });
 });

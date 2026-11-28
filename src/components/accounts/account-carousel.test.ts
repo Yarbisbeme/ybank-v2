@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Account, Institution, Transaction } from '@/types';
+import type { Account, Institution } from '@/types';
 import {
   computeAccountBarModel,
-  computeAccountMonthSummary,
   createCarouselSelection,
   requestCarouselSelection,
   resolveCarouselIndex,
@@ -47,23 +46,6 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
   };
 }
 
-function makeTx(overrides: Partial<Transaction> = {}): Transaction {
-  return {
-    id: 'tx-1',
-    user_id: 'user-1',
-    account_id: 'acc-1',
-    category_id: null,
-    transfer_to_account_id: null,
-    type: 'expense',
-    description: 'Colmado',
-    date: '2026-11-15',
-    status: 'completed',
-    payment_method: 'card',
-    amount: 500,
-    created_at: '2026-11-15T12:00:00Z',
-    ...overrides,
-  };
-}
 
 describe('sortAccountsByPrimary', () => {
   it('moves the primary account first and keeps remaining order', () => {
@@ -87,32 +69,6 @@ describe('sortAccountsByPrimary', () => {
     expect(
       sortAccountsByPrimary([a1, a2], 'non-existent').map((a) => a.id),
     ).toEqual(['a1', 'a2']);
-  });
-});
-
-describe('computeAccountMonthSummary', () => {
-  it('sums expense amounts and counts movements for the target account in the reference month', () => {
-    const ref = new Date('2026-11-27T12:00:00Z');
-    const txs = [
-      makeTx({ id: 't1', account_id: 'acc-1', type: 'expense', date: '2026-11-05', amount: 640 }),
-      makeTx({ id: 't2', account_id: 'acc-1', type: 'expense', date: '2026-11-20', amount: -360 }),
-      makeTx({ id: 't3', account_id: 'acc-1', type: 'income', date: '2026-11-10', amount: 5000 }),
-      makeTx({ id: 't4', account_id: 'acc-1', type: 'expense', date: '2026-10-28', amount: 900 }),
-      makeTx({ id: 't5', account_id: 'acc-2', type: 'expense', date: '2026-11-12', amount: 1200 }),
-    ];
-    expect(computeAccountMonthSummary(txs, 'acc-1', ref)).toEqual({
-      monthSpend: 1000,
-      monthCount: 2,
-    });
-  });
-
-  it('ignores balance adjustments (corrections are not spending)', () => {
-    const ref = new Date('2026-11-27T12:00:00Z');
-    const txs = [
-      makeTx({ id: 't1', account_id: 'acc-1', type: 'expense', date: '2026-11-05', amount: 640 }),
-      makeTx({ id: 'adj', account_id: 'acc-1', type: 'expense', date: '2026-11-27', amount: 170, is_balance_adjustment: true }),
-    ];
-    expect(computeAccountMonthSummary(txs, 'acc-1', ref)).toEqual({ monthSpend: 640, monthCount: 1 });
   });
 });
 

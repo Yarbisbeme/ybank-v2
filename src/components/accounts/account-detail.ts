@@ -1,26 +1,25 @@
-import type { Account, Transaction } from '@/types';
-import {
-  computeAccountBarModel,
-  computeAccountMonthSummary,
-  type CreditUsageTone,
-} from './account-carousel';
-import { countsInReports } from '@/lib/reporting';
+import type { Account } from '@/types';
+import { computeAccountBarModel, type CreditUsageTone } from './account-carousel';
 
 export interface AccountLastTransaction {
   description: string;
   dateLabel: string;
 }
 
-export interface TransactionSubItem {
-  id?: string;
-  category_id?: string | null;
-  category?: { id?: string; name?: string | null } | null;
+/** Row returned by public.account_month_metrics() (computed in Postgres over all movements). */
+export interface AccountMonthMetricsRow {
+  month_start: string;
+  month_spend: number;
+  month_count: number;
+  month_income: number;
+  month_inflow: number;
+  month_outflow: number;
+  prev_month_spend: number;
+  uncategorized_count: number;
+  first_uncategorized_id: string | null;
+  last_description: string | null;
+  last_date: string | null;
 }
-
-export type AccountDetailTransaction = Transaction & {
-  items?: TransactionSubItem[] | null;
-  is_split_child?: boolean;
-};
 
 export interface AccountDetailMetrics {
   monthLabel: string;
@@ -34,7 +33,7 @@ export interface AccountDetailMetrics {
   savingsDeltaPct: number | null;
   lastTransaction: AccountLastTransaction | null;
   uncategorizedCount: number;
-  firstUncategorizedTx: AccountDetailTransaction | null;
+  firstUncategorizedId: string | null;
   isCreditCard: boolean;
   creditUsed: number;
   creditLimit: number;
@@ -133,138 +132,66 @@ export function computeDaysUntilCutoff(
   );
 }
 
-/** Returns true if a non-transfer movement (or any of its split items) still needs a category. */
-export function isTransactionUncategorized(
-  tx: AccountDetailTransaction,
-): boolean {
-  // Balance adjustments are corrections, not spending: nothing to categorize.
-  if (tx.type === 'transfer' || tx.is_split_child || !countsInReports(tx)) {
-    return false;
-  }
+const EMPTY_ROW: AccountMonthMetricsRow = {
+  month_start: '',
+  month_spend: 0,
+  month_count: 0,
+  month_income: 0,
+  month_inflow: 0,
+  month_outflow: 0,
+  prev_month_spend: 0,
+  uncategorized_count: 0,
+  first_uncategorized_id: null,
+  last_description: null,
+  last_date: null,
+};
 
-  if (Array.isArray(tx.items) && tx.items.length > 0) {
-    return tx.items.some((item) => !item.category_id && !item.category?.name);
-  }
-
-  return !tx.category_id && !tx.category?.name;
-}
-
-/** Computes real monthly cash flow, last movement, uncategorized items, and credit cutoff alerts for /accounts. */
-export function computeAccountDetailMetrics(
+/**
+ * Shapes the account's metrics for /accounts. The figures come from account_month_metrics()
+ * (all movements, in Postgres); this only adds labels, the credit bar and the cutoff alert.
+ */
+export function buildAccountDetailMetrics(
   account: Account,
-  transactions: AccountDetailTransaction[],
+  row: AccountMonthMetricsRow | null,
   referenceDate: Date = new Date(),
 ): AccountDetailMetrics {
-  const curYear = referenceDate.getFullYear();
+  const m = row ?? EMPTY_ROW;
   const curMonth = referenceDate.getMonth();
-  const prevMonthDate = new Date(curYear, curMonth - 1, 1);
+  const prevMonthDate = new Date(referenceDate.getFullYear(), curMonth - 1, 1);
 
-  const curSummary = computeAccountMonthSummary(
-    transactions,
-    account.id,
-    referenceDate,
-  );
-  const prevSummary = computeAccountMonthSummary(
-    transactions,
-    account.id,
-    prevMonthDate,
-  );
-
-  const barModel = computeAccountBarModel(account, curSummary);
+  const barModel = computeAccountBarModel(account, {
+    monthSpend: m.month_spend,
+    monthCount: m.month_count,
+  });
   const savingsDeltaPct =
-    prevSummary.monthSpend > 0 && curSummary.monthSpend < prevSummary.monthSpend
-      ? Math.round(
-          ((prevSummary.monthSpend - curSummary.monthSpend) /
-            prevSummary.monthSpend) *
-            100,
-        )
+    m.prev_month_spend > 0 && m.month_spend < m.prev_month_spend
+      ? Math.round(((m.prev_month_spend - m.month_spend) / m.prev_month_spend) * 100)
       : null;
 
-  let monthIncome = 0;
-  let monthInflow = 0;
-  let monthOutflow = 0;
-  let uncategorizedCount = 0;
-  let firstUncategorizedTx: AccountDetailTransaction | null = null;
-  let latestTx: AccountDetailTransaction | null = null;
-
-  for (const tx of transactions) {
-    const isOwnerAccount = tx.account_id === account.id;
-    const isIncomingTransfer =
-      !tx.is_split_child &&
-      tx.type === 'transfer' &&
-      tx.transfer_to_account_id === account.id;
-
-    if (!isOwnerAccount && !isIncomingTransfer) {
-      continue;
-    }
-
-    if (tx.date) {
-      const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);
-      const isCurrentMonth =
-        !Number.isNaN(parsed.getTime()) &&
-        parsed.getFullYear() === curYear &&
-        parsed.getMonth() === curMonth;
-
-      if (isCurrentMonth && countsInReports(tx)) {
-        if (isOwnerAccount && !tx.is_split_child) {
-          const absAmount = Math.abs(Number(tx.amount) || 0);
-          if (tx.type === 'income') {
-            monthIncome += absAmount;
-            monthInflow += absAmount;
-          } else if (
-            tx.type === 'expense' ||
-            tx.type === 'transfer' ||
-            tx.type === 'payment'
-          ) {
-            monthOutflow += absAmount;
-          }
-        } else if (isIncomingTransfer) {
-          monthInflow += Math.abs(Number(tx.target_amount ?? tx.amount) || 0);
-        }
-      }
-
-      if (!latestTx || tx.date.slice(0, 10) > (latestTx.date ?? '').slice(0, 10)) {
-        latestTx = tx;
-      }
-    }
-
-    if (isOwnerAccount && isTransactionUncategorized(tx)) {
-      uncategorizedCount += 1;
-      if (!firstUncategorizedTx) {
-        firstUncategorizedTx = tx;
-      }
-    }
-  }
-
-  const lastTransaction: AccountLastTransaction | null = latestTx
+  const lastTransaction: AccountLastTransaction | null = m.last_date
     ? {
-        description: latestTx.description?.trim() || 'Movimiento',
-        dateLabel: latestTx.date ? formatShortSpanishDate(latestTx.date) : '',
+        description: m.last_description?.trim() || 'Movimiento',
+        dateLabel: formatShortSpanishDate(m.last_date),
       }
     : null;
 
-  const daysUntilCutoff = computeDaysUntilCutoff(
-    barModel.cutoffDay,
-    referenceDate,
-  );
+  const daysUntilCutoff = computeDaysUntilCutoff(barModel.cutoffDay, referenceDate);
   const showCutoffAlert =
-    barModel.isCreditCard &&
-    barModel.creditUsed > 0 &&
-    daysUntilCutoff !== null;
+    barModel.isCreditCard && barModel.creditUsed > 0 && daysUntilCutoff !== null;
 
   return {
     monthLabel: SPANISH_MONTHS[curMonth],
     prevMonthLabel: SPANISH_MONTHS[prevMonthDate.getMonth()],
-    monthSpend: curSummary.monthSpend,
-    monthIncome,
-    monthInflow,
-    monthOutflow,
-    monthCount: curSummary.monthCount,
-    prevMonthSpend: prevSummary.monthSpend,
+    monthSpend: m.month_spend,
+    monthIncome: m.month_income,
+    monthInflow: m.month_inflow,
+    monthOutflow: m.month_outflow,
+    monthCount: m.month_count,
+    prevMonthSpend: m.prev_month_spend,
     savingsDeltaPct,
     lastTransaction,
-    uncategorizedCount,
-    firstUncategorizedTx,
+    uncategorizedCount: m.uncategorized_count,
+    firstUncategorizedId: m.first_uncategorized_id,
     isCreditCard: barModel.isCreditCard,
     creditUsed: barModel.creditUsed,
     creditLimit: barModel.creditLimit,

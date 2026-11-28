@@ -1,5 +1,4 @@
-import type { Account, Transaction } from '@/types';
-import { countsInReports } from '@/lib/reporting';
+import type { Account } from '@/types';
 
 export type CreditUsageTone = 'credit' | 'pending' | 'debit';
 
@@ -36,45 +35,6 @@ export function sortAccountsByPrimary(
   }
 
   return [favoriteAcc, ...accounts.filter((acc) => acc.id !== primaryAccountId)];
-}
-
-/** Sums absolute expense amounts and counts expense movements for an account in the reference month. */
-export function computeAccountMonthSummary(
-  transactions: Transaction[],
-  accountId: string,
-  referenceDate: Date = new Date(),
-): AccountMonthSummary {
-  const curYear = referenceDate.getFullYear();
-  const curMonth = referenceDate.getMonth();
-  let monthSpend = 0;
-  let monthCount = 0;
-
-  for (const tx of transactions) {
-    if (tx.account_id !== accountId || tx.type !== 'expense' || !tx.date || !countsInReports(tx)) {
-      continue;
-    }
-    const parsed = new Date(`${tx.date.slice(0, 10)}T00:00:00`);
-    if (
-      !Number.isNaN(parsed.getTime()) &&
-      parsed.getFullYear() === curYear &&
-      parsed.getMonth() === curMonth
-    ) {
-      monthSpend += Math.abs(Number(tx.amount) || 0);
-      monthCount += 1;
-    }
-  }
-
-  return { monthSpend, monthCount };
-}
-
-/** Sums absolute expense amounts for a specific account within the reference calendar month. */
-export function computeAccountMonthSpend(
-  transactions: Transaction[],
-  accountId: string,
-  referenceDate: Date = new Date(),
-): number {
-  return computeAccountMonthSummary(transactions, accountId, referenceDate)
-    .monthSpend;
 }
 
 /** Computes non-redundant monthly summary or credit limit availability metrics for an active account. */
