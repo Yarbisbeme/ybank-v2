@@ -8,7 +8,11 @@ import { Button } from '@/components/atoms';
 import { EmptyState } from '@/components/molecules';
 import { YCard } from './YCard';
 import { computeCardFrame, computeLiveDragOffset } from './card-stack';
-import { hexToWash, mapDbPatternToCardShape } from './y-card';
+import {
+  getAccountCardStyle,
+  hexToWash,
+  mapDbPatternToCardShape,
+} from './y-card';
 
 export interface CardStackProps {
   accounts: Account[];
@@ -203,7 +207,7 @@ export function CardStack({
                 bankLogoUrl={acc.institution?.logo_url}
                 last4={acc.last_4_digits}
                 color={acc.color || acc.institution?.brand_color_primary}
-                secondaryColor={acc.institution?.brand_color_secondary}
+                {...getAccountCardStyle(acc)}
                 shape={mapDbPatternToCardShape(
                   acc.custom_pattern || acc.institution?.card_pattern,
                 )}

@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/molecules';
 import {
   CardStack,
   YCard,
+  getAccountCardStyle,
   getCardWashAlpha,
   hexToWash,
   mapDbPatternToCardShape,
@@ -306,7 +307,7 @@ export default function AccountCarousel({
                     bankLogoUrl={acc.institution?.logo_url}
                     last4={acc.last_4_digits}
                     color={acc.color || acc.institution?.brand_color_primary}
-                    secondaryColor={acc.institution?.brand_color_secondary}
+                    {...getAccountCardStyle(acc)}
                     shape={mapDbPatternToCardShape(
                       acc.custom_pattern || acc.institution?.card_pattern,
                     )}
